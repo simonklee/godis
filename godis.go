@@ -29,18 +29,18 @@ func read(reader *bufio.Reader) (string, os.Error) {
     }
 
     fmt.Println(line)
-    // switch line[0] {
-    //#    case '+':
-    //#        fmt.Printf("single line")
-    //#    case '-':
-    //#        fmt.Printf("error")
-    //#    case ':':
-    //#        fmt.Printf("integer")
-    //#    case '$':
-    //#        fmt.Printf("bulk")
-    //#    case '*':
-    //#        fmt.Printf("multi-bulk")
-    //#}
+    switch line[0] {
+        case '+':
+            fmt.Printf("single line")
+        case '-':
+            fmt.Printf("error")
+        case ':':
+            fmt.Printf("integer")
+        case '$':
+            fmt.Printf("bulk")
+        case '*':
+            fmt.Printf("multi-bulk")
+    }
 
     return line, nil
 }
