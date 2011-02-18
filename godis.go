@@ -15,33 +15,37 @@ type Client struct {
     db int
 }
 
+const (
+    CRLF = "\n\r"
+)
+
 func read(reader *bufio.Reader) (string, os.Error) {
     var line string
-    for {
-        line, err := reader.ReadString('\n')
-        if len(line) == 0 || err != nil {
-            return line, err
-        }
-        line = strings.TrimSpace(line)
-        if len(line) > 0 {
-            break
-        }
-    }
+    var err os.Error
 
-    fmt.Println(line)
+    for {
+        line, err = reader.ReadString('\n')
+        if err != nil {
+            return "", err
+        }
+        break
+    }
+    line = strings.TrimSpace(line)
+
     switch line[0] {
         case '+':
-            fmt.Printf("single line")
+            fmt.Printf("single line\n")
         case '-':
-            fmt.Printf("error")
+            fmt.Printf("error\n")
         case ':':
-            fmt.Printf("integer")
+            fmt.Printf("integer\n")
         case '$':
-            fmt.Printf("bulk")
+            fmt.Printf("bulk\n")
         case '*':
-            fmt.Printf("multi-bulk")
+            fmt.Printf("multi-bulk\n")
     }
 
+    fmt.Printf("%q\n", line);
     return line, nil
 }
 
@@ -86,6 +90,10 @@ func main() {
     var enc_get []byte = byteCommand("GET", "key")
     fmt.Printf("%q\n", enc_get)
 
-    fmt.Println(client.send(enc_set))
-    fmt.Println(client.send(enc_get))
+    client.send(enc_set)
+    client.send(enc_get)
+    client.send(byteCommand("RPUSH", "keylist", "1"))
+    client.send(byteCommand("GET", "keylist"))
+    client.send(byteCommand("GET", "nonexistant"))
+    client.send(byteCommand("LRANGE", "keylist", "0", "2"))
 }
