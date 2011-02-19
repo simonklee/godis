@@ -29,7 +29,7 @@ func log(args ...interface{}) {
     fmt.Println(args...)
 }
 
-func read(head *bufio.Reader) ([]byte, os.Error) {
+func read(head *bufio.Reader) (interface{}, os.Error) {
     var res string
     var err os.Error
 
@@ -45,11 +45,13 @@ func read(head *bufio.Reader) ([]byte, os.Error) {
 
     switch res_type {
         case '+':
-            fmt.Printf("single line\n")
+            return res, nil
         case '-':
-            fmt.Printf("error\n")
+            return nil, os.NewError(res)
         case ':':
-            fmt.Printf("integer\n")
+            n, err := strconv.Atoi64(res)
+            log(n)
+            return n, err
         case '$':
             l, _ := strconv.Atoi(res)
             l += 2 
@@ -58,7 +60,7 @@ func read(head *bufio.Reader) ([]byte, os.Error) {
             n, err := head.Read(data)
             if n != l || err != nil {
                 if n != l {
-                    err = os.NewError("Expected bytes reading bulk mismatched")
+                    err = os.NewError("Len mismatch")
                 }
                 return nil, err
             }
@@ -70,17 +72,20 @@ func read(head *bufio.Reader) ([]byte, os.Error) {
         case '*':
             l, _ := strconv.Atoi(string(res[0]))
             log("multi-bulk-len: " + strconv.Itoa(l))
+            var data = make([][]byte, l)
             for i := 0; i < l; i++ {
-                data, err := read(head)
-                fmt.Printf("%q\n", string(data))
+                d, err := read(head)
                 if err != nil {
                     log("returned with error")
                     return nil, err
                 }
+                data[i] = d.([]byte)
             }
-    }
 
-    return []byte(res), nil
+            fmt.Printf("%q\n", data)
+            return data, nil
+    }
+    return nil, os.NewError("Undefined redis response") 
 }
 
 func write(con net.Conn, cmd []byte) (*bufio.Reader, os.Error) {
@@ -92,7 +97,7 @@ func write(con net.Conn, cmd []byte) (*bufio.Reader, os.Error) {
     return bufio.NewReader(con), nil
 }
 
-func (client *Client) send(cmd string, args...string) (data []byte, err os.Error) {
+func (client *Client) send(cmd string, args...string) (data interface{}, err os.Error) {
     var addrString string = fmt.Sprintf("%s:%d", client.host, client.port)
 
     addr, err := net.ResolveTCPAddr(addrString)
@@ -130,8 +135,9 @@ func main() {
     //client.send("RPUSH", "keylist", "two")
     // client.write(bytesCommand("GET", "keylist"))
     // client.write(bytesCommand("GET", "nonexistant"))
-    // client.send("GET", "key-2")
+    client.send("GET", "key")
     // client.send("SET", "key", "Hello")
-    client.send("LRANGE", "keylist", "0", "4")
-    //client.send("KEYS", "*")
+    //client.send("LRANGE", "keylist", "0", "4")
+    // client.send("KEYS", "*")
+    client.send("EXISTS", "key")
 }
