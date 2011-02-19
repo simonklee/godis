@@ -24,12 +24,17 @@ func bytesCommand(cmd string, args ...string) []byte {
     return buf.Bytes()
 }
 
-func read(reader *bufio.Reader) ([]byte, os.Error) {
+func log(args ...interface{}) {
+    fmt.Printf("DEBUG: ")
+    fmt.Println(args...)
+}
+
+func read(head *bufio.Reader) ([]byte, os.Error) {
     var res string
     var err os.Error
 
     for {
-        res, err = reader.ReadString('\n')
+        res, err = head.ReadString('\n')
         if err != nil {
             return nil, err
         }
@@ -46,14 +51,35 @@ func read(reader *bufio.Reader) ([]byte, os.Error) {
         case ':':
             fmt.Printf("integer\n")
         case '$':
-            fmt.Printf("bulk\n")
+            l, _ := strconv.Atoi(res)
+            l += 2 
+            data := make([]byte, l)
+
+            n, err := head.Read(data)
+            if n != l || err != nil {
+                if n != l {
+                    err = os.NewError("Expected bytes reading bulk mismatched")
+                }
+                return nil, err
+            }
+
+            log("bulk-len: " + strconv.Itoa(l))
+            log("bulk-value: " + string(data))
+
+            return data[:l - 2], nil
         case '*':
-            fmt.Printf("multi-bulk\n")
             l, _ := strconv.Atoi(string(res[0]))
-            fmt.Println(l)
+            log("multi-bulk-len: " + strconv.Itoa(l))
+            for i := 0; i < l; i++ {
+                data, err := read(head)
+                fmt.Printf("%q\n", string(data))
+                if err != nil {
+                    log("returned with error")
+                    return nil, err
+                }
+            }
     }
 
-    fmt.Printf("%q\n", res);
     return []byte(res), nil
 }
 
@@ -101,9 +127,11 @@ func main() {
 
     // client.write(enc_set)
     // client.write(enc_get)
-    // client.write(bytesCommand("RPUSH", "keylist", "1"))
+    //client.send("RPUSH", "keylist", "two")
     // client.write(bytesCommand("GET", "keylist"))
     // client.write(bytesCommand("GET", "nonexistant"))
-    client.send("LRANGE", "keylist", "0", "2")
-    client.send("KEYS", "*")
+    // client.send("GET", "key-2")
+    // client.send("SET", "key", "Hello")
+    client.send("LRANGE", "keylist", "0", "4")
+    //client.send("KEYS", "*")
 }
