@@ -1,4 +1,4 @@
-package main
+package godis
 
 import (
     "net"
@@ -10,23 +10,29 @@ import (
     "strconv"
 )
 
-type Client struct {
-    host string
-    port int
-    db int
+type pool struct {
+    free chan *net.TCPConn
 }
 
-func bytesCommand(cmd string, args ...string) []byte {
-    buf := bytes.NewBufferString(fmt.Sprintf("*%d\r\n$%d\r\n%s\r\n", len(args) + 1, len(cmd), cmd))
-    for _, arg := range args {
-        buf.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg))
-    }    
-    return buf.Bytes()
+type Client struct {
+    Host string 
+    Port int 
+    Db int 
+    Password string
+    pool *pool
 }
 
 func log(args ...interface{}) {
     fmt.Printf("DEBUG: ")
     fmt.Println(args...)
+}
+
+func command(cmd string, args ...string) []byte {
+    buf := bytes.NewBufferString(fmt.Sprintf("*%d\r\n$%d\r\n%s\r\n", len(args) + 1, len(cmd), cmd))
+    for _, arg := range args {
+        buf.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg))
+    }    
+    return buf.Bytes()
 }
 
 func read(head *bufio.Reader) (interface{}, os.Error) {
@@ -43,10 +49,13 @@ func read(head *bufio.Reader) (interface{}, os.Error) {
     res_type := res[0]
     res = strings.TrimSpace(res[1:])
 
+    fmt.Printf("%c\n", res_type)
     switch res_type {
         case '+':
+            log(res)
             return res, nil
         case '-':
+            log(res)
             return nil, os.NewError(res)
         case ':':
             n, err := strconv.Atoi64(res)
@@ -54,6 +63,10 @@ func read(head *bufio.Reader) (interface{}, os.Error) {
             return n, err
         case '$':
             l, _ := strconv.Atoi(res)
+            if l == -1 {
+                return nil, os.NewError("Key does not exist")
+            }
+
             l += 2 
             data := make([]byte, l)
 
@@ -67,6 +80,7 @@ func read(head *bufio.Reader) (interface{}, os.Error) {
 
             log("bulk-len: " + strconv.Itoa(l))
             log("bulk-value: " + string(data))
+            fmt.Printf("%q\n", data)
 
             return data[:l - 2], nil
         case '*':
@@ -88,56 +102,46 @@ func read(head *bufio.Reader) (interface{}, os.Error) {
     return nil, os.NewError("Undefined redis response") 
 }
 
-func write(con net.Conn, cmd []byte) (*bufio.Reader, os.Error) {
-    _, err := con.Write(cmd)
-    if err != nil {
-        return nil, os.NewError("Error writing cmd " + err.String())
-    }
-    
-    return bufio.NewReader(con), nil
+func write(conn *net.TCPConn, cmd string, args ...string) (err os.Error) {
+    _, err = conn.Write(command(cmd, args...))
+    return
 }
 
-func (client *Client) send(cmd string, args...string) (data interface{}, err os.Error) {
-    var addrString string = fmt.Sprintf("%s:%d", client.host, client.port)
+func (p *pool) pop() (*net.TCPConn, os.Error) { 
+    return nil, nil
+}
 
+func (p *pool) push(*net.TCPConn) {
+}
+
+
+func (client *Client) connect() (*net.TCPConn, os.Error) {
+    if client.pool == nil {
+        //client.pool = pool{}
+    }
+
+    addrString := fmt.Sprintf("%s:%d", client.Host, client.Port)
     addr, err := net.ResolveTCPAddr(addrString)
     if err != nil {
         return nil, os.NewError("Error resolving Redis TCP addr")
     }
 
-    con, err := net.DialTCP("tcp", nil, addr)
+    conn, err := net.DialTCP("tcp", nil, addr)
     if err != nil {
         return nil, os.NewError("Error connection to Redis at " + addr.String())
     }
+    return conn, err
+}
 
-    reader, err := write(con, bytesCommand(cmd, args...))
+func (client *Client) Send(cmd string, args...string) (interface{}, os.Error) {
+    conn, err := client.connect()
     if err != nil {
         return nil, err
     }
 
-    data, err = read(reader) 
-    con.Close()
+    err = write(conn, cmd, args...)
+    data, err := read(bufio.NewReader(conn)) 
+    conn.Close()
 
-    return
-}
-
-func main() {
-    var client Client = Client{"127.0.0.1", 6379, 0} 
-
-    // var enc_set []byte = bytesCommand("SET", "key", "hello")
-    // fmt.Printf("%q\n", enc_set)
-
-    // var enc_get []byte = bytesCommand("GET", "key")
-    // fmt.Printf("%q\n", enc_get)
-
-    // client.write(enc_set)
-    // client.write(enc_get)
-    //client.send("RPUSH", "keylist", "two")
-    // client.write(bytesCommand("GET", "keylist"))
-    // client.write(bytesCommand("GET", "nonexistant"))
-    client.send("GET", "key")
-    // client.send("SET", "key", "Hello")
-    //client.send("LRANGE", "keylist", "0", "4")
-    // client.send("KEYS", "*")
-    client.send("EXISTS", "key")
+    return data, err
 }

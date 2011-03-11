@@ -4,4 +4,4 @@ TARG=godis
 GOFILES=\
 	godis.go\
 
-include $(GOROOT)/src/Make.cmd
+include $(GOROOT)/src/Make.pkg
