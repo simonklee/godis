@@ -167,5 +167,3 @@ func TestParser(t *testing.T) {
 //        }
 //    }
 //}
-//    // client.write(bytesCommand("GET", "keylist"))
-//    // client.write(bytesCommand("GET", "nonexistant"))
