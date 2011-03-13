@@ -7,7 +7,7 @@ import (
     "bytes"
     "strings"
     "strconv"
-    "log"
+    // "log"
 )
 
 type Client struct {
@@ -27,6 +27,9 @@ func newError(format string, args ...interface{}) os.Error {
 
 func errorReply(line string) (interface{}, os.Error) {
     // log.Println("GODIS: " + res)
+    if strings.HasPrefix(line, "ERR") {
+        line = line[3:]
+    }
     return nil, newError(line)
 }
 
@@ -37,8 +40,7 @@ func singleReply(line string) (string, os.Error) {
 
 func integerReply(line string) (int64, os.Error) {
     // log.Println("GODIS: " + res)
-    n, err := strconv.Atoi64(line)
-    return n, err
+    return strconv.Atoi64(line)
 }
 
 func bulkReply(line string, head *bufio.Reader) ([]byte, os.Error) {
@@ -47,6 +49,7 @@ func bulkReply(line string, head *bufio.Reader) ([]byte, os.Error) {
         return nil, nil
     }
 
+    l += 2 // make sure to read \r\n
     data := make([]byte, l)
 
     n, err := head.Read(data)
@@ -56,10 +59,11 @@ func bulkReply(line string, head *bufio.Reader) ([]byte, os.Error) {
         }
         return nil, err
     }
-    // log.Println("GODIS: bulk-len: " + strconv.Itoa(l))
-    // log.Println("GODIS: bulk-value: " + string(data))
-    // log.Printf("GODIS: %q\n", data)
-    return data, nil
+    l -= 2
+    //log.Println("GODIS: bulk-len: " + strconv.Itoa(l))
+    //log.Println("GODIS: bulk-value: " + string(data))
+    //log.Printf("GODIS: %q\n", data)
+    return data[:l], nil
 }
 
 func multiBulkReply(line string, head *bufio.Reader) ([][]byte, os.Error) {
@@ -69,18 +73,15 @@ func multiBulkReply(line string, head *bufio.Reader) ([][]byte, os.Error) {
         return nil, nil
     }
 
-    // log.Println("GODIS: multi-bulk-len: " + strconv.Itoa(l))
     var data = make([][]byte, l)
     for i := 0; i < l; i++ {
         d, err := Read(head)
         if err != nil {
-            log.Println("GODIS: returned with error")
             return nil, err
         }
         data[i] = d.([]byte)
     }
 
-    // fmt.Printf("GODIS: %q\n", data)
     return data, nil
 }
 
@@ -105,7 +106,7 @@ func Read(head *bufio.Reader) (interface{}, os.Error) {
     case '*':
         return multiBulkReply(line, head)
     }
-    return nil, newError("Unknown response ")
+    return nil, newError("Unknown response " + string(typ))
 }
 
 func buildCommand(args ...string) []byte {

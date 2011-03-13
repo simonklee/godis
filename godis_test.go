@@ -20,8 +20,16 @@ func l(args ...interface{}) {
     }
 }
 
-func s2bytes(s string) []byte {
+func s2Bytes(s string) []byte {
     return bytes.NewBufferString(s).Bytes()
+}
+
+func s2MultiBytes(ss ...string) [][]byte {
+    var buf = make([][]byte, len(ss))
+    for i := 0; i < len(ss); i++ {
+        buf[i] = s2Bytes(ss[i])
+    }
+    return buf
 }
 
 type CmdGoodTest struct {
@@ -34,8 +42,10 @@ var cmdGoodTests = []CmdGoodTest{
     {"FLUSHDB", []string{}, "OK"},
     {"SET", []string{"key", "foo"}, "OK"},
     {"EXISTS", []string{"key"}, int64(1)},
-    {"GET", []string{"key"}, s2bytes("foo")},
+    {"GET", []string{"key"}, s2Bytes("foo")},
     {"RPUSH", []string{"list", "foo"}, int64(1)},
+    {"RPUSH", []string{"list", "bar"}, int64(2)},
+    {"LRANGE", []string{"list", "0", "2"}, s2MultiBytes("foo", "bar")},
 }
 
 func TestGoodSend(t *testing.T) {
@@ -44,7 +54,7 @@ func TestGoodSend(t *testing.T) {
         res, err := c.Send(test.cmd, test.args...)
 
         if err != nil {
-            t.Errorf("unexpeced error %q", err)
+            t.Errorf("'%s': unexpeced error %q", test.cmd, err)
             t.FailNow()
         }
 
@@ -52,14 +62,17 @@ func TestGoodSend(t *testing.T) {
         case []byte:
             for i, c := range res.([]byte) {
                 if c != test.out.([]byte)[i] {
-                    t.Errorf("expected %v got %v", test.out, res)
+                    t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
                 }
             }
         case [][]byte:
-            for _, b := range res.([][]byte) {
-                for j, c := range b {
-                    if c != test.out.([]byte)[j] {
-                        t.Errorf("expected %v got %v", test.out, res)
+            res_arr := res.([][]byte)
+            out_arr := test.out.([][]byte)
+
+            for i := 0; i < len(res_arr); i++ {
+                for j := 0; j < len(res_arr[i]); j++ {
+                    if res_arr[i][j] != out_arr[i][j] {
+                        t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
                     }
                 }
             }
@@ -83,7 +96,7 @@ var simpleParserTests = []simpleParserTest{
     {"+OK\r\n", "OK", "ok", nil},
     {"-ERR\r\n", nil, "err", os.NewError("ERR")},
     {":1\r\n", int64(1), "num", nil},
-    {"$3\r\nfoo\r\n", s2bytes("foo"), "bulk", nil},
+    {"$3\r\nfoo\r\n", s2Bytes("foo"), "bulk", nil},
     {"$-1\r\n", nil, "bulk-nil", nil},
     {"*-1\r\n", nil, "multi-bulk-nil", nil},
 }
