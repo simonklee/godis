@@ -9,7 +9,7 @@ import (
 type C struct {
     Port int
     Name string
-    p *Pool
+    p    *Pool
 }
 
 func TestC(t *testing.T) {
@@ -37,6 +37,6 @@ func TestPool(t *testing.T) {
 
         go func(c *net.TCPConn) {
             p.Push(c)
-        } (c)
+        }(c)
     }
 }

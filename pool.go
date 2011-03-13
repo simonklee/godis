@@ -11,10 +11,10 @@ const (
 
 type Pool struct {
     pool chan *net.TCPConn
-    addr string 
+    addr string
 }
 
-func NewPool(addr string) (*Pool){
+func NewPool(addr string) *Pool {
     p := Pool{make(chan *net.TCPConn, MaxClientConn), addr}
     for i := 0; i < MaxClientConn; i++ {
         p.pool <- nil
@@ -22,7 +22,7 @@ func NewPool(addr string) (*Pool){
     return &p
 }
 
-func (p *Pool) Pop() (c *net.TCPConn, err os.Error) { 
+func (p *Pool) Pop() (c *net.TCPConn, err os.Error) {
     c = <-p.pool
     if c == nil {
         return connect(p.addr)
@@ -36,7 +36,7 @@ func (p *Pool) Push(c *net.TCPConn) {
 
 // TODO: flush the pool
 func (p *Pool) Flush() {
-    
+
 }
 
 func connect(addr string) (c *net.TCPConn, err os.Error) {
@@ -49,5 +49,5 @@ func connect(addr string) (c *net.TCPConn, err os.Error) {
     if err != nil {
         err = os.NewError("Connection error " + a.String())
     }
-    return 
+    return
 }

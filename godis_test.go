@@ -7,6 +7,7 @@ import (
     "log"
     "os"
 )
+
 const (
     LOG = true
 )
@@ -19,14 +20,14 @@ func l(args ...interface{}) {
     }
 }
 
-func s2bytes(s string) ([]byte){
+func s2bytes(s string) []byte {
     return bytes.NewBufferString(s).Bytes()
 }
 
 type CmdGoodTest struct {
-    cmd string
+    cmd  string
     args []string
-    out interface{}
+    out  interface{}
 }
 
 var cmdGoodTests = []CmdGoodTest{
@@ -34,7 +35,7 @@ var cmdGoodTests = []CmdGoodTest{
     {"SET", []string{"key", "foo"}, "OK"},
     {"EXISTS", []string{"key"}, int64(1)},
     {"GET", []string{"key"}, s2bytes("foo")},
-    {"RPUSH", []string{"list", "foo"}, int64(1)}, 
+    {"RPUSH", []string{"list", "foo"}, int64(1)},
 }
 
 func TestGoodSend(t *testing.T) {
@@ -48,13 +49,13 @@ func TestGoodSend(t *testing.T) {
         }
 
         switch v := res.(type) {
-        case []byte: 
+        case []byte:
             for i, c := range res.([]byte) {
                 if c != test.out.([]byte)[i] {
                     t.Errorf("expected %v got %v", test.out, res)
                 }
             }
-        case [][]byte: 
+        case [][]byte:
             for _, b := range res.([][]byte) {
                 for j, c := range b {
                     if c != test.out.([]byte)[j] {
@@ -62,7 +63,7 @@ func TestGoodSend(t *testing.T) {
                     }
                 }
             }
-        default: 
+        default:
             if res != test.out {
                 t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
             }
@@ -72,13 +73,13 @@ func TestGoodSend(t *testing.T) {
 }
 
 type simpleParserTest struct {
-    in string
-    out interface{}
+    in   string
+    out  interface{}
     name string
-    err os.Error
+    err  os.Error
 }
 
-var simpleParserTests = []simpleParserTest {
+var simpleParserTests = []simpleParserTest{
     {"+OK\r\n", "OK", "ok", nil},
     {"-ERR\r\n", nil, "err", os.NewError("ERR")},
     {":1\r\n", int64(1), "num", nil},
@@ -87,7 +88,7 @@ var simpleParserTests = []simpleParserTest {
     {"*-1\r\n", nil, "multi-bulk-nil", nil},
 }
 
-func reader(data string) (*bufio.Reader){
+func reader(data string) *bufio.Reader {
     b := bufio.NewReader(bytes.NewBufferString(data))
     return b
 }
@@ -102,14 +103,14 @@ func TestParser(t *testing.T) {
         }
 
         switch v := res.(type) {
-        case []byte: 
+        case []byte:
             for i, c := range res.([]byte) {
                 if c != test.out.([]byte)[i] {
                     t.Errorf("expected %v got %v", test.out, res)
                 }
             }
 
-        case [][]byte: 
+        case [][]byte:
             for _, b := range res.([][]byte) {
                 for j, c := range b {
                     if c != test.out.([]byte)[j] {
@@ -117,9 +118,9 @@ func TestParser(t *testing.T) {
                     }
                 }
             }
-        default: 
+        default:
             if res != test.out {
-               t.Errorf("'%s': expected %s got %v", test.name, test.out, res)
+                t.Errorf("'%s': expected %s got %v", test.name, test.out, res)
             }
         }
         //l(test.in, res, test.out)
@@ -151,15 +152,7 @@ func TestParser(t *testing.T) {
 //        }
 //    }
 //}
-//func main() {
-//    // client.write(enc_set)
-//    // client.write(enc_get)
-//    //client.send("RPUSH", "keylist", "two")
 //    // client.write(bytesCommand("GET", "keylist"))
 //    // client.write(bytesCommand("GET", "nonexistant"))
-//    //client.send("GET", "key")
-//    // client.send("SET", "key", "Hello")
 //    //client.send("LRANGE", "keylist", "0", "4")
 //    //client.send("KEYS", "*")
-//    //client.send("EXISTS", "key")
-//}

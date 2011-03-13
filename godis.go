@@ -11,17 +11,17 @@ import (
 )
 
 type Client struct {
-    Addr string
-    Db int 
+    Addr     string
+    Db       int
     Password string
-    pool *Pool
+    pool     *Pool
 }
 
 var (
     defaultAddr = "localhost:6379"
 )
 
-func newError(format string, args ...interface{}) (os.Error) {
+func newError(format string, args ...interface{}) os.Error {
     return os.NewError(fmt.Sprintf(format, args...))
 }
 
@@ -44,7 +44,7 @@ func integerReply(line string) (int64, os.Error) {
 func bulkReply(line string, head *bufio.Reader) ([]byte, os.Error) {
     l, _ := strconv.Atoi(line)
     if l == -1 {
-        return nil, nil 
+        return nil, nil
     }
 
     data := make([]byte, l)
@@ -94,29 +94,29 @@ func Read(head *bufio.Reader) (interface{}, os.Error) {
     line := strings.TrimSpace(res[1:])
 
     switch typ {
-    case '-': 
+    case '-':
         return errorReply(line)
-    case '+': 
+    case '+':
         return singleReply(line)
-    case ':': 
+    case ':':
         return integerReply(line)
     case '$':
         return bulkReply(line, head)
-    case '*': 
+    case '*':
         return multiBulkReply(line, head)
     }
-    return nil, newError("Unknown response ") 
+    return nil, newError("Unknown response ")
 }
 
 func buildCommand(args ...string) []byte {
     cmd := bytes.NewBufferString(fmt.Sprintf("*%d\r\n", len(args)))
     for _, arg := range args {
         cmd.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg))
-    }    
+    }
     return cmd.Bytes()
 }
 
-func (c *Client) Send(cmd string, args...string) (data interface{}, err os.Error) {
+func (c *Client) Send(cmd string, args ...string) (data interface{}, err os.Error) {
     if c.Addr == "" {
         c.Addr = defaultAddr
     }
@@ -138,11 +138,10 @@ func (c *Client) Send(cmd string, args...string) (data interface{}, err os.Error
         return nil, err
     }
 
-    data, err = Read(bufio.NewReader(conn)) 
+    data, err = Read(bufio.NewReader(conn))
     if err != nil {
         return nil, err
     }
 
-    return 
+    return
 }
-
