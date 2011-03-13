@@ -46,6 +46,7 @@ var cmdGoodTests = []CmdGoodTest{
     {"RPUSH", []string{"list", "foo"}, int64(1)},
     {"RPUSH", []string{"list", "bar"}, int64(2)},
     {"LRANGE", []string{"list", "0", "2"}, s2MultiBytes("foo", "bar")},
+    {"KEYS", []string{"list"}, s2MultiBytes("list")},
 }
 
 func TestGoodSend(t *testing.T) {
