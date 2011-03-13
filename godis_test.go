@@ -2,9 +2,26 @@ package godis
 
 import (
     "testing"
-    "reflect"
+    "bufio"
+    "bytes"
+    "log"
     "os"
 )
+const (
+    LOG = true
+)
+
+var logger = log.New(os.Stderr, "", 0x00)
+
+func l(args ...interface{}) {
+    if LOG {
+        logger.Println(args...)
+    }
+}
+
+func s2bytes(s string) ([]byte){
+    return bytes.NewBufferString(s).Bytes()
+}
 
 type CmdGoodTest struct {
     cmd string
@@ -13,7 +30,11 @@ type CmdGoodTest struct {
 }
 
 var cmdGoodTests = []CmdGoodTest{
-    {"EXISTS", []string{"key"}, 1},
+    {"FLUSHDB", []string{}, "OK"},
+    {"SET", []string{"key", "foo"}, "OK"},
+    {"EXISTS", []string{"key"}, int64(1)},
+    {"GET", []string{"key"}, s2bytes("foo")},
+    {"RPUSH", []string{"list", "foo"}, int64(1)}, 
 }
 
 func TestGoodSend(t *testing.T) {
@@ -26,56 +47,111 @@ func TestGoodSend(t *testing.T) {
             t.FailNow()
         }
 
-        r_typ := reflect.Typeof(res)
-        t_typ := reflect.Typeof(test.out)
-
-        if  r_typ != t_typ {
-            t.Errorf("expected typeof %v got %v", t_typ, r_typ)
+        switch v := res.(type) {
+        case []byte: 
+            for i, c := range res.([]byte) {
+                if c != test.out.([]byte)[i] {
+                    t.Errorf("expected %v got %v", test.out, res)
+                }
+            }
+        case [][]byte: 
+            for _, b := range res.([][]byte) {
+                for j, c := range b {
+                    if c != test.out.([]byte)[j] {
+                        t.Errorf("expected %v got %v", test.out, res)
+                    }
+                }
+            }
+        default: 
+            if res != test.out {
+                t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
+            }
         }
-
-        if res != test.out {
-            t.Errorf("expected %v got %v", test.out, res)
-        }
+        l(test.cmd, test.args, test.out)
     }
 }
 
-type CmdBadTest struct {
-    cmd string
-    args []string
+type simpleParserTest struct {
+    in string
     out interface{}
+    name string
     err os.Error
 }
 
-var cmdBadTests = []CmdBadTest{
-    {"EXISTS", []string{"bar"}, 0, nil},
+var simpleParserTests = []simpleParserTest {
+    {"+OK\r\n", "OK", "ok", nil},
+    {"-ERR\r\n", nil, "err", os.NewError("ERR")},
+    {":1\r\n", int64(1), "num", nil},
+    {"$3\r\nfoo\r\n", s2bytes("foo"), "bulk", nil},
+    {"$-1\r\n", nil, "bulk-nil", nil},
+    {"*-1\r\n", nil, "multi-bulk-nil", nil},
 }
 
-func TestBadSend(t *testing.T) {
-    var c Client
-    for _, test := range cmdBadTests {
-        // TODO: implement test
-        res, err := c.Send(test.cmd, test.args...)
+func reader(data string) (*bufio.Reader){
+    b := bufio.NewReader(bytes.NewBufferString(data))
+    return b
+}
 
-        if err != test.err {
-            t.Errorf("expected error %v got %v", test.err, res)
+func TestParser(t *testing.T) {
+    for _, test := range simpleParserTests {
+        res, err := Read(reader(test.in))
+
+        if err != nil && test.err == nil {
+            t.Errorf("'%s': unexpected error %v", test.name, err)
+            t.FailNow()
         }
 
-        if res != test.out {
+        switch v := res.(type) {
+        case []byte: 
+            for i, c := range res.([]byte) {
+                if c != test.out.([]byte)[i] {
+                    t.Errorf("expected %v got %v", test.out, res)
+                }
+            }
+
+        case [][]byte: 
+            for _, b := range res.([][]byte) {
+                for j, c := range b {
+                    if c != test.out.([]byte)[j] {
+                        t.Errorf("expected %v got %v", test.out, res)
+                    }
+                }
+            }
+        default: 
+            if res != test.out {
+               t.Errorf("'%s': expected %s got %v", test.name, test.out, res)
+            }
         }
+        //l(test.in, res, test.out)
     }
 }
+
+//type CmdBadTest struct {
+//    cmd string
+//    args []string
+//    out interface{}
+//    err os.Error
+//}
+//
+//var cmdBadTests = []CmdBadTest{
+//    {"EXISTS", []string{"bar"}, 0, nil},
+//}
+//
+//func TestBadSend(t *testing.T) {
+//    var c Client
+//    for _, test := range cmdBadTests {
+//        // TODO: implement test
+//        res, err := c.Send(test.cmd, test.args...)
+//
+//        if err != test.err {
+//            t.Errorf("expected error %v got %v", test.err, res)
+//        }
+//
+//        if res != test.out {
+//        }
+//    }
+//}
 //func main() {
-//    //var client Client = Client{"127.0.0.1", 6379, 0, nil} 
-//    var client Client
-//    log(client.Host)
-//    //client := new(Client)
-//
-//    // var enc_set []byte = bytesCommand("SET", "key", "hello")
-//    // fmt.Printf("%q\n", enc_set)
-//
-//    // var enc_get []byte = bytesCommand("GET", "key")
-//    // fmt.Printf("%q\n", enc_get)
-//
 //    // client.write(enc_set)
 //    // client.write(enc_get)
 //    //client.send("RPUSH", "keylist", "two")

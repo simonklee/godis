@@ -1,147 +1,148 @@
 package godis
 
 import (
-    "net"
     "fmt"
     "os"
     "bufio"
     "bytes"
     "strings"
     "strconv"
+    "log"
 )
 
-type pool struct {
-    free chan *net.TCPConn
-}
-
 type Client struct {
-    Host string 
-    Port int 
+    Addr string
     Db int 
     Password string
-    pool *pool
+    pool *Pool
 }
 
-func log(args ...interface{}) {
-    fmt.Printf("DEBUG: ")
-    fmt.Println(args...)
+var (
+    defaultAddr = "localhost:6379"
+)
+
+func newError(format string, args ...interface{}) (os.Error) {
+    return os.NewError(fmt.Sprintf(format, args...))
 }
 
-func command(cmd string, args ...string) []byte {
-    buf := bytes.NewBufferString(fmt.Sprintf("*%d\r\n$%d\r\n%s\r\n", len(args) + 1, len(cmd), cmd))
-    for _, arg := range args {
-        buf.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg))
-    }    
-    return buf.Bytes()
+func errorReply(line string) (interface{}, os.Error) {
+    // log.Println("GODIS: " + res)
+    return nil, newError(line)
 }
 
-func read(head *bufio.Reader) (interface{}, os.Error) {
-    var res string
-    var err os.Error
+func singleReply(line string) (string, os.Error) {
+    // log.Println("GODIS: " + res)
+    return line, nil
+}
 
-    for {
-        res, err = head.ReadString('\n')
+func integerReply(line string) (int64, os.Error) {
+    // log.Println("GODIS: " + res)
+    n, err := strconv.Atoi64(line)
+    return n, err
+}
+
+func bulkReply(line string, head *bufio.Reader) ([]byte, os.Error) {
+    l, _ := strconv.Atoi(line)
+    if l == -1 {
+        return nil, nil 
+    }
+
+    data := make([]byte, l)
+
+    n, err := head.Read(data)
+    if n != l || err != nil {
+        if n != l {
+            err = newError("expected %d bytes got %d bytes", l, n)
+        }
+        return nil, err
+    }
+    // log.Println("GODIS: bulk-len: " + strconv.Itoa(l))
+    // log.Println("GODIS: bulk-value: " + string(data))
+    // log.Printf("GODIS: %q\n", data)
+    return data, nil
+}
+
+func multiBulkReply(line string, head *bufio.Reader) ([][]byte, os.Error) {
+    l, _ := strconv.Atoi(line)
+
+    if l == -1 {
+        return nil, nil
+    }
+
+    // log.Println("GODIS: multi-bulk-len: " + strconv.Itoa(l))
+    var data = make([][]byte, l)
+    for i := 0; i < l; i++ {
+        d, err := Read(head)
         if err != nil {
+            log.Println("GODIS: returned with error")
             return nil, err
         }
-        break
-    }
-    res_type := res[0]
-    res = strings.TrimSpace(res[1:])
-
-    fmt.Printf("%c\n", res_type)
-    switch res_type {
-        case '+':
-            log(res)
-            return res, nil
-        case '-':
-            log(res)
-            return nil, os.NewError(res)
-        case ':':
-            n, err := strconv.Atoi64(res)
-            log(n)
-            return n, err
-        case '$':
-            l, _ := strconv.Atoi(res)
-            if l == -1 {
-                return nil, os.NewError("Key does not exist")
-            }
-
-            l += 2 
-            data := make([]byte, l)
-
-            n, err := head.Read(data)
-            if n != l || err != nil {
-                if n != l {
-                    err = os.NewError("Len mismatch")
-                }
-                return nil, err
-            }
-
-            log("bulk-len: " + strconv.Itoa(l))
-            log("bulk-value: " + string(data))
-            fmt.Printf("%q\n", data)
-
-            return data[:l - 2], nil
-        case '*':
-            l, _ := strconv.Atoi(string(res[0]))
-            log("multi-bulk-len: " + strconv.Itoa(l))
-            var data = make([][]byte, l)
-            for i := 0; i < l; i++ {
-                d, err := read(head)
-                if err != nil {
-                    log("returned with error")
-                    return nil, err
-                }
-                data[i] = d.([]byte)
-            }
-
-            fmt.Printf("%q\n", data)
-            return data, nil
-    }
-    return nil, os.NewError("Undefined redis response") 
-}
-
-func write(conn *net.TCPConn, cmd string, args ...string) (err os.Error) {
-    _, err = conn.Write(command(cmd, args...))
-    return
-}
-
-func (p *pool) pop() (*net.TCPConn, os.Error) { 
-    return nil, nil
-}
-
-func (p *pool) push(*net.TCPConn) {
-}
-
-
-func (client *Client) connect() (*net.TCPConn, os.Error) {
-    if client.pool == nil {
-        //client.pool = pool{}
+        data[i] = d.([]byte)
     }
 
-    addrString := fmt.Sprintf("%s:%d", client.Host, client.Port)
-    addr, err := net.ResolveTCPAddr(addrString)
-    if err != nil {
-        return nil, os.NewError("Error resolving Redis TCP addr")
-    }
-
-    conn, err := net.DialTCP("tcp", nil, addr)
-    if err != nil {
-        return nil, os.NewError("Error connection to Redis at " + addr.String())
-    }
-    return conn, err
+    // fmt.Printf("GODIS: %q\n", data)
+    return data, nil
 }
 
-func (client *Client) Send(cmd string, args...string) (interface{}, os.Error) {
-    conn, err := client.connect()
+func Read(head *bufio.Reader) (interface{}, os.Error) {
+    res, err := head.ReadString('\n')
     if err != nil {
         return nil, err
     }
 
-    err = write(conn, cmd, args...)
-    data, err := read(bufio.NewReader(conn)) 
-    conn.Close()
+    typ := res[0]
+    line := strings.TrimSpace(res[1:])
 
-    return data, err
+    switch typ {
+    case '-': 
+        return errorReply(line)
+    case '+': 
+        return singleReply(line)
+    case ':': 
+        return integerReply(line)
+    case '$':
+        return bulkReply(line, head)
+    case '*': 
+        return multiBulkReply(line, head)
+    }
+    return nil, newError("Unknown response ") 
 }
+
+func buildCommand(args ...string) []byte {
+    cmd := bytes.NewBufferString(fmt.Sprintf("*%d\r\n", len(args)))
+    for _, arg := range args {
+        cmd.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg))
+    }    
+    return cmd.Bytes()
+}
+
+func (c *Client) Send(cmd string, args...string) (data interface{}, err os.Error) {
+    if c.Addr == "" {
+        c.Addr = defaultAddr
+    }
+
+    if c.pool == nil {
+        c.pool = NewPool(c.Addr)
+    }
+
+    conn, err := c.pool.Pop()
+    defer c.pool.Push(conn)
+
+    if err != nil {
+        return nil, err
+    }
+
+    cmds := append([]string{cmd}, args...)
+    _, err = conn.Write(buildCommand(cmds...))
+    if err != nil {
+        return nil, err
+    }
+
+    data, err = Read(bufio.NewReader(conn)) 
+    if err != nil {
+        return nil, err
+    }
+
+    return 
+}
+
