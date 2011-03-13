@@ -47,6 +47,7 @@ var cmdGoodTests = []CmdGoodTest{
     {"RPUSH", []string{"list", "bar"}, int64(2)},
     {"LRANGE", []string{"list", "0", "2"}, s2MultiBytes("foo", "bar")},
     {"KEYS", []string{"list"}, s2MultiBytes("list")},
+    {"GET", []string{"/dev/null"}, nil},
 }
 
 func TestGoodSend(t *testing.T) {
@@ -168,5 +169,3 @@ func TestParser(t *testing.T) {
 //}
 //    // client.write(bytesCommand("GET", "keylist"))
 //    // client.write(bytesCommand("GET", "nonexistant"))
-//    //client.send("LRANGE", "keylist", "0", "4")
-//    //client.send("KEYS", "*")
