@@ -4,3 +4,4 @@ misc/
 godis
 _test*
 _obj
+*.8

@@ -117,7 +117,7 @@ func buildCommand(args ...string) []byte {
     return cmd.Bytes()
 }
 
-func (c *Client) Send(cmd string, args ...string) (data interface{}, err os.Error) {
+func (c *Client connect() (conn *net.TCPConn, err os.Error) {
     if c.Addr == "" {
         c.Addr = defaultAddr
     }
@@ -127,9 +127,24 @@ func (c *Client) Send(cmd string, args ...string) (data interface{}, err os.Erro
     }
 
     conn, err := c.pool.Pop()
+    // TODO: defer is in a invalid state
     defer c.pool.Push(conn)
 
     if err != nil {
+        return nil, err
+    }
+
+    if c.Db != 0 {
+        _, err = conn.Write(buildCommand("SELECT", strconv.Itoa(c.Db)))
+        if err != nil {
+            return nil, err
+        }
+    }
+    return
+}
+
+func (c *Client) Send(cmd string, args ...string) (data interface{}, err os.Error) {
+    if conn, err := c.connect(); err != nil {
         return nil, err
     }
 
