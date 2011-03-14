@@ -7,19 +7,33 @@ import (
     "bytes"
     "strings"
     "strconv"
-    // "log"
+    "net"
+    //"log"
 )
 
-type Client struct {
-    Addr     string
-    Db       int
-    Password string
-    pool     *Pool
+const (
+    MaxClientConn = 5
+)
+
+type Pool struct {
+    pool chan *net.TCPConn
 }
 
-var (
-    defaultAddr = "localhost:6379"
-)
+func NewPool() *Pool {
+    p := Pool{make(chan *net.TCPConn, MaxClientConn)}
+    for i := 0; i < MaxClientConn; i++ {
+        p.pool <- nil
+    }
+    return &p
+}
+
+func (p *Pool) Pop() *net.TCPConn {
+    return <-p.pool
+}
+
+func (p *Pool) Push(c *net.TCPConn) {
+    p.pool <- c
+}
 
 func newError(format string, args ...interface{}) os.Error {
     return os.NewError(fmt.Sprintf(format, args...))
@@ -75,7 +89,7 @@ func multiBulkReply(line string, head *bufio.Reader) ([][]byte, os.Error) {
 
     var data = make([][]byte, l)
     for i := 0; i < l; i++ {
-        d, err := Read(head)
+        d, err := readReply(head)
         if err != nil {
             return nil, err
         }
@@ -85,7 +99,7 @@ func multiBulkReply(line string, head *bufio.Reader) ([][]byte, os.Error) {
     return data, nil
 }
 
-func Read(head *bufio.Reader) (interface{}, os.Error) {
+func readReply(head *bufio.Reader) (interface{}, os.Error) {
     res, err := head.ReadString('\n')
     if err != nil {
         return nil, err
@@ -117,47 +131,75 @@ func buildCommand(args ...string) []byte {
     return cmd.Bytes()
 }
 
-func (c *Client connect() (conn *net.TCPConn, err os.Error) {
+func write(conn *net.TCPConn, cmd string, args ...string) os.Error {
+    cmds := append([]string{cmd}, args...)
+    _, err := conn.Write(buildCommand(cmds...))
+    return err
+}
+
+func read(conn *net.TCPConn) (interface{}, os.Error) {
+    return readReply(bufio.NewReader(conn))
+}
+
+type Client struct {
+    Addr     string
+    Db       int
+    Password string
+    pool     *Pool
+}
+
+func New(addr string, db int, password string) *Client {
+    var c Client
+    c.Addr = addr
     if c.Addr == "" {
-        c.Addr = defaultAddr
+        c.Addr = "127.0.0.1:6379"
     }
 
-    if c.pool == nil {
-        c.pool = NewPool(c.Addr)
-    }
+    c.Db = db
+    c.Password = password
+    c.pool = NewPool()
+    return &c
+}
 
-    conn, err := c.pool.Pop()
-    // TODO: defer is in a invalid state
-    defer c.pool.Push(conn)
-
+func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
+    addr, err := net.ResolveTCPAddr(c.Addr)
     if err != nil {
-        return nil, err
+        return nil, os.NewError("ResolveAddr error for " + c.Addr)
+    }
+
+    conn, err = net.DialTCP("tcp", nil, addr)
+    if err != nil {
+        err = os.NewError("Connection error " + addr.String())
     }
 
     if c.Db != 0 {
-        _, err = conn.Write(buildCommand("SELECT", strconv.Itoa(c.Db)))
+        if err = write(conn, "SELECT", strconv.Itoa(c.Db)); err != nil {
+            return nil, err
+        }
+    }
+
+    if c.Password != "" {
+        if err = write(conn, "AUTH", c.Password); err != nil {
+            return nil, err
+        }
+    }
+    return conn, err
+}
+
+func (c *Client) Send(cmd string, args ...string) (interface{}, os.Error) {
+    conn := c.pool.Pop()
+    defer c.pool.Push(conn)
+    if conn == nil {
+        var err os.Error
+        conn, err = c.newConn()
         if err != nil {
             return nil, err
         }
     }
-    return
-}
 
-func (c *Client) Send(cmd string, args ...string) (data interface{}, err os.Error) {
-    if conn, err := c.connect(); err != nil {
+    if err := write(conn, cmd, args...); err != nil {
         return nil, err
     }
 
-    cmds := append([]string{cmd}, args...)
-    _, err = conn.Write(buildCommand(cmds...))
-    if err != nil {
-        return nil, err
-    }
-
-    data, err = Read(bufio.NewReader(conn))
-    if err != nil {
-        return nil, err
-    }
-
-    return
+    return read(conn)
 }

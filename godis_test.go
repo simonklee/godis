@@ -2,7 +2,6 @@ package godis
 
 import (
     "testing"
-    "bufio"
     "bytes"
     "log"
     "os"
@@ -51,7 +50,7 @@ var cmdGoodTests = []CmdGoodTest{
 }
 
 func TestGoodSend(t *testing.T) {
-    var c Client
+    c := New("", 0, "")
     for _, test := range cmdGoodTests {
         res, err := c.Send(test.cmd, test.args...)
 
@@ -83,64 +82,63 @@ func TestGoodSend(t *testing.T) {
                 t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
             }
         }
-        l(test.cmd, test.args, test.out)
+        //l(test.cmd, test.args, test.out)
     }
 }
 
-type simpleParserTest struct {
-    in   string
-    out  interface{}
-    name string
-    err  os.Error
-}
-
-var simpleParserTests = []simpleParserTest{
-    {"+OK\r\n", "OK", "ok", nil},
-    {"-ERR\r\n", nil, "err", os.NewError("ERR")},
-    {":1\r\n", int64(1), "num", nil},
-    {"$3\r\nfoo\r\n", s2Bytes("foo"), "bulk", nil},
-    {"$-1\r\n", nil, "bulk-nil", nil},
-    {"*-1\r\n", nil, "multi-bulk-nil", nil},
-}
-
-func reader(data string) *bufio.Reader {
-    b := bufio.NewReader(bytes.NewBufferString(data))
-    return b
-}
-
-func TestParser(t *testing.T) {
-    for _, test := range simpleParserTests {
-        res, err := Read(reader(test.in))
-
-        if err != nil && test.err == nil {
-            t.Errorf("'%s': unexpected error %v", test.name, err)
-            t.FailNow()
-        }
-
-        switch v := res.(type) {
-        case []byte:
-            for i, c := range res.([]byte) {
-                if c != test.out.([]byte)[i] {
-                    t.Errorf("expected %v got %v", test.out, res)
-                }
-            }
-
-        case [][]byte:
-            for _, b := range res.([][]byte) {
-                for j, c := range b {
-                    if c != test.out.([]byte)[j] {
-                        t.Errorf("expected %v got %v", test.out, res)
-                    }
-                }
-            }
-        default:
-            if res != test.out {
-                t.Errorf("'%s': expected %s got %v", test.name, test.out, res)
-            }
-        }
-        //l(test.in, res, test.out)
-    }
-}
+// type simpleParserTest struct {
+//     in   string
+//     out  interface{}
+//     name string
+//     err  os.Error
+// }
+// 
+// var simpleParserTests = []simpleParserTest{
+//     {"+OK\r\n", "OK", "ok", nil},
+//     {"-ERR\r\n", nil, "err", os.NewError("ERR")},
+//     {":1\r\n", int64(1), "num", nil},
+//     {"$3\r\nfoo\r\n", s2Bytes("foo"), "bulk", nil},
+//     {"$-1\r\n", nil, "bulk-nil", nil},
+//     {"*-1\r\n", nil, "multi-bulk-nil", nil},
+// }
+// 
+// func reader(data string) *bufio.Reader {
+//     b := bufio.NewReader(bytes.NewBufferString(data))
+//     return b
+// }
+// 
+// func TestParser(t *testing.T) {
+//     for _, test := range simpleParserTests {
+//         res, err := Read(reader(test.in))
+// 
+//         if err != nil && test.err == nil {
+//             t.Errorf("'%s': unexpected error %v", test.name, err)
+//             t.FailNow()
+//         }
+// 
+//         switch v := res.(type) {
+//             case []byte:
+//                 for i, c := range res.([]byte) {
+//                     if c != test.out.([]byte)[i] {
+//                         t.Errorf("expected %v got %v", test.out, res)
+//                     }
+//                 }
+//             case [][]byte:
+//                 for _, b := range res.([][]byte) {
+//                     for j, c := range b {
+//                         if c != test.out.([]byte)[j] {
+//                             t.Errorf("expected %v got %v", test.out, res)
+//                         }
+//                     }
+//                 }
+//             default:
+//                 if res != test.out {
+//                     t.Errorf("'%s': expected %s got %v", test.name, test.out, res)
+//                 }
+//         }
+//         //l(test.in, res, test.out)
+//     }
+// }
 
 //type CmdBadTest struct {
 //    cmd string

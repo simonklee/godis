@@ -3,36 +3,30 @@ package godis
 import (
     "testing"
     "net"
-    "log"
 )
 
-type C struct {
-    Port int
-    Name string
-    p    *Pool
-}
+func getConn(t *testing.T) (conn *net.TCPConn) {
+    var defaultAddr string = "127.0.0.1:6379"
 
-func TestC(t *testing.T) {
-    var c C
-    log.Println(c.Port)
-    if c.p == nil {
-        log.Println("nil")
+    addr, err := net.ResolveTCPAddr(defaultAddr)
+    if err != nil {
+        t.Errorf("ResolveAddr error for " + defaultAddr)
     }
 
-    if c.Name == "" {
-        log.Println("empty")
+    conn, err = net.DialTCP("tcp", nil, addr)
+    if err != nil {
+        t.Errorf("Connection error " + addr.String())
     }
-
-    c.p = NewPool(defaultAddr)
+    return
 }
 
 func TestPool(t *testing.T) {
-    p := NewPool(defaultAddr)
+    p := NewPool()
 
     for i := 0; i < 10; i++ {
-        c, err := p.Pop()
-        if err != nil {
-            t.Errorf("Connection Error", err)
+        c := p.Pop()
+        if c == nil {
+            c = getConn(t)
         }
 
         go func(c *net.TCPConn) {
