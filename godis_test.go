@@ -86,6 +86,13 @@ func TestGoodSend(t *testing.T) {
     }
 }
 
+func BenchmarkGet(b *testing.B) {
+    c := New("", 0, "")
+    c.Send("SET", "key", "foo")
+    for i := 0; i < b.N; i++ {
+        c.Send("GET", "key")
+    }
+}
 // type simpleParserTest struct {
 //     in   string
 //     out  interface{}

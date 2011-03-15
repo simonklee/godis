@@ -8,7 +8,7 @@ import (
     "strings"
     "strconv"
     "net"
-    //"log"
+    "log"
 )
 
 const (
@@ -188,8 +188,9 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
 
 func (c *Client) Send(cmd string, args ...string) (interface{}, os.Error) {
     conn := c.pool.Pop()
-    defer c.pool.Push(conn)
+    
     if conn == nil {
+        log.Println("conn was nil")
         var err os.Error
         conn, err = c.newConn()
         if err != nil {
@@ -201,5 +202,7 @@ func (c *Client) Send(cmd string, args ...string) (interface{}, os.Error) {
         return nil, err
     }
 
-    return read(conn)
+    d, e := read(conn)
+    c.pool.Push(conn)
+    return d, e
 }
