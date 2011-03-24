@@ -3,6 +3,8 @@ package godis
 import (
     "testing"
     "net"
+    "time"
+    "log"
 )
 
 func getConn(t *testing.T) (conn *net.TCPConn) {
@@ -34,3 +36,30 @@ func TestPool(t *testing.T) {
         }(c)
     }
 }
+
+func TestPoolSize(t *testing.T) {
+    c := New("", 0, "")
+
+    c.Send("SET", "key", "foo")
+    start := time.Nanoseconds()
+    for i := 0; i < 100000; i++ {
+        in, _ := c.Send("GET", "key")
+        s, _ := in.([]byte)
+        if string(s) == "foo" {
+        }
+    }
+    stop := time.Nanoseconds() - start
+
+    log.Printf("time: %.2f", float32(stop / 1.0e+6) / 1000.0)
+    in, _ := c.Send("GET", "key")
+    s, _ := in.([]byte)
+    l(string(s))
+
+    if MaxClientConn * 1 != ConnCtr {
+        t.Errorf("ConnCtr: expected %d got %d ", MaxClientConn * 2, ConnCtr)
+    }
+
+    
+    log.Printf("%f", 1e+6)
+}
+

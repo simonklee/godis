@@ -8,11 +8,15 @@ import (
     "strings"
     "strconv"
     "net"
-    "log"
+//    "log"
 )
 
 const (
     MaxClientConn = 5
+)
+
+var (
+    ConnCtr int
 )
 
 type Pool struct {
@@ -104,7 +108,6 @@ func readReply(head *bufio.Reader) (interface{}, os.Error) {
     if err != nil {
         return nil, err
     }
-
     typ := res[0]
     line := strings.TrimSpace(res[1:])
 
@@ -124,9 +127,10 @@ func readReply(head *bufio.Reader) (interface{}, os.Error) {
 }
 
 func buildCommand(args ...string) []byte {
-    cmd := bytes.NewBufferString(fmt.Sprintf("*%d\r\n", len(args)))
+    cmd := bytes.NewBuffer(nil)
+    fmt.Fprintf(cmd, "*%d\r\n", len(args))
     for _, arg := range args {
-        cmd.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg))
+        fmt.Fprintf(cmd, "$%d\r\n%s\r\n", len(arg), arg)
     }
     return cmd.Bytes()
 }
@@ -190,7 +194,8 @@ func (c *Client) Send(cmd string, args ...string) (interface{}, os.Error) {
     conn := c.pool.Pop()
     
     if conn == nil {
-        log.Println("conn was nil")
+        ConnCtr++
+        // log.Printf("creating conn %d", ConnCtr)
         var err os.Error
         conn, err = c.newConn()
         if err != nil {
