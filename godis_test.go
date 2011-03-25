@@ -5,6 +5,7 @@ import (
     "bytes"
     "log"
     "os"
+    "time"
 )
 
 const (
@@ -86,6 +87,22 @@ func TestGoodSend(t *testing.T) {
     }
 }
 
+func TestParsing(t *testing.T) {
+    c := New("", 0, "")
+
+    for i := 0; i < 100; i++ {
+        c.Send("RPUSH", "list", "foo")
+    }
+
+    start := time.Nanoseconds()
+    for i := 0; i < 10000; i++ {
+        c.Send("LRANGE", "list", "0", "50")
+    }
+    stop := time.Nanoseconds() - start
+
+    log.Printf("time: %.2f", float32(stop / 1.0e+6) / 1000.0)
+    c.Send("FLUSHDB")
+}
 
 // type simpleParserTest struct {
 //     in   string

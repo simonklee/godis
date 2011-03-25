@@ -59,7 +59,5 @@ func TestPoolSize(t *testing.T) {
         t.Errorf("ConnCtr: expected %d got %d ", MaxClientConn * 2, ConnCtr)
     }
 
-    
     log.Printf("%f", 1e+6)
 }
-
