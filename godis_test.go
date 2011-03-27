@@ -104,6 +104,25 @@ func BenchmarkParsing(b *testing.B) {
     c.Send("FLUSHDB")
 }
 
+func TestGeneric(t *testing.T) {
+    c := New("", 0, "")
+    
+    ex, _ := c.Exists("key")
+    nr, _ := c.Del("key")
+
+    if (ex && nr != 1) || (!ex && nr != 0) {
+        t.Errorf("failed got 'key' Exists %v Del ret %d", ex, nr)
+    }
+
+    c.Send("SET", []string{"foo", "foo"}...)
+    c.Send("SET", []string{"bar", "bar"}...)
+    c.Send("SET", []string{"baz", "baz"}...)
+    
+    if nr, _ = c.Del("foo", "bar", "baz"); nr != 3 {
+        t.Errorf("expected %d on multiple Del got %d", 3, nr)
+    }
+}
+
 // type simpleParserTest struct {
 //     in   string
 //     out  interface{}
