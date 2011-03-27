@@ -25,9 +25,11 @@ type Pool struct {
 
 func NewPool() *Pool {
     p := Pool{make(chan *net.TCPConn, MaxClientConn)}
+
     for i := 0; i < MaxClientConn; i++ {
         p.pool <- nil
     }
+
     return &p
 }
 
@@ -45,9 +47,11 @@ func newError(format string, args ...interface{}) os.Error {
 
 func errorReply(line string) (interface{}, os.Error) {
     // log.Println("GODIS: " + res)
+
     if strings.HasPrefix(line, "ERR") {
         line = line[3:]
     }
+
     return nil, newError(line)
 }
 
@@ -63,6 +67,7 @@ func integerReply(line string) (int64, os.Error) {
 
 func bulkReply(line string, head *bufio.Reader) ([]byte, os.Error) {
     l, _ := strconv.Atoi(line)
+
     if l == -1 {
         return nil, nil
     }
@@ -105,9 +110,11 @@ func multiBulkReply(line string, head *bufio.Reader) ([][]byte, os.Error) {
 
 func readReply(head *bufio.Reader) (interface{}, os.Error) {
     res, err := head.ReadString('\n')
+
     if err != nil {
         return nil, err
     }
+
     typ := res[0]
     line := strings.TrimSpace(res[1:])
 
@@ -123,7 +130,8 @@ func readReply(head *bufio.Reader) (interface{}, os.Error) {
     case '*':
         return multiBulkReply(line, head)
     }
-    return nil, newError("Unknown response " + string(typ))
+
+    return nil, newError("Unknown response ", string(typ))
 }
 
 func buildCommand(args ...string) []byte {

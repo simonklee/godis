@@ -32,13 +32,13 @@ func s2MultiBytes(ss ...string) [][]byte {
     return buf
 }
 
-type CmdGoodTest struct {
+type SimpleSendTest struct {
     cmd  string
     args []string
     out  interface{}
 }
 
-var cmdGoodTests = []CmdGoodTest{
+var simpleSendTests = []SimpleSendTest{
     {"FLUSHDB", []string{}, "OK"},
     {"SET", []string{"key", "foo"}, "OK"},
     {"EXISTS", []string{"key"}, int64(1)},
@@ -50,9 +50,9 @@ var cmdGoodTests = []CmdGoodTest{
     {"GET", []string{"/dev/null"}, nil},
 }
 
-func TestGoodSend(t *testing.T) {
+func TestSimpleSend(t *testing.T) {
     c := New("", 0, "")
-    for _, test := range cmdGoodTests {
+    for _, test := range simpleSendTests {
         res, err := c.Send(test.cmd, test.args...)
 
         if err != nil {
@@ -87,7 +87,7 @@ func TestGoodSend(t *testing.T) {
     }
 }
 
-func TestParsing(t *testing.T) {
+func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
     for i := 0; i < 100; i++ {
@@ -95,7 +95,7 @@ func TestParsing(t *testing.T) {
     }
 
     start := time.Nanoseconds()
-    for i := 0; i < 10000; i++ {
+    for i := 0; i < b.N; i++ {
         c.Send("LRANGE", "list", "0", "50")
     }
     stop := time.Nanoseconds() - start
