@@ -13,7 +13,7 @@ import (
 
 const (
     MaxClientConn = 1
-    LOG_CMD = true
+    LOG_CMD = false
 )
 
 var (
