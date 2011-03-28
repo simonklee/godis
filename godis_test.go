@@ -183,14 +183,13 @@ func TestKeys(t *testing.T) {
     c.Send("FLUSHDB")
     c.Send("MSET", "foo", "one", "bar", "two", "baz", "three")
 
-    res, err := c.Keys("*"); 
+    res, err := c.Keys("foo"); 
 
     if err != nil {
         error(t, "keys", nil, nil, err)
     }
 
-    // Could potentially fail if the order was to change. Will see how it goes.
-    expected := []string{"foo", "baz", "bar"}
+    expected := []string{"foo"}
 
     if len(res) != len(expected) {
         error(t, "keys", len(res), len(expected), nil)
