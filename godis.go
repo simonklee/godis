@@ -8,11 +8,12 @@ import (
     "strings"
     "strconv"
     "net"
-//    "log"
+    "log"
 )
 
 const (
-    MaxClientConn = 5
+    MaxClientConn = 1
+    LOG_CMD = true
 )
 
 var (
@@ -55,7 +56,9 @@ func newRedisReadWriter(c *net.TCPConn) *redisReadWriter {
 }
 
 func (rw *redisReadWriter) errorReply(line string) (interface{}, os.Error) {
-    // log.Println("GODIS: " + res)
+    if LOG_CMD {
+        log.Println("GODIS: " + line)
+    }
 
     if strings.HasPrefix(line, "ERR") {
         line = line[3:]
@@ -64,17 +67,23 @@ func (rw *redisReadWriter) errorReply(line string) (interface{}, os.Error) {
     return nil, newError(line)
 }
 
-func (rw *redisReadWriter) singleReply(line string) (string, os.Error) {
-    // log.Println("GODIS: " + res)
+func (rw *redisReadWriter) singleReply(line string) (interface{}, os.Error) {
+    if LOG_CMD {
+        log.Println("GODIS: " + line)
+    }
+
     return line, nil
 }
 
-func (rw *redisReadWriter) integerReply(line string) (int64, os.Error) {
-    // log.Println("GODIS: " + res)
+func (rw *redisReadWriter) integerReply(line string) (interface{}, os.Error) {
+    if LOG_CMD {
+        log.Println("GODIS: " + line)
+    }
+
     return strconv.Atoi64(line)
 }
 
-func (rw *redisReadWriter) bulkReply(line string) ([]byte, os.Error) {
+func (rw *redisReadWriter) bulkReply(line string) (interface{}, os.Error) {
     l, _ := strconv.Atoi(line)
 
     if l == -1 {
@@ -92,13 +101,17 @@ func (rw *redisReadWriter) bulkReply(line string) ([]byte, os.Error) {
         return nil, err
     }
     l -= 2
-    //log.Println("GODIS: bulk-len: " + strconv.Itoa(l))
-    //log.Println("GODIS: bulk-value: " + string(data))
-    //log.Printf("GODIS: %q\n", data)
+
+    if LOG_CMD {
+        log.Println("GODIS: bulk-len: " + strconv.Itoa(l))
+        log.Println("GODIS: bulk-value: " + string(data))
+        log.Printf("GODIS: %q\n", data)
+    }
+    
     return data[:l], nil
 }
 
-func (rw *redisReadWriter) multiBulkReply(line string) ([][]byte, os.Error) {
+func (rw *redisReadWriter) multiBulkReply(line string) (interface{}, os.Error) {
     l, _ := strconv.Atoi(line)
 
     if l == -1 {
@@ -128,6 +141,10 @@ func (rw *redisReadWriter) read() (interface{}, os.Error) {
     typ := res[0]
     line := strings.TrimSpace(res[1:])
 
+    if LOG_CMD {
+        log.Printf("GODIS: %c\n", typ)
+    }
+
     switch typ {
     case '-':
         return rw.errorReply(line)
@@ -151,6 +168,10 @@ func (rw *redisReadWriter) write(name string, args ...string) os.Error {
     
     for _, v := range cmds {
         fmt.Fprintf(buf, "$%d\r\n%s\r\n", len(v), v)
+    }
+
+    if LOG_CMD {
+        log.Println(buf)
     }
 
     if _, err := rw.writer.Write(buf.Bytes()); err != nil {
@@ -194,13 +215,19 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
 
     rw := newRedisReadWriter(conn)
     if c.Db != 0 {
-        if err = rw.write("SELECT", strconv.Itoa(c.Db)); err != nil {
+        err = rw.write("SELECT", strconv.Itoa(c.Db))
+        defer rw.read()
+
+        if err != nil {
             return nil, err
         }
     }
 
     if c.Password != "" {
-        if err = rw.write("AUTH", c.Password); err != nil {
+        err = rw.write("AUTH", c.Password)
+        defer rw.read()
+
+        if err != nil {
             return nil, err
         }
     }

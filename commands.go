@@ -27,7 +27,14 @@ func stringOrErr(res interface{}, err os.Error) (string, os.Error) {
         return "", err
     }
 
-    return res.(string), nil
+    switch v := res.(type) {
+    case string:
+        return v, nil
+    case []byte:
+        return string(v), nil
+    }
+
+    return "", nil
 }
 
 // generic
@@ -53,8 +60,8 @@ func (c *Client) Expireat(key string, timestamp int64) (bool, os.Error) {
 }
 
 // Find all keys matching the given pattern
-func (c *Client) Keys(pattern string) [][]byte {
-    return [][]byte{}
+func (c *Client) Keys(pattern string)  {
+    c.Send("KEYS", pattern)
 }
 
 // Move a key to another database
@@ -68,13 +75,19 @@ func (c *Client) Persist(key string) (bool, os.Error) {
 }
 
 // Return a random key from the keyspace
-func (c *Client) Randomkey() []byte {
-    return []byte{}
+func (c *Client) Randomkey() (string, os.Error) {
+    return stringOrErr(c.Send("RANDOMKEY")) 
+}
+
+// Rename a key
+func (c *Client) Rename(key string, newkey string) os.Error {
+    _, err := c.Send("RENAME", key, newkey)
+    return err
 }
 
 // Rename a key, only if the new key does not exist
-func (c *Client) Renamenx(key string, newkey string) int64 {
-    return 0
+func (c *Client) Renamenx(key string, newkey string) (bool, os.Error) {
+    return boolOrErr(c.Send("RENAMENX", key, newkey))
 }
 
 // Sort the elements in a list, set or sorted set
@@ -90,4 +103,23 @@ func (c *Client) Ttl(key string) (int64, os.Error) {
 // Determine the type stored at key
 func (c *Client) Type(key string) (string, os.Error) {
     return stringOrErr(c.Send("TYPE", key))
+}
+
+// strings
+
+// Get the value of a key
+func (c *Client) Get(key string) (string, os.Error) {
+    res, err := c.Send("GET", key)
+
+    if err == nil && res == nil {
+        err = newError("key `%s` does not exist", key)
+    }
+
+    return stringOrErr(res, err)
+}
+
+// Set the string value of a key
+func (c *Client) Set(key string, value string) os.Error {
+    _, err := c.Send("SET", key, value)
+    return err
 }
