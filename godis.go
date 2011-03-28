@@ -13,7 +13,7 @@ import (
 
 const (
     MaxClientConn = 1
-    LOG_CMD = false
+    LOG_CMD = true
 )
 
 var (
@@ -103,9 +103,7 @@ func (rw *redisReadWriter) bulkReply(line string) (interface{}, os.Error) {
     l -= 2
 
     if LOG_CMD {
-        log.Println("GODIS: bulk-len: " + strconv.Itoa(l))
-        log.Println("GODIS: bulk-value: " + string(data))
-        log.Printf("GODIS: %q\n", data)
+        log.Printf("GODIS: %d %q\n", l, data)
     }
     
     return data[:l], nil
@@ -126,6 +124,10 @@ func (rw *redisReadWriter) multiBulkReply(line string) (interface{}, os.Error) {
             return nil, err
         }
         data[i] = d.([]byte)
+    }
+
+    if LOG_CMD {
+        log.Printf("GODIS: %d %q\n", l, data)
     }
 
     return data, nil

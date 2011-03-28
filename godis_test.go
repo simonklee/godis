@@ -176,7 +176,31 @@ func TestGeneric(t *testing.T) {
     if res, err := c.Move("foo", 1); res != true {
         error(t, "move", true, res, err)
     }
-    //c.Keys("*")
+}
+
+func TestKeys(t *testing.T) {
+    c := New("", 0, "")
+    c.Send("FLUSHDB")
+    c.Send("MSET", "foo", "one", "bar", "two", "baz", "three")
+
+    res, err := c.Keys("*"); 
+
+    if err != nil {
+        error(t, "keys", nil, nil, err)
+    }
+
+    // Could potentially fail if the order was to change. Will see how it goes.
+    expected := []string{"foo", "baz", "bar"}
+
+    if len(res) != len(expected) {
+        error(t, "keys", len(res), len(expected), nil)
+    }
+    
+    for i, v := range res {
+        if v != expected[i] {
+            error(t, "keys", expected[i], v, nil)
+        }
+    }
 }
 
 func TestString(t *testing.T) {

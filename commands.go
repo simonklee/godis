@@ -60,8 +60,21 @@ func (c *Client) Expireat(key string, timestamp int64) (bool, os.Error) {
 }
 
 // Find all keys matching the given pattern
-func (c *Client) Keys(pattern string)  {
-    c.Send("KEYS", pattern)
+func (c *Client) Keys(pattern string) ([]string, os.Error) {
+    res, err := c.Send("KEYS", pattern)
+    v, ok := res.([][]byte)
+
+    if err != nil || !ok {
+        return nil, err
+    }
+
+    out := make([]string, len(v))
+
+    for i, k := range v {
+        out[i] = string(k)
+    }
+
+    return out, nil
 }
 
 // Move a key to another database
