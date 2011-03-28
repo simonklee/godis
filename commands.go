@@ -104,8 +104,26 @@ func (c *Client) Renamenx(key string, newkey string) (bool, os.Error) {
 }
 
 // Sort the elements in a list, set or sorted set
-func (c *Client) Sort(key string) [][]byte {
-    return [][]byte{}
+func (c *Client) Sort(key string, args...string) ([][]byte, os.Error) {
+    res, err := c.Send("SORT", append([]string{key}, args...)...)
+
+    if err != nil {
+        return nil, err
+    }
+
+    v, ok := res.([][]byte)
+
+    if !ok {
+        return nil, err
+    }
+    return v, nil
+    ///out := make([]byte, len(v))
+
+    ///for i, k := range v {
+    ///    out[i] = string(k)
+    ///}
+
+    ///return out, nil
 }
 
 // Get the time to live for a key

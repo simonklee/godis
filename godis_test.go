@@ -5,6 +5,7 @@ import (
     "bytes"
     "log"
     "os"
+    "strconv"
     "time"
 )
 
@@ -198,6 +199,33 @@ func TestKeys(t *testing.T) {
     for i, v := range res {
         if v != expected[i] {
             error(t, "keys", expected[i], v, nil)
+        }
+    }
+}
+
+func TestSort(t *testing.T) {
+    c := New("", 0, "")
+    c.Send("FLUSHDB")
+    c.Send("RPUSH", "foo", "2") 
+    c.Send("RPUSH", "foo", "3") 
+    c.Send("RPUSH", "foo", "1") 
+
+    res, err := c.Sort("foo")
+
+    if err != nil {
+        error(t, "sort", nil, nil, err)
+    }
+
+    expected := []int{1, 2, 3}
+
+    if len(res) != len(expected) {
+        error(t, "sort", len(res), len(expected), nil)
+    }
+    
+    for i, v := range res {
+        r, _ := strconv.Atoi(string(v))
+        if r != expected[i] {
+            error(t, "sort", expected[i], v, nil)
         }
     }
 }
