@@ -1,4 +1,4 @@
-package godis 
+package godis
 
 import (
     "os"
@@ -91,4 +91,3 @@ func (c *Client) Ttl(key string) (int64, os.Error) {
 func (c *Client) Type(key string) (string, os.Error) {
     return stringOrErr(c.Send("TYPE", key))
 }
-

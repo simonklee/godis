@@ -38,25 +38,31 @@ func TestPool(t *testing.T) {
 }
 
 func TestPoolSize(t *testing.T) {
-    c := New("", 0, "")
+    c1 := New("", 0, "")
+    c2 := New("", 0, "")
+    expected := MaxClientConn * 2 + ConnCtr
 
-    c.Send("SET", "key", "foo")
+    c1.Send("SET", "foo", "foo")
+    c2.Send("SET", "bar", "bar")
+
     start := time.Nanoseconds()
+
     for i := 0; i < 1000; i++ {
-        in, _ := c.Send("GET", "key")
-        s, _ := in.([]byte)
-        if string(s) == "foo" {
+        in1, _ := c1.Send("GET", "foo")
+        in2, _ := c2.Send("GET", "foo")
+
+        s1, _ := in1.([]byte)
+        s2, _ := in2.([]byte)
+
+        if string(s1) == "foo" && string(s2) == "bar" {
         }
     }
+
     stop := time.Nanoseconds() - start
-
     log.Printf("time: %.2f", float32(stop / 1.0e+6) / 1000.0)
-    in, _ := c.Send("GET", "key")
-    s, _ := in.([]byte)
-    l(string(s))
 
-    if MaxClientConn * 2 != ConnCtr {
-        t.Errorf("ConnCtr: expected %d got %d ", MaxClientConn * 2, ConnCtr)
+    if expected != ConnCtr {
+        t.Errorf("ConnCtr: expected %d got %d ", expected, ConnCtr)
     }
 
     log.Printf("%f", 1e+6)
