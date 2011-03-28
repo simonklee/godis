@@ -104,83 +104,78 @@ func BenchmarkParsing(b *testing.B) {
     c.Send("FLUSHDB")
 }
 
+func error(t *testing.T, name string, expected, got interface{}, err os.Error) {
+    t.Errorf("`%s` expected `%v` got `%v`, err(%v)", name, expected, got, err)
+}
+
 func TestGeneric(t *testing.T) {
     c := New("", 0, "")
     c.Send("FLUSHDB")
 
     if res, err := c.Randomkey(); res != "" {
-        t.Errorf("expected `%s` for got %v, err(%v)", "", res, err)
+        error(t, "randomkey", "", res, err)
     }
 
     c.Set("foo", "foo")
 
     if res, err := c.Randomkey(); res != "foo" {
-        t.Errorf("expected `%s` for got %v, err(%v)", "foo", res, err)
+        error(t, "randomkey", "foo", res, err)
     }
 
     ex, _ := c.Exists("key")
     nr, _ := c.Del("key")
 
     if (ex && nr != 1) || (!ex && nr != 0) {
-        t.Errorf("failed got 'key' Exists %v Del ret %d", ex, nr)
+        error(t, "del", "unknown", nr, nil)
     }
 
     c.Set("foo", "foo")
     c.Set("bar", "bar")
     c.Set("baz", "baz")
     
-    if nr, _ = c.Del("foo", "bar", "baz"); nr != 3 {
-        t.Errorf("expected %d on multiple Del got %d", 3, nr)
+    if nr, err := c.Del("foo", "bar", "baz"); nr != 3 {
+        error(t, "del", 3, nr, err)
     }
 
     c.Set("foo", "foo")
     
     if res, err := c.Expire("foo", 10); !res {
-        t.Errorf("expected %v when setting expire got %v, err(%v)", true, res, err)
+        error(t, "expire", true, res, err)
     }
-
     if res, err := c.Persist("foo"); !res {
-        t.Errorf("expected true for got %v, err(%v)", res, err)
+        error(t, "persist", true, res, err)
     }
-
     if res, err := c.Ttl("foo"); res == 0 {
-        t.Errorf("expected 0 for Ttl got %v, err(%v)", res, err)
+        error(t, "ttl", 0, res, err)
     }
-
     if res, err := c.Expireat("foo", time.Seconds() + 10); !res {
-        t.Errorf("expected %v when setting expire got %v, err(%v)", true, res, err)
+        error(t, "expireat", true, res, err)
     }
-
     if res, err := c.Ttl("foo"); res <= 0 {
-        t.Errorf("expected > 0 for Ttl got %v, err(%v)", res, err)
+        error(t, "ttl", "> 0", res, err)
     }
-
     if err := c.Rename("foo", "bar"); err != nil {
-        t.Errorf("expected `%v` got err(%v)", nil, err.String())
+        error(t, "rename", nil, nil, err)
     }
-
-    if err := c.Rename("foo","bar"); err == nil {
-        t.Errorf("expected `%s` got err(%v)", "error", nil)
+    if err := c.Rename("foo", "bar"); err == nil {
+        error(t, "rename", "error", nil, err)
     }
-
-    if res, err := c.Renamenx("bar","foo"); !res {
-        t.Errorf("expected `%v` got %v, err(%v)", true, res, err)
+    if res, err := c.Renamenx("bar", "foo"); !res {
+        error(t, "renamenx", true, res, err)
     }
 
     c.Set("bar", "bar")
 
-    if res, err := c.Renamenx("foo","bar"); res {
-        t.Errorf("expected `%v` got %v, err(%v)", false, res, err)
+    if res, err := c.Renamenx("foo", "bar"); res {
+        error(t, "renamenx", false, res, err)
     }
     
-    // no way to saftly change db on the fly
     c2 := New("", 1, "")
     c2.Del("foo")
 
     if res, err := c.Move("foo", 1); res != true {
-        t.Errorf("expected `%v` got %v, err(%v)", true, res, err)
+        error(t, "move", true, res, err)
     }
-
     //c.Keys("*")
 }
 
@@ -199,11 +194,11 @@ func TestString(t *testing.T) {
     }
 
     if v != "foo" {
-        t.Errorf("expected %s got %s", "foo", v)
+        error(t, "get", "foo", v, err)
     }
 
     if _, err = c.Get("foobar"); err == nil {
-        t.Errorf(err.String())
+        error(t, "get", "error", nil, err)
     }
 }
 
