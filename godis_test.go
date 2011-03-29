@@ -306,29 +306,3 @@ func TestString(t *testing.T) {
 //         //l(test.in, res, test.out)
 //     }
 // }
-
-//type CmdBadTest struct {
-//    cmd string
-//    args []string
-//    out interface{}
-//    err os.Error
-//}
-//
-//var cmdBadTests = []CmdBadTest{
-//    {"EXISTS", []string{"bar"}, 0, nil},
-//}
-//
-//func TestBadSend(t *testing.T) {
-//    var c Client
-//    for _, test := range cmdBadTests {
-//        // TODO: implement test
-//        res, err := c.Send(test.cmd, test.args...)
-//
-//        if err != test.err {
-//            t.Errorf("expected error %v got %v", test.err, res)
-//        }
-//
-//        if res != test.out {
-//        }
-//    }
-//}
