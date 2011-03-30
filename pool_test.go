@@ -4,7 +4,6 @@ import (
     "testing"
     "net"
     "time"
-    "log"
 )
 
 func getConn(t *testing.T) (conn *net.TCPConn) {
@@ -59,11 +58,9 @@ func TestPoolSize(t *testing.T) {
     }
 
     stop := time.Nanoseconds() - start
-    log.Printf("time: %.2f", float32(stop / 1.0e+6) / 1000.0)
+    t.Log("time: %.2f", float32(stop / 1.0e+6) / 1000.0)
 
     if expected != ConnCtr {
         t.Errorf("ConnCtr: expected %d got %d ", expected, ConnCtr)
     }
-
-    log.Printf("%f", 1e+6)
 }

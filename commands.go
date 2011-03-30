@@ -259,3 +259,4 @@ func (c *Client) Setrange(key string, offset int, value string) (int64, os.Error
 func (c *Client) Strlen(key string) (int64, os.Error) {
     return intOrErr(c.Send("STRLEN", key))
 }
+ 

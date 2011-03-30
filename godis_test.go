@@ -3,24 +3,68 @@ package godis
 import (
     "testing"
     "bytes"
-    "log"
+    "bufio"
     "os"
     "strconv"
     "time"
+    "fmt"
 )
 
-const (
-    LOG = true
-)
-
-var logger = log.New(os.Stderr, "", 0x00)
-
-func l(args ...interface{}) {
-    if LOG {
-        logger.Println(args...)
-    }
+type simpleParserTest struct {
+    in   string
+    out  interface{}
+    name string
+    err  os.Error
 }
 
+func dummyReadWriter(data string) *redisReadWriter {
+    r := bufio.NewReader(bytes.NewBufferString(data))
+    w := bufio.NewWriter(bytes.NewBufferString(data))
+    return &redisReadWriter{w, r}
+}
+
+var simpleParserTests = []simpleParserTest{
+    {"+OK\r\n", "OK", "ok", nil},
+    {"-ERR\r\n", nil, "err", os.NewError("ERR")},
+    {":1\r\n", int64(1), "num", nil},
+    {"$3\r\nfoo\r\n", s2Bytes("foo"), "bulk", nil},
+    {"$-1\r\n", nil, "bulk-nil", nil},
+    {"*-1\r\n", nil, "multi-bulk-nil", nil},
+}
+
+func TestParser(t *testing.T) {
+    for _, test := range simpleParserTests {
+        rw := dummyReadWriter(test.in)
+        res, err := rw.read()
+
+        if err != nil && test.err == nil {
+            t.Errorf("'%s': unexpected error %v", test.name, err)
+            t.FailNow()
+        }
+
+        switch v := res.(type) {
+            case []byte:
+                for i, c := range res.([]byte) {
+                    if c != test.out.([]byte)[i] {
+                        t.Errorf("expected %v got %v", test.out, res)
+                    }
+                }
+            case [][]byte:
+                for _, b := range res.([][]byte) {
+                    for j, c := range b {
+                        if c != test.out.([]byte)[j] {
+                            t.Errorf("expected %v got %v", test.out, res)
+                        }
+                    }
+                }
+            default:
+                if res != test.out {
+                    t.Errorf("'%s': expected %s got %v", test.name, test.out, res)
+                }
+        }
+        t.Log(test.in, res, test.out)
+    }
+}
 func s2Bytes(s string) []byte {
     return bytes.NewBufferString(s).Bytes()
 }
@@ -84,7 +128,7 @@ func TestSimpleSend(t *testing.T) {
                 t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
             }
         }
-        //l(test.cmd, test.args, test.out)
+        t.Log(test.cmd, test.args, test.out)
     }
 }
 
@@ -101,7 +145,7 @@ func BenchmarkParsing(b *testing.B) {
     }
     stop := time.Nanoseconds() - start
 
-    log.Printf("time: %.2f", float32(stop / 1.0e+6) / 1000.0)
+    fmt.Fprintf(os.Stdout, "time: %.2f", float32(stop / 1.0e+6) / 1000.0)
     c.Send("FLUSHDB")
 }
 
@@ -253,56 +297,4 @@ func TestString(t *testing.T) {
     }
 }
 
-// type simpleParserTest struct {
-//     in   string
-//     out  interface{}
-//     name string
-//     err  os.Error
-// }
-// 
-// var simpleParserTests = []simpleParserTest{
-//     {"+OK\r\n", "OK", "ok", nil},
-//     {"-ERR\r\n", nil, "err", os.NewError("ERR")},
-//     {":1\r\n", int64(1), "num", nil},
-//     {"$3\r\nfoo\r\n", s2Bytes("foo"), "bulk", nil},
-//     {"$-1\r\n", nil, "bulk-nil", nil},
-//     {"*-1\r\n", nil, "multi-bulk-nil", nil},
-// }
-// 
-// func reader(data string) *bufio.Reader {
-//     b := bufio.NewReader(bytes.NewBufferString(data))
-//     return b
-// }
-// 
-// func TestParser(t *testing.T) {
-//     for _, test := range simpleParserTests {
-//         res, err := Read(reader(test.in))
-// 
-//         if err != nil && test.err == nil {
-//             t.Errorf("'%s': unexpected error %v", test.name, err)
-//             t.FailNow()
-//         }
-// 
-//         switch v := res.(type) {
-//             case []byte:
-//                 for i, c := range res.([]byte) {
-//                     if c != test.out.([]byte)[i] {
-//                         t.Errorf("expected %v got %v", test.out, res)
-//                     }
-//                 }
-//             case [][]byte:
-//                 for _, b := range res.([][]byte) {
-//                     for j, c := range b {
-//                         if c != test.out.([]byte)[j] {
-//                             t.Errorf("expected %v got %v", test.out, res)
-//                         }
-//                     }
-//                 }
-//             default:
-//                 if res != test.out {
-//                     t.Errorf("'%s': expected %s got %v", test.name, test.out, res)
-//                 }
-//         }
-//         //l(test.in, res, test.out)
-//     }
-// }
+
