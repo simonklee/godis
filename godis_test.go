@@ -65,6 +65,7 @@ func TestParser(t *testing.T) {
         t.Log(test.in, res, test.out)
     }
 }
+
 func s2Bytes(s string) []byte {
     return bytes.NewBufferString(s).Bytes()
 }
@@ -216,8 +217,7 @@ func TestGeneric(t *testing.T) {
     }
     
     c2 := New("", 1, "")
-    c2.Del("foo")
-
+    c2.Del("foo") 
     if res, err := c.Move("foo", 1); res != true {
         error(t, "move", true, res, err)
     }
@@ -278,23 +278,91 @@ func TestString(t *testing.T) {
     c := New("", 0, "")
     c.Send("FLUSHDB")
 
+    if res, err := c.Decr("qux"); err != nil || res != -1 {
+        error(t, "decr", -1, res, err)
+    }
+
+    if res, err := c.Decrby("qux", 1); err != nil || res != -2 {
+        error(t, "decrby", -2, res, err)
+    }
+
+    if res, err := c.Incrby("qux", 1); err != nil || res != -1 {
+        error(t, "incrby", -1, res, err)
+    }
+
+    if res, err := c.Incr("qux"); err != nil || res != 0 {
+        error(t, "incrby", 0, res, err)
+    }
+
+    if res, err := c.Setbit("qux", 0, 1); err != nil || res != 0 {
+        error(t, "setbit", 0, res, err)
+    }
+
+    if res, err := c.Getbit("qux", 0); err != nil || res != 1 {
+        error(t, "getbit", 1, res, err)
+    }
+
     if err := c.Set("foo", "foo"); err != nil {
         t.Errorf(err.String())
     }
 
-    v, err := c.Get("foo")
-
-    if err != nil {
-        t.Errorf(err.String())
+    if res, err := c.Append("foo", "bar"); err != nil || res != 6 {
+        error(t, "append", 6, res, err)
     }
 
-    if v != "foo" {
-        error(t, "get", "foo", v, err)
+    if res, err := c.Get("foo"); err != nil || res != "foobar" {
+        error(t, "get", "foobar", res, err)
     }
 
-    if _, err = c.Get("foobar"); err == nil {
+    if _, err := c.Get("foobar"); err == nil {
         error(t, "get", "error", nil, err)
     }
+
+    if res, err := c.Getrange("foo", 0, 2); err != nil || res != "foo" {
+        error(t, "getrange", "foo", res, err)
+    }
+
+    if res, err := c.Setrange("foo", 0, "qux"); err != nil || res != 6 {
+        error(t, "setrange", 6, res, err)
+    }
+
+    if res, err := c.Getset("foo", "foo"); err != nil || res != "quxbar" {
+        error(t, "getset", "quxbar", res, err)
+    }
+
+    if res, err := c.Setnx("foo", "bar"); err != nil || res != false {
+        error(t, "setnx", false, res, err)
+    }
+
+    if res, err := c.Strlen("foo"); err != nil || res != 3 {
+        error(t, "strlen", 3, res, err)
+    }
+
+    if err := c.Setex("foo", 10, "bar"); err != nil {
+        error(t, "setex", nil, nil, err)
+    }
+
+    out := []string{"foo", "bar", "qux"}
+    in := map[string]string{"foo":"foo", "bar":"bar", "qux":"qux"}
+
+    if err := c.Mset(in); err != nil {
+        error(t, "mset", nil, nil, err)
+    }
+
+    if res, err := c.Msetnx(in); err != nil || res == true {
+        error(t, "msetnx", false, res, err)
+    }
+
+    res, err := c.Mget(append([]string{"il"}, out...)...) 
+
+    if err != nil || len(res) != 3 {
+        error(t, "mget", 3, len(res), err)
+        t.FailNow()
+    }
+
+    for i, v := range res {
+        if v != out[i] {
+            error(t, "mget", out[i], v, nil)
+        }
+    }
 }
-
-

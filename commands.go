@@ -177,7 +177,7 @@ func (c *Client) Getbit(key string, offset int) (int64, os.Error) {
 
 // Get a substring of the string stored at a key
 func (c *Client) Getrange(key string, start int, end int) (string, os.Error) {
-    return stringOrErr(c.Send("GETBIT", key, strconv.Itoa(start), strconv.Itoa(end)))
+    return stringOrErr(c.Send("GETRANGE", key, strconv.Itoa(start), strconv.Itoa(end)))
 }
 
 // Set the string value of a key and return its old value
@@ -201,13 +201,12 @@ func (c *Client) Mget(keys ...string) ([]string, os.Error) {
 }
 
 // Set multiple keys to multiple values
-func (c *Client) Mset(mapping map[string][]byte) os.Error {
+func (c *Client) Mset(mapping map[string]string) os.Error {
     buf := make([]string, len(mapping) * 2)
     n := 0
 
     for k, v := range mapping {
-        buf[n] = k
-        buf[n + 1] = string(v)
+        buf[n], buf[n + 1] = k, v
         n += 2
     }
 
@@ -216,13 +215,12 @@ func (c *Client) Mset(mapping map[string][]byte) os.Error {
 }
 
 // Set multiple keys to multiple values, only if none of the keys exist
-func (c *Client) Msetnx(mapping map[string][]byte) (bool, os.Error) {
+func (c *Client) Msetnx(mapping map[string]string) (bool, os.Error) {
     buf := make([]string, len(mapping) * 2)
     n := 0
 
     for k, v := range mapping {
-        buf[n] = k
-        buf[n + 1] = string(v)
+        buf[n], buf[n + 1] = k, v
         n += 2
     }
 
@@ -236,13 +234,13 @@ func (c *Client) Set(key string, value string) os.Error {
 }
 
 // Sets or clears the bit at offset in the string value stored at key
-func (c *Client) Setbit(key string, offset int, value string) (int64, os.Error) {
-    return intOrErr(c.Send("SETBIT", key, strconv.Itoa(offset), value))
+func (c *Client) Setbit(key string, offset int, value int) (int64, os.Error) {
+    return intOrErr(c.Send("SETBIT", key, strconv.Itoa(offset), strconv.Itoa(value)))
 }
 
 // Set the value and expiration of a key
 func (c *Client) Setex(key string, seconds int64, value string) os.Error {
-    return nilOrErr(c.Send("SET", key, strconv.Itoa64(seconds), value))
+    return nilOrErr(c.Send("SETEX", key, strconv.Itoa64(seconds), value))
 }
 
 // Set the value of a key, only if the key does not exist

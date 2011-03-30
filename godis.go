@@ -119,18 +119,26 @@ func (rw *redisReadWriter) multiBulkReply(line string) (interface{}, os.Error) {
     var data = make([][]byte, l)
 
     for i := 0; i < l; i++ {
-        d, err := rw.read()
+        v, err := rw.read()
+
         if err != nil {
             return nil, err
         }
-        data[i] = d.([]byte)
+
+        if v == nil {
+            i -= 1
+            l -= 1
+            continue
+        }
+
+        data[i] = v.([]byte)
     }
 
     if LOG_CMD {
         log.Printf("GODIS: %d %q\n", l, data)
     }
 
-    return data, nil
+    return data[:l], nil
 }
 
 func (rw *redisReadWriter) read() (interface{}, os.Error) {
