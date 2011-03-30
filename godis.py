@@ -8,7 +8,7 @@ for i in range(0, 100):
     r.rpush("list", i)
 
 start = time.time()
-for i in range(0, 10000):
+for i in range(0, 100000):
     r.lrange("list", 0, 50)
 print time.time() - start
 

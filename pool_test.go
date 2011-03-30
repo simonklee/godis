@@ -55,7 +55,7 @@ func TestPoolSize(t *testing.T) {
     }
 
     stop := time.Nanoseconds() - start
-    t.Log("time: %.2f", float32(stop / 1.0e+6) / 1000.0)
+    t.Log("time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
 
     if expected != ConnCtr {
         t.Errorf("ConnCtr: expected %d got %d ", expected, ConnCtr)

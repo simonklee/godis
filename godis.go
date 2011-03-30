@@ -12,7 +12,7 @@ import (
 )
 
 const (
-    MaxClientConn = 1
+    MaxClientConn = 5
     LOG_CMD = false
 )
 
@@ -171,8 +171,8 @@ func (rw *redisReadWriter) read() (interface{}, os.Error) {
     return nil, newError("Unknown response ", string(typ))
 }
 
-func (rw *redisReadWriter) write(name string, args ...[]byte) os.Error {
-    cmds := append([][]byte{[]byte(name)}, args...)
+func (rw *redisReadWriter) write(name []byte, args ...[]byte) os.Error {
+    cmds := append([][]byte{name}, args...)
     buf := bytes.NewBuffer(nil)
     fmt.Fprintf(buf, "*%d\r\n", len(cmds))
     
@@ -225,7 +225,7 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
 
     rw := newRedisReadWriter(conn)
     if c.Db != 0 {
-        err = rw.write("SELECT", []byte(strconv.Itoa(c.Db)))
+        err = rw.write([]byte("SELECT"), []byte(strconv.Itoa(c.Db)))
         defer rw.read()
 
         if err != nil {
@@ -234,7 +234,7 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     }
 
     if c.Password != "" {
-        err = rw.write("AUTH", []byte(c.Password))
+        err = rw.write([]byte("AUTH"), []byte(c.Password))
         defer rw.read()
 
         if err != nil {
@@ -269,7 +269,7 @@ func (c *Client) Send(name string, args ...[]byte) (interface{}, os.Error) {
     
     rw := newRedisReadWriter(conn)
 
-    if err := rw.write(name, args...); err != nil {
+    if err := rw.write([]byte(name), args...); err != nil {
         return nil, err
     }
 

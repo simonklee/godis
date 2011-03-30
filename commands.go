@@ -248,8 +248,7 @@ func (c *Client) Msetnx(mapping map[string]string) (bool, os.Error) {
 
 // Set the string value of a key
 func (c *Client) Set(key string, value string) os.Error {
-    _, err := c.SendStr("SET", key, value)
-    return err
+    return nilOrErr(c.SendStr("SET", key, value))
 }
 
 // Sets or clears the bit at offset in the string value stored at key
