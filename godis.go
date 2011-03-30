@@ -171,8 +171,8 @@ func (rw *redisReadWriter) read() (interface{}, os.Error) {
     return nil, newError("Unknown response ", string(typ))
 }
 
-func (rw *redisReadWriter) write(name string, args ...string) os.Error {
-    cmds := append([]string{name}, args...)
+func (rw *redisReadWriter) write(name string, args ...[]byte) os.Error {
+    cmds := append([][]byte{[]byte(name)}, args...)
     buf := bytes.NewBuffer(nil)
     fmt.Fprintf(buf, "*%d\r\n", len(cmds))
     
@@ -225,7 +225,7 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
 
     rw := newRedisReadWriter(conn)
     if c.Db != 0 {
-        err = rw.write("SELECT", strconv.Itoa(c.Db))
+        err = rw.write("SELECT", []byte(strconv.Itoa(c.Db)))
         defer rw.read()
 
         if err != nil {
@@ -234,7 +234,7 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     }
 
     if c.Password != "" {
-        err = rw.write("AUTH", c.Password)
+        err = rw.write("AUTH", []byte(c.Password))
         defer rw.read()
 
         if err != nil {
@@ -244,7 +244,17 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     return conn, err
 }
 
-func (c *Client) Send(name string, args ...string) (interface{}, os.Error) {
+func (c *Client) SendStr(name string, args ...string) (interface{}, os.Error) {
+    buf := make([][]byte, len(args))
+
+    for i, v := range args {
+        buf[i] = []byte(v)
+    }
+
+    return c.Send(name, buf...)
+}
+
+func (c *Client) Send(name string, args ...[]byte) (interface{}, os.Error) {
     conn := c.pool.Pop()
     
     if conn == nil {
@@ -258,6 +268,7 @@ func (c *Client) Send(name string, args ...string) (interface{}, os.Error) {
     }
     
     rw := newRedisReadWriter(conn)
+
     if err := rw.write(name, args...); err != nil {
         return nil, err
     }

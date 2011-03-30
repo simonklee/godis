@@ -99,7 +99,7 @@ var simpleSendTests = []SimpleSendTest{
 func TestSimpleSend(t *testing.T) {
     c := New("", 0, "")
     for _, test := range simpleSendTests {
-        res, err := c.Send(test.cmd, test.args...)
+        res, err := c.SendStr(test.cmd, test.args...)
 
         if err != nil {
             t.Errorf("'%s': unexpeced error %q", test.cmd, err)
@@ -137,17 +137,17 @@ func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
     for i := 0; i < 100; i++ {
-        c.Send("RPUSH", "list", "foo")
+        c.SendStr("RPUSH", "list", "foo")
     }
 
     start := time.Nanoseconds()
     for i := 0; i < b.N; i++ {
-        c.Send("LRANGE", "list", "0", "50")
+        c.SendStr("LRANGE", "list", "0", "50")
     }
     stop := time.Nanoseconds() - start
 
     fmt.Fprintf(os.Stdout, "time: %.2f", float32(stop / 1.0e+6) / 1000.0)
-    c.Send("FLUSHDB")
+    c.SendStr("FLUSHDB")
 }
 
 func error(t *testing.T, name string, expected, got interface{}, err os.Error) {
@@ -225,8 +225,8 @@ func TestGeneric(t *testing.T) {
 
 func TestKeys(t *testing.T) {
     c := New("", 0, "")
-    c.Send("FLUSHDB")
-    c.Send("MSET", "foo", "one", "bar", "two", "baz", "three")
+    c.SendStr("FLUSHDB")
+    c.SendStr("MSET", "foo", "one", "bar", "two", "baz", "three")
 
     res, err := c.Keys("foo"); 
 
@@ -249,10 +249,10 @@ func TestKeys(t *testing.T) {
 
 func TestSort(t *testing.T) {
     c := New("", 0, "")
-    c.Send("FLUSHDB")
-    c.Send("RPUSH", "foo", "2") 
-    c.Send("RPUSH", "foo", "3") 
-    c.Send("RPUSH", "foo", "1") 
+    c.SendStr("FLUSHDB")
+    c.SendStr("RPUSH", "foo", "2") 
+    c.SendStr("RPUSH", "foo", "3") 
+    c.SendStr("RPUSH", "foo", "1") 
 
     res, err := c.Sort("foo")
 
@@ -276,7 +276,7 @@ func TestSort(t *testing.T) {
 
 func TestString(t *testing.T) {
     c := New("", 0, "")
-    c.Send("FLUSHDB")
+    c.SendStr("FLUSHDB")
 
     if res, err := c.Decr("qux"); err != nil || res != -1 {
         error(t, "decr", -1, res, err)
@@ -364,5 +364,14 @@ func TestString(t *testing.T) {
         if v != out[i] {
             error(t, "mget", out[i], v, nil)
         }
+    }
+}
+
+func TestList(t *testing.T) {
+    c := New("", 0, "")
+    c.SendStr("FLUSHDB")
+
+    if res, err := c.Lpush("foobar", []byte(strconv.Itoa(1))); err != nil || res != 1 {
+        error(t, "LPUSH", 1, res, err)
     }
 }
