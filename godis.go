@@ -12,7 +12,7 @@ import (
 )
 
 const (
-    MaxClientConn = 5
+    MaxClientConn = 1
     LOG_CMD = false
 )
 

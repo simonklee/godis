@@ -1,9 +1,10 @@
 package godis
 
 import (
-    "testing"
+    "bytes"
     "os"
     "strconv"
+    "testing"
     "time"
 )
 
@@ -224,6 +225,19 @@ func TestString(t *testing.T) {
     }
 }
 
+func arrEqual(a, b [][]byte) bool {
+    if len(a) != len(b) {
+        return false
+    }
+
+    for i, c := range a {
+        if !bytes.Equal(c, b[i]) {
+            return false
+        }
+    }
+    return true
+}
+
 func TestList(t *testing.T) {
     c := New("", 0, "")
     c.SendStr("FLUSHDB")
@@ -254,5 +268,53 @@ func TestList(t *testing.T) {
 
     if res, err := c.Lpop("foobar"); err != nil || string(res) != "qux" {
         error(t, "Lpop", "qux", res, err)
+    }
+
+    expected := [][]byte{[]byte("foo"), []byte("bar")}
+
+    if res, err := c.Lrange("foobar", 0, 1); err != nil || !arrEqual(res, expected) {
+        error(t, "Lrange", expected, res, err)
+    }
+
+    expected = [][]byte{[]byte("foo")}
+
+    if res, err := c.Lrem("foobar", 0, "bar"); err != nil || res != 1 {
+        error(t, "Lrem", 1, res, err)
+    }
+
+    expected = [][]byte{[]byte("bar")}
+
+    if err := c.Lset("foobar", 0, "bar"); err != nil {
+        error(t, "Lrem", nil, nil, err)
+    }
+
+    expected = [][]byte{}
+
+    if err := c.Ltrim("foobar", 1, 0); err != nil {
+        error(t, "Ltrim", nil, nil, err)
+    }
+
+    expected = [][]byte{[]byte("foo"), []byte("bar"), []byte("qux")}
+    var res int64
+    var err os.Error
+
+    for _, v := range expected {
+        res, err = c.Rpush("foobar", v)
+    }
+
+    if err != nil || res != 3 {
+        error(t, "Rpush", 3, res, err)
+    }
+
+    if res, err := c.Rpushx("foobar", []byte("baz")); err != nil || res != 4 {
+        error(t, "Rpushx", 4, res, err)
+    }
+
+    if res, err := c.Rpop("foobar"); err != nil || string(res) != "baz" {
+        error(t, "Rpop", "baz", res, err)
+    }
+
+    if res, err := c.Rpoplpush("foobar", "foobaz"); err != nil || string(res) != "qux" {
+        error(t, "Rpop", "qux", res, err)
     }
 }

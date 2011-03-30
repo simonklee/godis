@@ -63,6 +63,7 @@ func byteOrErr(res interface{}, err os.Error) ([]byte, os.Error) {
     if err != nil || !ok {
         return nil, err
     }
+
     return v, nil
 }
 
@@ -279,17 +280,17 @@ func (c *Client) Strlen(key string) (int64, os.Error) {
 // list
 
 // Remove and get the first element in a list, or block until one is available
-//func (c *Client) Blpop(key []string, timeout int) [][]byte {
+//func (c *Client) Blpop(key []string, timeout int64) [][]byte {
 //
 //}
 
 // Remove and get the last element in a list, or block until one is available
-//func (c *Client) Brpop(key []string, timeout int) [][]byte {
+//func (c *Client) Brpop(key []string, timeout int64) [][]byte {
 //
 //}
 
 // Pop a value from a list, push it to another list and return it; or block until one is available
-//func (c *Client) Brpoplpush(source string, destination string, timeout int) []byte {
+//func (c *Client) Brpoplpush(source string, destination string, timeout int64) []byte {
 //
 //}
 
@@ -320,45 +321,45 @@ func (c *Client) Lpush(key string, value []byte) (int64, os.Error) {
 
 // Prepend a value to a list, only if the list exists
 func (c *Client) Lpushx(key string, value []byte) (int64, os.Error) {
-    return intOrErr(c.Send("LPUSH", []byte(key), value))
+    return intOrErr(c.Send("LPUSHX", []byte(key), value))
 }
 
-//// Get a range of elements from a list
-//func (c *Client) Lrange(key string, start int, stop int) [][]byte {
-//
-//}
-//
-//// Remove elements from a list
-//func (c *Client) Lrem(key string, count int, value string) int64 {
-//
-//}
-//
-//// Set the value of an element in a list by its index
-//func (c *Client) Lset(key string, index int, value string)  {
-//
-//}
-//
-//// Trim a list to the specified range
-//func (c *Client) Ltrim(key string, start int, stop int)  {
-//
-//}
-//
-//// Remove and get the last element in a list
-//func (c *Client) Rpop(key string) []byte {
-//
-//}
-//
-//// Remove the last element in a list, append it to another list and return it
-//func (c *Client) Rpoplpush(source string, destination string) []byte {
-//
-//}
-//
-//// Append a value to a list
-//func (c *Client) Rpush(key string, value string) int64 {
-//
-//}
-//
-//// Append a value to a list, only if the list exists
-//func (c *Client) Rpushx(key string, value string) int64 {
-//
-//}
+// Get a range of elements from a list
+func (c *Client) Lrange(key string, start int, stop int) ([][]byte, os.Error) {
+    return byteArrOrErr(c.SendStr("LRANGE", key, strconv.Itoa(start), strconv.Itoa(stop)))
+}
+
+// Remove elements from a list
+func (c *Client) Lrem(key string, count int, value string) (int64, os.Error) {
+    return intOrErr(c.SendStr("LREM", key, strconv.Itoa(count), value))
+}
+
+// Set the value of an element in a list by its index
+func (c *Client) Lset(key string, index int, value string) os.Error {
+    return nilOrErr(c.SendStr("LSET", key, strconv.Itoa(index), value))
+}
+
+// Trim a list to the specified range
+func (c *Client) Ltrim(key string, start int, stop int) os.Error {
+    return nilOrErr(c.SendStr("LTRIM", key, strconv.Itoa(start), strconv.Itoa(stop)))
+}
+
+// Remove and get the last element in a list
+func (c *Client) Rpop(key string) ([]byte, os.Error) {
+    return byteOrErr(c.SendStr("RPOP", key))
+}
+
+// Remove the last element in a list, append it to another list and return it
+func (c *Client) Rpoplpush(source string, destination string) ([]byte, os.Error) {
+    return byteOrErr(c.SendStr("RPOPLPUSH", source, destination))
+}
+
+// Append a value to a list
+func (c *Client) Rpush(key string, value []byte) (int64, os.Error) {
+    return intOrErr(c.Send("RPUSH", []byte(key), value))
+}
+
+// Append a value to a list, only if the list exists
+func (c *Client) Rpushx(key string, value []byte) (int64, os.Error) {
+    return intOrErr(c.Send("RPUSHX", []byte(key), value))
+}
