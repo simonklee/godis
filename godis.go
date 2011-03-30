@@ -125,6 +125,7 @@ func (rw *redisReadWriter) multiBulkReply(line string) (interface{}, os.Error) {
             return nil, err
         }
 
+        // key not found, ignore `nil` value
         if v == nil {
             i -= 1
             l -= 1

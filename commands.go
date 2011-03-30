@@ -318,11 +318,11 @@ func (c *Client) Lpush(key string, value []byte) (int64, os.Error) {
     return intOrErr(c.Send("LPUSH", []byte(key), value))
 }
 
-//// Prepend a value to a list, only if the list exists
-//func (c *Client) Lpushx(key string, value string) int64 {
-//
-//}
-//
+// Prepend a value to a list, only if the list exists
+func (c *Client) Lpushx(key string, value []byte) (int64, os.Error) {
+    return intOrErr(c.Send("LPUSH", []byte(key), value))
+}
+
 //// Get a range of elements from a list
 //func (c *Client) Lrange(key string, start int, stop int) [][]byte {
 //
