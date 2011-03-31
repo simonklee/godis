@@ -172,13 +172,14 @@ func (rw *redisReadWriter) read() (interface{}, os.Error) {
     return nil, newError("Unknown response ", string(typ))
 }
 
-func (rw *redisReadWriter) write(name []byte, args ...[]byte) os.Error {
-    cmds := append([][]byte{name}, args...)
+func (rw *redisReadWriter) write(name string, args ...interface{}) os.Error {
     buf := bytes.NewBuffer(nil)
-    fmt.Fprintf(buf, "*%d\r\n", len(cmds))
-    
-    for _, v := range cmds {
-        fmt.Fprintf(buf, "$%d\r\n%s\r\n", len(v), v)
+    fmt.Fprintf(buf, "*%d\r\n", len(args) + 1)
+    fmt.Fprintf(buf, "$%d\r\n%v\r\n", len(name), name)
+
+    for _, v := range args {
+        s := fmt.Sprint(v)
+        fmt.Fprintf(buf, "$%d\r\n%v\r\n", len(s), s)
     }
 
     if LOG_CMD {
@@ -226,7 +227,7 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
 
     rw := newRedisReadWriter(conn)
     if c.Db != 0 {
-        err = rw.write([]byte("SELECT"), []byte(strconv.Itoa(c.Db)))
+        err = rw.write("SELECT", c.Db)
         defer rw.read()
 
         if err != nil {
@@ -235,7 +236,7 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     }
 
     if c.Password != "" {
-        err = rw.write([]byte("AUTH"), []byte(c.Password))
+        err = rw.write("AUTH", c.Password)
         defer rw.read()
 
         if err != nil {
@@ -245,17 +246,7 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     return conn, err
 }
 
-func (c *Client) SendStr(name string, args ...string) (interface{}, os.Error) {
-    buf := make([][]byte, len(args))
-
-    for i, v := range args {
-        buf[i] = []byte(v)
-    }
-
-    return c.Send(name, buf...)
-}
-
-func (c *Client) Send(name string, args ...[]byte) (interface{}, os.Error) {
+func (c *Client) Send(name string, args ...interface{}) (interface{}, os.Error) {
     conn := c.pool.Pop()
     
     if conn == nil {
@@ -270,7 +261,7 @@ func (c *Client) Send(name string, args ...[]byte) (interface{}, os.Error) {
     
     rw := newRedisReadWriter(conn)
 
-    if err := rw.write([]byte(name), args...); err != nil {
+    if err := rw.write(name, args...); err != nil {
         return nil, err
     }
 

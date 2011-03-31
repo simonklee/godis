@@ -1,10 +1,10 @@
 package godis
 
 import (
-    "bytes"
     "os"
     "strconv"
     "testing"
+    "reflect"
     "time"
 )
 
@@ -83,8 +83,8 @@ func TestGeneric(t *testing.T) {
 
 func TestKeys(t *testing.T) {
     c := New("", 0, "")
-    c.SendStr("FLUSHDB")
-    c.SendStr("MSET", "foo", "one", "bar", "two", "baz", "three")
+    c.Send("FLUSHDB")
+    c.Send("MSET", "foo", "one", "bar", "two", "baz", "three")
 
     res, err := c.Keys("foo"); 
 
@@ -107,10 +107,10 @@ func TestKeys(t *testing.T) {
 
 func TestSort(t *testing.T) {
     c := New("", 0, "")
-    c.SendStr("FLUSHDB")
-    c.SendStr("RPUSH", "foo", "2") 
-    c.SendStr("RPUSH", "foo", "3") 
-    c.SendStr("RPUSH", "foo", "1") 
+    c.Send("FLUSHDB")
+    c.Send("RPUSH", "foo", "2") 
+    c.Send("RPUSH", "foo", "3") 
+    c.Send("RPUSH", "foo", "1") 
 
     res, err := c.Sort("foo")
 
@@ -134,7 +134,7 @@ func TestSort(t *testing.T) {
 
 func TestString(t *testing.T) {
     c := New("", 0, "")
-    c.SendStr("FLUSHDB")
+    c.Send("FLUSHDB")
 
     if res, err := c.Decr("qux"); err != nil || res != -1 {
         error(t, "decr", -1, res, err)
@@ -225,32 +225,19 @@ func TestString(t *testing.T) {
     }
 }
 
-func arrEqual(a, b [][]byte) bool {
-    if len(a) != len(b) {
-        return false
-    }
-
-    for i, c := range a {
-        if !bytes.Equal(c, b[i]) {
-            return false
-        }
-    }
-    return true
-}
-
 func TestList(t *testing.T) {
     c := New("", 0, "")
-    c.SendStr("FLUSHDB")
+    c.Send("FLUSHDB")
 
-    if res, err := c.Lpush("foobar", []byte("foo")); err != nil || res != 1 {
+    if res, err := c.Lpush("foobar", "foo"); err != nil || res != 1 {
         error(t, "LPUSH", 1, res, err)
     }
 
-    if res, err := c.Linsert("foobar", "AFTER", []byte("foo"), []byte("bar")); err != nil || res != 2 {
+    if res, err := c.Linsert("foobar", "AFTER", "foo", "bar"); err != nil || res != 2 {
         error(t, "Linsert", 2, res, err)
     }
 
-    if res, err := c.Linsert("foobar", "AFTER", []byte("qux"), []byte("bar")); err != nil || res != -1 {
+    if res, err := c.Linsert("foobar", "AFTER", "qux", "bar"); err != nil || res != -1 {
         error(t, "Linsert", -1, res, err)
     }
 
@@ -262,7 +249,7 @@ func TestList(t *testing.T) {
         error(t, "Lindex", "foo", res, err)
     }
 
-    if res, err := c.Lpush("foobar", []byte("qux")); err != nil || res != 3 {
+    if res, err := c.Lpush("foobar", "qux"); err != nil || res != 3 {
         error(t, "Lpush", 3, res, err)
     }
 
@@ -272,33 +259,33 @@ func TestList(t *testing.T) {
 
     expected := [][]byte{[]byte("foo"), []byte("bar")}
 
-    if res, err := c.Lrange("foobar", 0, 1); err != nil || !arrEqual(res, expected) {
+    if res, err := c.Lrange("foobar", 0, 1); err != nil || !reflect.DeepEqual(expected, res) {
         error(t, "Lrange", expected, res, err)
     }
 
-    expected = [][]byte{[]byte("foo")}
+    want := []string{"foo"}
 
     if res, err := c.Lrem("foobar", 0, "bar"); err != nil || res != 1 {
         error(t, "Lrem", 1, res, err)
     }
 
-    expected = [][]byte{[]byte("bar")}
+    want = []string{"bar"}
 
     if err := c.Lset("foobar", 0, "bar"); err != nil {
         error(t, "Lrem", nil, nil, err)
     }
 
-    expected = [][]byte{}
+    want = []string{}
 
     if err := c.Ltrim("foobar", 1, 0); err != nil {
         error(t, "Ltrim", nil, nil, err)
     }
 
-    expected = [][]byte{[]byte("foo"), []byte("bar"), []byte("qux")}
+    want = []string{"foo", "bar", "qux"}
     var res int64
     var err os.Error
 
-    for _, v := range expected {
+    for _, v := range want {
         res, err = c.Rpush("foobar", v)
     }
 
@@ -306,11 +293,11 @@ func TestList(t *testing.T) {
         error(t, "Rpush", 3, res, err)
     }
 
-    if res, err := c.Rpushx("foobar", []byte("baz")); err != nil || res != 4 {
+    if res, err := c.Rpushx("foobar", "baz"); err != nil || res != 4 {
         error(t, "Rpushx", 4, res, err)
     }
 
-    if res, err := c.Rpop("foobar"); err != nil || string(res) != "baz" {
+    if res, err := c.Rpop("foobar", ); err != nil || string(res) != "baz" {
         error(t, "Rpop", "baz", res, err)
     }
 

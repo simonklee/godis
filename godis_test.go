@@ -98,7 +98,7 @@ var simpleSendTests = []SimpleSendTest{
 func TestSimpleSend(t *testing.T) {
     c := New("", 0, "")
     for _, test := range simpleSendTests {
-        res, err := c.SendStr(test.cmd, test.args...)
+        res, err := c.Send(test.cmd, strToFaces(test.args)...)
 
         if err != nil {
             t.Errorf("'%s': unexpeced error %q", test.cmd, err)
@@ -136,19 +136,19 @@ func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
     for i := 0; i < 1000; i++ {
-        c.SendStr("RPUSH", "list", "foo")
+        c.Send("RPUSH", "list", "foo")
     }
 
     start := time.Nanoseconds()
 
     for i := 0; i < b.N; i++ {
-        c.SendStr("LRANGE", "list", "0", "50")
+        c.Send("LRANGE", "list", "0", "50")
     }
 
     stop := time.Nanoseconds() - start
 
     fmt.Fprintf(os.Stdout, "time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
-    c.SendStr("FLUSHDB")
+    c.Send("FLUSHDB")
 }
 
 
