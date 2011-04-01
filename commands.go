@@ -18,7 +18,8 @@ func boolOrErr(res interface{}, err os.Error) (bool, os.Error) {
         return false, err
     }
 
-    return res.(int64) == 1, nil
+    v, ok := res.(int64)
+    return v == 1 && ok, nil
 }
 
 func nilOrErr(res interface{}, err os.Error) os.Error {
