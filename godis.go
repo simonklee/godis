@@ -242,20 +242,15 @@ type Client struct {
     Db       int
     Password string
     pool     *Pool
+    pipe     bool
 }
 
 func New(addr string, db int, password string) *Client {
-    var c Client
-    c.Addr = addr
-
-    if c.Addr == "" {
-        c.Addr = "127.0.0.1:6379"
+    if addr == "" {
+        addr = "127.0.0.1:6379"
     }
 
-    c.Db = db
-    c.Password = password
-    c.pool = NewPool()
-    return &c
+    return &Client{Addr: addr, Db: db, Password: password, pool: NewPool()}
 }
 
 func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
