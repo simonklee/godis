@@ -41,24 +41,23 @@ func TestPoolSize(t *testing.T) {
     c2 := New("", 0, "")
     expected := MaxClientConn * 2 + ConnCtr
 
-    c1.Send("SET", []byte("foo"), []byte("foo"))
-    c2.Send("SET", []byte("bar"), []byte("bar"))
+    c1.Send("SET", "foo", "foo")
+    c2.Send("SET", "bar", "bar")
 
     start := time.Nanoseconds()
 
     for i := 0; i < 1000; i++ {
-        o1, _ := c1.Send("GET", []byte("foo"))
-        o2, _ := c2.Send("GET", []byte("foo"))
+        r1 := c1.Send("GET", "foo")
+        r2 := c2.Send("GET", "bar")
         
-        s1, _ := o1.([]byte)
-        s2, _ := o2.([]byte)
-
-        if string(s1) == "foo" && string(s2) == "bar" {
+        if r1.Elem.String() != "foo" && r2.Elem.String() != "bar" {
+            t.Error(r1, r2)
+            t.FailNow()
         }
     }
 
     stop := time.Nanoseconds() - start
-    t.Log("time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
+    t.Logf("time: %.3f\n", float32(stop / 1.0e+6) / 1000.0)
 
     if expected != ConnCtr {
         t.Errorf("ConnCtr: expected %d got %d ", expected, ConnCtr)

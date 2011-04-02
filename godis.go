@@ -5,7 +5,6 @@ import (
     "os"
     "bufio"
     "bytes"
-    "strings"
     "strconv"
     "net"
     "log"
@@ -14,7 +13,7 @@ import (
 
 const (
     MaxClientConn = 5
-    LOG_CMD = false
+    LOG_CMD       = false
 )
 
 // protocol bytes
@@ -31,10 +30,6 @@ const (
 var (
     ConnCtr int
 )
-
-func newError(format string, args ...interface{}) os.Error {
-    return os.NewError(fmt.Sprintf(format, args...))
-}
 
 type Pool struct {
     pool chan *net.TCPConn
@@ -58,44 +53,71 @@ func (p *Pool) Push(c *net.TCPConn) {
     p.pool <- c
 }
 
-func errorReply(line string) (interface{}, os.Error) {
-    if LOG_CMD {
-        log.Println("GODIS: " + line)
-    }
+type Elem []byte
 
-    if strings.HasPrefix(line, "ERR") {
-        line = line[3:]
-    }
-
-    return nil, newError(line)
+func (e Elem) String() string {
+    return string([]byte(e))
 }
 
-func singleReply(line string) (interface{}, os.Error) {
-    if LOG_CMD {
-        log.Println("GODIS: " + line)
-    }
-
-    return line, nil
+func (e Elem) Int64() int64 {
+    v, _ := strconv.Atoi64(string([]byte(e)))
+    return v
 }
 
-func integerReply(line string) (interface{}, os.Error) {
-    if LOG_CMD {
-        log.Println("GODIS: " + line)
-    }
-
-    return strconv.Atoi64(line)
+type Reply struct {
+    Err   os.Error
+    Elem  Elem
+    Elems []*Reply
 }
 
-func bulkReply(reader *bufio.Reader, line string) (interface{}, os.Error) {
-    l, _ := strconv.Atoi(line)
+func (r *Reply) Len() int {
+    return len(r.Elems)
+}
+
+func (r *Reply) Strings() []string {
+    buf := make([]string, r.Len())
+
+    for i, v := range r.Elems {
+        buf[i] = v.Elem.String()
+    }
+
+    return buf
+}
+
+func (r *Reply) errorReply(res []byte) {
+    r.Err = os.NewError(string(res))
+
+    if LOG_CMD {
+        log.Println("GODIS: " + string(res))
+    }
+}
+
+func (r *Reply) singleReply(res []byte) {
+    r.Elem = res
+
+    if LOG_CMD {
+        log.Println("GODIS: " + string(res))
+    }
+}
+
+func (r *Reply) integerReply(res []byte) {
+    r.Elem = res
+
+    if LOG_CMD {
+        log.Println("GODIS: " + string(res))
+    }
+}
+
+func (r *Reply) bulkReply(reader *bufio.Reader, res []byte) {
+    l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        return nil, nil
+        return 
     }
 
-    r := io.LimitReader(reader, int64(l))
+    lr := io.LimitReader(reader, int64(l))
     buf := bytes.NewBuffer(make([]byte, 0, l))
-    n, err := buf.ReadFrom(r)
+    n, err := buf.ReadFrom(lr)
 
     if err == nil {
         _, err = reader.ReadBytes(ln)
@@ -109,51 +131,53 @@ func bulkReply(reader *bufio.Reader, line string) (interface{}, os.Error) {
         log.Printf("GODIS: %d %q\n", l, buf)
     }
 
-    return buf.Bytes(), err
+    r.Elem = buf.Bytes()
 }
 
-func multiBulkReply(reader *bufio.Reader, line string) (interface{}, os.Error) {
-    l, _ := strconv.Atoi(line)
+func (r *Reply) multiBulkReply(reader *bufio.Reader, res[]byte) {
+    l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        return nil, nil
+        r.Err = nil //os.NewError("nothing to read")
+        return
     }
 
-    var data = make([][]byte, l)
+    r.Elems = make([]*Reply, l)
 
     for i := 0; i < l; i++ {
-        v, err := read(reader)
+        rr := read(reader)
 
-        if err != nil {
-            return nil, err
+        if rr.Err != nil {
+            r.Err = rr.Err
+            return 
         }
 
         // key not found, ignore `nil` value
-        if v == nil {
+        if rr.Elem == nil {
             i -= 1
             l -= 1
             continue
         }
 
-        data[i] = v.([]byte)
+        r.Elems[i] = rr
     }
 
     if LOG_CMD {
-        log.Printf("GODIS: %d %q\n", l, data)
+        log.Printf("GODIS: %d %q\n", l, r.Elems)
     }
-
-    return data[:l], nil
 }
 
-func read(reader *bufio.Reader) (interface{}, os.Error) {
+func read(reader *bufio.Reader) *Reply {
+    reply := new(Reply)
     res, err := reader.ReadBytes(ln)
 
     if err != nil {
-        return nil, err
+       reply.Err = err
+       return reply
     }
 
     typ := res[0]
-    line := strings.TrimSpace(string(res[1:]))
+    line := res[1:len(res) - 2]
 
     if LOG_CMD {
         log.Printf("GODIS: %c\n", typ)
@@ -161,29 +185,20 @@ func read(reader *bufio.Reader) (interface{}, os.Error) {
 
     switch typ {
     case minus:
-        return errorReply(line)
+        reply.errorReply(line)
     case plus:
-        return singleReply(line)
+        reply.singleReply(line)
     case colon:
-        return integerReply(line)
+        reply.integerReply(line)
     case dollar:
-        o, e := bulkReply(reader, line)
-        if e != nil && LOG_CMD {
-            l, _ := strconv.Atoi(line)
-            log.Printf("typ: %c, res: %q, line: %q line-len(%d)\n", typ, res, line, l)
-        }
-        return o, e
-
+        reply.bulkReply(reader, line)
     case star:
-        o, e := multiBulkReply(reader, line)
-        if e != nil && LOG_CMD {
-            l, _ := strconv.Atoi(line)
-            log.Printf("typ: %c, res: %q, line: %q line-len(%d)\n", typ, res, line, l)
-        }
-        return o, e
+        reply.multiBulkReply(reader, line)
+    default:
+        reply.Err = os.NewError("Unknown response " + string(typ))
     }
 
-    return nil, newError("Unknown response ", string(typ))
+    return reply 
 }
 
 func appendCmd(buf *bytes.Buffer, a []byte) {
@@ -277,24 +292,24 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     return conn, err
 }
 
-func (c *Client) Send(name string, args ...interface{}) (interface{}, os.Error) {
+func (c *Client) Send(name string, args ...interface{}) *Reply {
     conn := c.pool.Pop()
-    
+
     if conn == nil {
         ConnCtr++
         var err os.Error
-
         conn, err = c.newConn()
+
         if err != nil {
-            return nil, err
+            return &Reply{Err: err}
         }
     }
 
     if err := write(conn, name, args...); err != nil {
-        return nil, err
+        return &Reply{Err: err}
     }
 
-    d, e := read(bufio.NewReader(conn))
+    reply := read(bufio.NewReader(conn))
     c.pool.Push(conn)
-    return d, e
+    return reply
 }

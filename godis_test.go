@@ -6,14 +6,13 @@ import (
     "bufio"
     "os"
     "time"
-    "fmt"
+    "log"
 )
 
 type simpleParserTest struct {
     in   string
-    out  interface{}
+    out  Reply
     name string
-    err  os.Error
 }
 
 type redisReadWriter struct {
@@ -28,45 +27,44 @@ func dummyReadWriter(data string) *redisReadWriter {
 }
 
 var simpleParserTests = []simpleParserTest{
-    {"+OK\r\n", "OK", "ok", nil},
-    {"-ERR\r\n", nil, "err", os.NewError("ERR")},
-    {":1\r\n", int64(1), "num", nil},
-    {"$3\r\nfoo\r\n", s2Bytes("foo"), "bulk", nil},
-    {"$-1\r\n", nil, "bulk-nil", nil},
-    {"*-1\r\n", nil, "multi-bulk-nil", nil},
+    {"+OK\r\n", Reply{Elem:[]byte("OK")}, "ok"},
+    {"-ERR\r\n", Reply{Err:os.NewError("ERR")}, "err", },
+    {":1\r\n", Reply{Elem:[]byte("1")}, "num"},
+    {"$3\r\nfoo\r\n", Reply{Elem:s2Bytes("foo")}, "bulk"},
+    {"$-1\r\n", Reply{}, "bulk-nil"},
+    {"*-1\r\n", Reply{}, "multi-bulk-nil"},
+}
+
+func compareReply(t *testing.T, name string, a, b *Reply) {
+    if a.Err != nil && b.Err == nil {
+        t.Errorf("'%s': unexpected error `%v`", name, a.Err)
+        t.FailNow()
+    } else if b.Err != a.Err {
+        t.Errorf("'%s': expected %s got %v", name, b, a)
+    } else if b.Elem != nil {
+        for i, c := range a.Elem {
+            if c != b.Elem[i] {
+                t.Errorf("'%s': expected %v got %v", name, b, a)
+            }
+        }
+    } else if b.Elems != nil {
+        for i, rep := range a.Elems {
+            for j, e := range rep.Elem {
+                if e != b.Elems[i].Elem[j] {
+                    t.Errorf("expected %v got %v", b, a)
+                    break
+                }
+            }
+        }
+    }
 }
 
 func TestParser(t *testing.T) {
     for _, test := range simpleParserTests {
         rw := dummyReadWriter(test.in)
-        res, err := read(rw.reader)
-
-        if err != nil && test.err == nil {
-            t.Errorf("'%s': unexpected error %v", test.name, err)
-            t.FailNow()
-        }
-
-        switch v := res.(type) {
-            case []byte:
-                for i, c := range res.([]byte) {
-                    if c != test.out.([]byte)[i] {
-                        t.Errorf("expected %v got %v", test.out, res)
-                    }
-                }
-            case [][]byte:
-                for _, b := range res.([][]byte) {
-                    for j, c := range b {
-                        if c != test.out.([]byte)[j] {
-                            t.Errorf("expected %v got %v", test.out, res)
-                        }
-                    }
-                }
-            default:
-                if res != test.out {
-                    t.Errorf("'%s': expected %s got %v", test.name, test.out, res)
-                }
-        }
-        t.Log(test.in, res, test.out)
+        r := read(rw.reader)
+        compareReply(t, test.name, r, &test.out)
+        t.Log(test.in, r, test.out)
     }
 }
 
@@ -74,66 +72,49 @@ func s2Bytes(s string) []byte {
     return bytes.NewBufferString(s).Bytes()
 }
 
-func s2MultiBytes(ss ...string) [][]byte {
-    var buf = make([][]byte, len(ss))
+func s2MultiReply(ss ...string) []*Reply {
+    var r = make([]*Reply, len(ss))
     for i := 0; i < len(ss); i++ {
-        buf[i] = s2Bytes(ss[i])
+        r[i] = &Reply{Elem: s2Bytes(ss[i])}
     }
-    return buf
+    return r
 }
 
 type SimpleSendTest struct {
     cmd  string
     args []string
-    out  interface{}
+    out  Reply
 }
 
 var simpleSendTests = []SimpleSendTest{
-    {"FLUSHDB", []string{}, "OK"},
-    {"SET", []string{"key", "foo"}, "OK"},
-    {"EXISTS", []string{"key"}, int64(1)},
-    {"GET", []string{"key"}, s2Bytes("foo")},
-    {"RPUSH", []string{"list", "foo"}, int64(1)},
-    {"RPUSH", []string{"list", "bar"}, int64(2)},
-    {"LRANGE", []string{"list", "0", "2"}, s2MultiBytes("foo", "bar")},
-    {"KEYS", []string{"list"}, s2MultiBytes("list")},
-    {"GET", []string{"/dev/null"}, nil},
+    {"FLUSHDB", []string{}, Reply{Elem:[]byte("OK")}},
+    {"SET", []string{"key", "foo"}, Reply{Elem:[]byte("OK")}},
+    {"EXISTS", []string{"key"}, Reply{Elem:[]byte("1")}},
+    {"GET", []string{"key"}, Reply{Elem: s2Bytes("foo")}},
+    {"RPUSH", []string{"list", "foo"}, Reply{Elem: []byte("1")}},
+    {"RPUSH", []string{"list", "bar"}, Reply{Elem: []byte("2")}},
+    {"LRANGE", []string{"list", "0", "2"}, Reply{Elems: s2MultiReply("foo", "bar")}},
+    {"KEYS", []string{"list"}, Reply{Elems: s2MultiReply("list")}},
+    {"GET", []string{"/dev/null"}, Reply{}},
+}
+
+func strToFaces(args []string) []interface{} {
+	interfaces := make([]interface{}, len(args))
+
+	for i, n := range args {
+		interfaces[i] = n
+	}
+
+	return interfaces
 }
 
 func TestSimpleSend(t *testing.T) {
     c := New("", 0, "")
     for _, test := range simpleSendTests {
-        res, err := c.Send(test.cmd, strToFaces(test.args)...)
-
-        if err != nil {
-            t.Errorf("'%s': unexpeced error %q", test.cmd, err)
-            t.FailNow()
-        }
-
-        switch v := res.(type) {
-        case []byte:
-            for i, c := range res.([]byte) {
-                if c != test.out.([]byte)[i] {
-                    t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
-                }
-            }
-        case [][]byte:
-            res_arr := res.([][]byte)
-            out_arr := test.out.([][]byte)
-
-            for i := 0; i < len(res_arr); i++ {
-                for j := 0; j < len(res_arr[i]); j++ {
-                    if res_arr[i][j] != out_arr[i][j] {
-                        t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
-                    }
-                }
-            }
-        default:
-            if res != test.out {
-                t.Errorf("'%s': expected %v got %v", test.cmd, test.out, res)
-            }
-        }
-        t.Log(test.cmd, test.args, test.out)
+        r := c.Send(test.cmd, strToFaces(test.args)...)
+        compareReply(t, test.cmd, &test.out, r)
+        t.Log(test.cmd, test.args)
+        t.Logf("%q == %q\n", test.out, r)
     }
 }
 
@@ -152,26 +133,26 @@ func BenchmarkParsing(b *testing.B) {
 
     stop := time.Nanoseconds() - start
 
-    fmt.Fprintf(os.Stdout, "time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
+    log.Printf("time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
     c.Send("FLUSHDB")
 }
 
 
-//func TestBenchmark(t *testing.T) {
-//    c := New("", 0, "")
-//    c.Send("FLUSHDB")
-//    start := time.Nanoseconds()
-//    n := 2000000
-//
-//    a, b := []byte("zrs"), []byte("hi")
-//    for i := 0; i < n; i++ {
-//        c.Send("RPUSH", a, b)
-//    }
-//
-//    //c.Del("zrs")
-//    stop := time.Nanoseconds() - start
-//
-//    ti := float32(stop / 1.0e+6) / 1000.0
-//    fmt.Fprintf(os.Stdout, "godis: %.2f %.2f per/s\n", ti, float32(n) / ti)
-//}
-//
+////func TestBenchmark(t *testing.T) {
+////    c := New("", 0, "")
+////    c.Send("FLUSHDB")
+////    start := time.Nanoseconds()
+////    n := 2000000
+////
+////    a, b := []byte("zrs"), []byte("hi")
+////    for i := 0; i < n; i++ {
+////        c.Send("RPUSH", a, b)
+////    }
+////
+////    //c.Del("zrs")
+////    stop := time.Nanoseconds() - start
+////
+////    ti := float32(stop / 1.0e+6) / 1000.0
+////    fmt.Fprintf(os.Stdout, "godis: %.2f %.2f per/s\n", ti, float32(n) / ti)
+////}
+////
