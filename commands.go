@@ -10,7 +10,8 @@ func intOrErr(res interface{}, err os.Error) (int64, os.Error) {
         return -1, err
     }
 
-    return res.(int64), nil
+    v, _ := res.(int64)
+    return v, nil
 }
 
 func boolOrErr(res interface{}, err os.Error) (bool, os.Error) {
@@ -383,3 +384,65 @@ func (c *Client) Rpush(key string, value interface{}) (int64, os.Error) {
 func (c *Client) Rpushx(key string, value interface{}) (int64, os.Error) {
     return intOrErr(c.Send("RPUSHX", key, value))
 }
+
+// hash
+
+// Delete a hash field
+func (c *Client) Hdel(key string, field string) (bool, os.Error) {
+    return boolOrErr(c.Send("HDEL", key, field))
+}
+
+// Determine if a hash field exists
+func (c *Client) Hexists(key string, field string) (bool, os.Error) {
+    return boolOrErr(c.Send("HEXISTS", key, field))
+}
+
+// Get the value of a hash field
+func (c *Client) Hget(key string, field string) ([]byte, os.Error) {
+    return byteOrErr(c.Send("HGET", key, field))
+}
+
+// Get all the fields and values in a hash
+func (c *Client) Hgetall(key string) ([][]byte, os.Error) {
+    return byteArrOrErr(c.Send("HGETALL", key))
+}
+
+//// Increment the integer value of a hash field by the given number
+//func (c *Client) Hincrby(key string, field string, increment int64) int64 {
+//
+//}
+//
+//// Get all the fields in a hash
+//func (c *Client) Hkeys(key string) [][]byte {
+//
+//}
+//
+//// Get the number of fields in a hash
+//func (c *Client) Hlen(key string) int64 {
+//
+//}
+//
+//// Get the values of all the given hash fields
+//func (c *Client) Hmget(key string, field []string) [][]byte {
+//
+//}
+//
+//// Set multiple hash fields to multiple values
+//func (c *Client) Hmset(key string, mapping map[string][]byte)  {
+//
+//}
+
+// Set the string value of a hash field
+func (c *Client) Hset(key string, field string, value interface{}) (bool, os.Error) {
+   return boolOrErr(c.Send("HSET", key, field, value))
+}
+
+//// Set the value of a hash field, only if the field does not exist
+//func (c *Client) Hsetnx(key string, field string, value string) int64 {
+//
+//}
+//
+//// Get all the values in a hash
+//func (c *Client) Hvals(key string) [][]byte {
+//
+//}

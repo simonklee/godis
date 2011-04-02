@@ -9,11 +9,23 @@ import (
     "strconv"
     "net"
     "log"
+    "io"
 )
 
 const (
-    MaxClientConn = 1
+    MaxClientConn = 5
     LOG_CMD = false
+)
+
+// protocol bytes
+const (
+    cr     byte = 13
+    ln     byte = 10
+    dollar byte = 36
+    colon  byte = 58
+    minus  byte = 45
+    plus   byte = 43
+    star   byte = 42
 )
 
 var (
@@ -46,16 +58,7 @@ func (p *Pool) Push(c *net.TCPConn) {
     p.pool <- c
 }
 
-type redisReadWriter struct {
-    writer *bufio.Writer
-    reader *bufio.Reader
-}
-
-func newRedisReadWriter(c *net.TCPConn) *redisReadWriter {
-    return &redisReadWriter{bufio.NewWriter(c), bufio.NewReader(c)}
-}
-
-func (rw *redisReadWriter) errorReply(line string) (interface{}, os.Error) {
+func errorReply(line string) (interface{}, os.Error) {
     if LOG_CMD {
         log.Println("GODIS: " + line)
     }
@@ -67,7 +70,7 @@ func (rw *redisReadWriter) errorReply(line string) (interface{}, os.Error) {
     return nil, newError(line)
 }
 
-func (rw *redisReadWriter) singleReply(line string) (interface{}, os.Error) {
+func singleReply(line string) (interface{}, os.Error) {
     if LOG_CMD {
         log.Println("GODIS: " + line)
     }
@@ -75,7 +78,7 @@ func (rw *redisReadWriter) singleReply(line string) (interface{}, os.Error) {
     return line, nil
 }
 
-func (rw *redisReadWriter) integerReply(line string) (interface{}, os.Error) {
+func integerReply(line string) (interface{}, os.Error) {
     if LOG_CMD {
         log.Println("GODIS: " + line)
     }
@@ -83,33 +86,33 @@ func (rw *redisReadWriter) integerReply(line string) (interface{}, os.Error) {
     return strconv.Atoi64(line)
 }
 
-func (rw *redisReadWriter) bulkReply(line string) (interface{}, os.Error) {
+func bulkReply(reader *bufio.Reader, line string) (interface{}, os.Error) {
     l, _ := strconv.Atoi(line)
 
     if l == -1 {
         return nil, nil
     }
 
-    l += 2 // make sure to read \r\n
-    data := make([]byte, l)
+    r := io.LimitReader(reader, int64(l))
+    buf := bytes.NewBuffer(make([]byte, 0, l))
+    n, err := buf.ReadFrom(r)
 
-    n, err := rw.reader.Read(data)
-    if n != l || err != nil {
-        if n != l {
-            err = newError("expected %d bytes got %d bytes", l, n)
-        }
-        return nil, err
+    if err == nil {
+        _, err = reader.ReadBytes(ln)
     }
-    l -= 2
+
+    if n != int64(l) {
+        log.Println(n, l)
+    }
 
     if LOG_CMD {
-        log.Printf("GODIS: %d %q\n", l, data)
+        log.Printf("GODIS: %d %q\n", l, buf)
     }
-    
-    return data[:l], nil
+
+    return buf.Bytes(), err
 }
 
-func (rw *redisReadWriter) multiBulkReply(line string) (interface{}, os.Error) {
+func multiBulkReply(reader *bufio.Reader, line string) (interface{}, os.Error) {
     l, _ := strconv.Atoi(line)
 
     if l == -1 {
@@ -119,7 +122,7 @@ func (rw *redisReadWriter) multiBulkReply(line string) (interface{}, os.Error) {
     var data = make([][]byte, l)
 
     for i := 0; i < l; i++ {
-        v, err := rw.read()
+        v, err := read(reader)
 
         if err != nil {
             return nil, err
@@ -142,55 +145,81 @@ func (rw *redisReadWriter) multiBulkReply(line string) (interface{}, os.Error) {
     return data[:l], nil
 }
 
-func (rw *redisReadWriter) read() (interface{}, os.Error) {
-    res, err := rw.reader.ReadString('\n')
+func read(reader *bufio.Reader) (interface{}, os.Error) {
+    res, err := reader.ReadBytes(ln)
 
     if err != nil {
         return nil, err
     }
 
     typ := res[0]
-    line := strings.TrimSpace(res[1:])
+    line := strings.TrimSpace(string(res[1:]))
 
     if LOG_CMD {
         log.Printf("GODIS: %c\n", typ)
     }
 
     switch typ {
-    case '-':
-        return rw.errorReply(line)
-    case '+':
-        return rw.singleReply(line)
-    case ':':
-        return rw.integerReply(line)
-    case '$':
-        return rw.bulkReply(line)
-    case '*':
-        return rw.multiBulkReply(line)
+    case minus:
+        return errorReply(line)
+    case plus:
+        return singleReply(line)
+    case colon:
+        return integerReply(line)
+    case dollar:
+        o, e := bulkReply(reader, line)
+        if e != nil && LOG_CMD {
+            l, _ := strconv.Atoi(line)
+            log.Printf("typ: %c, res: %q, line: %q line-len(%d)\n", typ, res, line, l)
+        }
+        return o, e
+
+    case star:
+        o, e := multiBulkReply(reader, line)
+        if e != nil && LOG_CMD {
+            l, _ := strconv.Atoi(line)
+            log.Printf("typ: %c, res: %q, line: %q line-len(%d)\n", typ, res, line, l)
+        }
+        return o, e
     }
 
     return nil, newError("Unknown response ", string(typ))
 }
 
-func (rw *redisReadWriter) write(name string, args ...interface{}) os.Error {
-    buf := bytes.NewBuffer(nil)
-    fmt.Fprintf(buf, "*%d\r\n", len(args) + 1)
-    fmt.Fprintf(buf, "$%d\r\n%v\r\n", len(name), name)
+func appendCmd(buf *bytes.Buffer, a []byte) {
+    buf.WriteByte(dollar)
+    buf.WriteString(strconv.Itoa(len(a)))
+    buf.WriteByte(cr)
+    buf.WriteByte(ln)
+    buf.Write(a)
+    buf.WriteByte(cr)
+    buf.WriteByte(ln)
+}
 
-    for _, v := range args {
-        s := fmt.Sprint(v)
-        fmt.Fprintf(buf, "$%d\r\n%v\r\n", len(s), s)
+func write(conn *net.TCPConn, name string, args ...interface{}) os.Error {
+    n := len(args)
+    buf := bytes.NewBuffer(nil)
+
+    buf.WriteByte(star)
+    buf.WriteString(strconv.Itoa(n + 1))
+    buf.WriteByte(cr)
+    buf.WriteByte(ln)
+
+    appendCmd(buf, []byte(name))
+
+    for i := 0; i < n; i++ {
+        appendCmd(buf, []byte(fmt.Sprint(args[i])))
     }
 
     if LOG_CMD {
-        log.Println(buf)
+        log.Println("GODIS: " + string(buf.Bytes()))
     }
 
-    if _, err := rw.writer.Write(buf.Bytes()); err != nil {
+    if _, err := conn.Write(buf.Bytes()); err != nil {
         return err
     }
 
-    return rw.writer.Flush()
+    return nil
 }
 
 type Client struct {
@@ -216,6 +245,7 @@ func New(addr string, db int, password string) *Client {
 
 func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     addr, err := net.ResolveTCPAddr(c.Addr)
+
     if err != nil {
         return nil, os.NewError("ResolveAddr error for " + c.Addr)
     }
@@ -225,10 +255,10 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
         err = os.NewError("Connection error " + addr.String())
     }
 
-    rw := newRedisReadWriter(conn)
     if c.Db != 0 {
-        err = rw.write("SELECT", c.Db)
-        defer rw.read()
+        err = write(conn, "SELECT", c.Db)
+        read(bufio.NewReader(conn))
+        //defer rw.read()
 
         if err != nil {
             return nil, err
@@ -236,8 +266,9 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     }
 
     if c.Password != "" {
-        err = rw.write("AUTH", c.Password)
-        defer rw.read()
+        err = write(conn, "AUTH", c.Password)
+        read(bufio.NewReader(conn))
+        //defer rw.read()
 
         if err != nil {
             return nil, err
@@ -258,14 +289,12 @@ func (c *Client) Send(name string, args ...interface{}) (interface{}, os.Error) 
             return nil, err
         }
     }
-    
-    rw := newRedisReadWriter(conn)
 
-    if err := rw.write(name, args...); err != nil {
+    if err := write(conn, name, args...); err != nil {
         return nil, err
     }
 
-    d, e := rw.read()
+    d, e := read(bufio.NewReader(conn))
     c.pool.Push(conn)
     return d, e
 }

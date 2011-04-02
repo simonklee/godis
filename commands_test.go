@@ -6,6 +6,7 @@ import (
     "testing"
     "reflect"
     "time"
+    "fmt"
 )
 
 func error(t *testing.T, name string, expected, got interface{}, err os.Error) {
@@ -263,6 +264,16 @@ func TestList(t *testing.T) {
         error(t, "Lrange", expected, res, err)
     }
 
+    expected = [][]byte{}
+    for i := 0; i < 1000; i++ {
+        expected = append(expected, []byte(strconv.Itoa(i)))
+        c.Rpush("foobaz", i)
+        if res, err := c.Lrange("foobaz", 0, i); err != nil || !reflect.DeepEqual(expected, res) {
+            error(t, "Lrange", nil, res, err)
+            t.FailNow()
+        }
+    }
+
     want := []string{"foo"}
 
     if res, err := c.Lrem("foobar", 0, "bar"); err != nil || res != 1 {
@@ -304,4 +315,48 @@ func TestList(t *testing.T) {
     if res, err := c.Rpoplpush("foobar", "foobaz"); err != nil || string(res) != "qux" {
         error(t, "Rpop", "qux", res, err)
     }
+}
+
+func TestHash(t *testing.T) {
+    c := New("", 0, "")
+    c.Send("FLUSHDB")
+
+    if res, err := c.Hset("foobar", "foo", "foo"); err != nil || res != true {
+        error(t, "Hset", true, res, err)
+    }
+
+    if res, err := c.Hset("foobar", "foo", "foo"); err != nil || res != false {
+        error(t, "Hset", false, res, err)
+    }
+
+    if res, err := c.Hget("foobar", "foo"); err != nil || string(res) != "foo" {
+        error(t, "Hget", "foo", res, err)
+    }
+
+    if res, err := c.Hdel("foobar", "foo"); err != nil || res != true {
+        error(t, "Hdel", true, res, err)
+    }
+
+    if res, err := c.Hexists("foobar", "foo"); err != nil || res != false {
+        error(t, "Hexists", false, res, err)
+    }
+
+    c.Hset("foobar", "foo", 1)
+    c.Hset("foobar", "bar", 2)
+    expected := [][]byte{[]byte("foo"), []byte("1"), []byte("bar"), []byte("2")}
+
+    if res, err := c.Hgetall("foobar"); err != nil || !reflect.DeepEqual(expected, res) {
+        error(t, "Hexists", expected, res, err)
+    }
+}
+
+func BenchmarkRpush(b *testing.B) {
+    c := New("", 0, "")
+    start := time.Nanoseconds()
+    for i := 0; i < b.N; i++ {
+        c.Rpush("zrs", "hi")
+    }
+    c.Del("zrs")
+    stop := time.Nanoseconds() - start
+    fmt.Fprintf(os.Stdout, "time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
 }

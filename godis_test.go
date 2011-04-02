@@ -16,6 +16,11 @@ type simpleParserTest struct {
     err  os.Error
 }
 
+type redisReadWriter struct {
+    writer *bufio.Writer
+    reader *bufio.Reader
+}
+
 func dummyReadWriter(data string) *redisReadWriter {
     r := bufio.NewReader(bytes.NewBufferString(data))
     w := bufio.NewWriter(bytes.NewBufferString(data))
@@ -34,7 +39,7 @@ var simpleParserTests = []simpleParserTest{
 func TestParser(t *testing.T) {
     for _, test := range simpleParserTests {
         rw := dummyReadWriter(test.in)
-        res, err := rw.read()
+        res, err := read(rw.reader)
 
         if err != nil && test.err == nil {
             t.Errorf("'%s': unexpected error %v", test.name, err)
@@ -136,13 +141,13 @@ func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
     for i := 0; i < 1000; i++ {
-        c.Send("RPUSH", "list", "foo")
+        c.Send("RPUSH", []byte("list"), []byte("foo"))
     }
 
     start := time.Nanoseconds()
 
     for i := 0; i < b.N; i++ {
-        c.Send("LRANGE", "list", "0", "50")
+        c.Send("LRANGE", []byte("list"), []byte("0"), []byte("50"))
     }
 
     stop := time.Nanoseconds() - start
@@ -152,3 +157,21 @@ func BenchmarkParsing(b *testing.B) {
 }
 
 
+//func TestBenchmark(t *testing.T) {
+//    c := New("", 0, "")
+//    c.Send("FLUSHDB")
+//    start := time.Nanoseconds()
+//    n := 2000000
+//
+//    a, b := []byte("zrs"), []byte("hi")
+//    for i := 0; i < n; i++ {
+//        c.Send("RPUSH", a, b)
+//    }
+//
+//    //c.Del("zrs")
+//    stop := time.Nanoseconds() - start
+//
+//    ti := float32(stop / 1.0e+6) / 1000.0
+//    fmt.Fprintf(os.Stdout, "godis: %.2f %.2f per/s\n", ti, float32(n) / ti)
+//}
+//
