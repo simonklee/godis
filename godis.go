@@ -84,7 +84,7 @@ func (r *Reply) Strings() []string {
     return buf
 }
 
-func (r *Reply) errorReply(res []byte) {
+func (r *Reply) parseErr(res []byte) {
     r.Err = os.NewError(string(res))
 
     if LOG_CMD {
@@ -92,7 +92,7 @@ func (r *Reply) errorReply(res []byte) {
     }
 }
 
-func (r *Reply) singleReply(res []byte) {
+func (r *Reply) parseStr(res []byte) {
     r.Elem = res
 
     if LOG_CMD {
@@ -100,7 +100,7 @@ func (r *Reply) singleReply(res []byte) {
     }
 }
 
-func (r *Reply) integerReply(res []byte) {
+func (r *Reply) parseInt(res []byte) {
     r.Elem = res
 
     if LOG_CMD {
@@ -108,7 +108,7 @@ func (r *Reply) integerReply(res []byte) {
     }
 }
 
-func (r *Reply) bulkReply(reader *bufio.Reader, res []byte) {
+func (r *Reply) parseBulk(reader *bufio.Reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
@@ -134,7 +134,7 @@ func (r *Reply) bulkReply(reader *bufio.Reader, res []byte) {
     r.Elem = buf.Bytes()
 }
 
-func (r *Reply) multiBulkReply(reader *bufio.Reader, res[]byte) {
+func (r *Reply) parseMultiBulk(reader *bufio.Reader, res[]byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
@@ -185,15 +185,15 @@ func read(reader *bufio.Reader) *Reply {
 
     switch typ {
     case minus:
-        reply.errorReply(line)
+        reply.parseErr(line)
     case plus:
-        reply.singleReply(line)
+        reply.parseStr(line)
     case colon:
-        reply.integerReply(line)
+        reply.parseInt(line)
     case dollar:
-        reply.bulkReply(reader, line)
+        reply.parseBulk(reader, line)
     case star:
-        reply.multiBulkReply(reader, line)
+        reply.parseMultiBulk(reader, line)
     default:
         reply.Err = os.NewError("Unknown response " + string(typ))
     }
