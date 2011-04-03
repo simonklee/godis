@@ -49,12 +49,12 @@ func (r *Reply) elemOrErr() (Elem, os.Error) {
     return r.Elem, nil
 }
 
-func (r *Reply) elemArrOrErr() ([]*Reply, os.Error) {
+func (r *Reply) elemArrOrErr() (*Reply, os.Error) {
     if r.Err != nil {
         return nil, r.Err
     }
 
-    return r.Elems, nil
+    return r, nil
 }
 
 func strToFaces(args []string) []interface{} {
@@ -130,7 +130,7 @@ func (c *Client) Renamenx(key string, newkey string) (bool, os.Error) {
 }
 
 // Sort the elements in a list, set or sorted set
-func (c *Client) Sort(key string, args ...string) ([]*Reply, os.Error) {
+func (c *Client) Sort(key string, args ...string) (*Reply, os.Error) {
     a := strToFaces(append([]string{key}, args...))
     return Send(c, "SORT", a...).elemArrOrErr()
     ///out := make([]byte, len(v))
@@ -314,7 +314,7 @@ func (c *Client) Lpushx(key string, value interface{}) (int64, os.Error) {
 }
 
 // Get a range of elements from a list
-func (c *Client) Lrange(key string, start, stop int) ([]*Reply, os.Error) {
+func (c *Client) Lrange(key string, start, stop int) (*Reply, os.Error) {
     return Send(c, "LRANGE", key, start, stop).elemArrOrErr()
 }
 
@@ -371,7 +371,7 @@ func (c *Client) Hget(key string, field string) (Elem, os.Error) {
 }
 
 // Get all the fields and values in a hash
-func (c *Client) Hgetall(key string) ([]*Reply, os.Error) {
+func (c *Client) Hgetall(key string) (*Reply, os.Error) {
     return Send(c, "HGETALL", key).elemArrOrErr()
 }
 

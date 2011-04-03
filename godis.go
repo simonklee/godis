@@ -82,7 +82,6 @@ type Reply struct {
 
 func (r *Reply) Bytes() [][]byte {
     buf := make([][]byte, len(r.Elems))
-    //log.Println(r)
 
     for i, v := range r.Elems {
         buf[i] = v.Elem
@@ -93,7 +92,6 @@ func (r *Reply) Bytes() [][]byte {
 
 func (r *Reply) Strings() []string {
     buf := make([]string, len(r.Elems))
-    log.Println(r)
 
     for i, v := range r.Elems {
         buf[i] = v.Elem.String()

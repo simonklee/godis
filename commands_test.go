@@ -120,12 +120,11 @@ func TestSort(t *testing.T) {
     }
 
     expected := []int{1, 2, 3}
-
-    if len(res) != len(expected) {
-        error(t, "sort", len(res), len(expected), nil)
+    if len(res.Elems) != len(expected) {
+        error(t, "sort", len(res.Elems), len(expected), nil)
     }
 
-    for i, v := range res {
+    for i, v := range res.Elems {
         r := int(v.Elem.Int64())
         if r != expected[i] {
             error(t, "sort", expected[i], v, nil)
@@ -263,7 +262,7 @@ func TestList(t *testing.T) {
         &Reply{Elem: []byte("bar")},
     }
 
-    if out, err := c.Lrange("foobar", 0, 1); err != nil || !reflect.DeepEqual(want1, out) {
+    if out, err := c.Lrange("foobar", 0, 1); err != nil || !reflect.DeepEqual(want1, out.Elems) {
         error(t, "Lrange", nil, nil, err)
     }
 
@@ -277,7 +276,7 @@ func TestList(t *testing.T) {
             j = i - 50
         }
 
-        if res, err := c.Lrange("foobaz", j, i); err != nil || !reflect.DeepEqual(want1[j:], res) {
+        if res, err := c.Lrange("foobaz", j, i); err != nil || !reflect.DeepEqual(want1[j:], res.Elems) {
             error(t, "Lranges", nil, res, err)
             t.FailNow()
         }
@@ -359,7 +358,7 @@ func TestHash(t *testing.T) {
         &Reply{Elem: []byte("2")},
     }
 
-    if res, err := c.Hgetall("foobar"); err != nil || !reflect.DeepEqual(want, res) {
+    if res, err := c.Hgetall("foobar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
         error(t, "Hexists", want, res, err)
     }
 }
