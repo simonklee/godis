@@ -49,7 +49,7 @@ func (r *Reply) elemOrErr() (Elem, os.Error) {
     return r.Elem, nil
 }
 
-func (r *Reply) elemArrOrErr() (*Reply, os.Error) {
+func (r *Reply) replyOrErr() (*Reply, os.Error) {
     if r.Err != nil {
         return nil, r.Err
     }
@@ -75,6 +75,18 @@ func numsToFaces(args []int) []interface{} {
     }
 
     return interfaces
+}
+
+func smapToArr(mapping map[string] string) []interface{} {
+    buf := make([]interface{}, len(mapping)*2)
+    n := 0
+
+    for k, v := range mapping {
+        buf[n], buf[n+1] = k, v
+        n += 2
+    }
+
+    return buf
 }
 
 // generic
@@ -132,7 +144,7 @@ func (c *Client) Renamenx(key string, newkey string) (bool, os.Error) {
 // Sort the elements in a list, set or sorted set
 func (c *Client) Sort(key string, args ...string) (*Reply, os.Error) {
     a := strToFaces(append([]string{key}, args...))
-    return Send(c, "SORT", a...).elemArrOrErr()
+    return Send(c, "SORT", a...).replyOrErr()
     ///out := make([]byte, len(v))
 
     ///for i, k := range v {
@@ -212,28 +224,12 @@ func (c *Client) Mget(keys ...string) ([]string, os.Error) {
 
 // Set multiple keys to multiple values
 func (c *Client) Mset(mapping map[string]string) os.Error {
-    buf := make([]interface{}, len(mapping)*2)
-    n := 0
-
-    for k, v := range mapping {
-        buf[n], buf[n+1] = k, v
-        n += 2
-    }
-
-    return Send(c, "MSET", buf...).nilOrErr()
+    return Send(c, "MSET", smapToArr(mapping)...).nilOrErr()
 }
 
 // Set multiple keys to multiple values, only if none of the keys exist
 func (c *Client) Msetnx(mapping map[string]string) (bool, os.Error) {
-    buf := make([]interface{}, len(mapping)*2)
-    n := 0
-
-    for k, v := range mapping {
-        buf[n], buf[n+1] = k, v
-        n += 2
-    }
-
-    return Send(c, "MSETNX", buf...).boolOrErr()
+    return Send(c, "MSETNX", smapToArr(mapping)...).boolOrErr()
 }
 
 // Set the string value of a key
@@ -315,7 +311,7 @@ func (c *Client) Lpushx(key string, value interface{}) (int64, os.Error) {
 
 // Get a range of elements from a list
 func (c *Client) Lrange(key string, start, stop int) (*Reply, os.Error) {
-    return Send(c, "LRANGE", key, start, stop).elemArrOrErr()
+    return Send(c, "LRANGE", key, start, stop).replyOrErr()
 }
 
 // Remove elements from a list
@@ -372,33 +368,43 @@ func (c *Client) Hget(key string, field string) (Elem, os.Error) {
 
 // Get all the fields and values in a hash
 func (c *Client) Hgetall(key string) (*Reply, os.Error) {
-    return Send(c, "HGETALL", key).elemArrOrErr()
+    return Send(c, "HGETALL", key).replyOrErr()
 }
 
-//// Increment the integer value of a hash field by the given number
-//func (c *Client) Hincrby(key string, field string, increment int64) int64 {
-//
-//}
-//
-//// Get all the fields in a hash
-//func (c *Client) Hkeys(key string) [][]byte {
-//
-//}
-//
-//// Get the number of fields in a hash
-//func (c *Client) Hlen(key string) int64 {
-//
-//}
-//
-//// Get the values of all the given hash fields
-//func (c *Client) Hmget(key string, field []string) [][]byte {
-//
-//}
-//
-//// Set multiple hash fields to multiple values
-//func (c *Client) Hmset(key string, mapping map[string][]byte)  {
-//
-//}
+// Increment the integer value of a hash field by the given number
+func (c *Client) Hincrby(key string, field string, increment int64) (int64, os.Error) {
+    return Send(c, "HINCRBY", key, field, increment).intOrErr()
+}
+
+// Get all the fields in a hash
+func (c *Client) Hkeys(key string) ([]string, os.Error)  {
+    return Send(c, "HKEYS", key).stringArrOrErr()
+}
+
+// Get the number of fields in a hash
+func (c *Client) Hlen(key string) (int64, os.Error) {
+    return Send(c, "HLEN", key).intOrErr()
+}
+
+// Get the values of all the given hash fields
+func (c *Client) Hmget(key string, fields []string) (*Reply, os.Error) {
+    a := strToFaces(append([]string{key}, fields...))
+    return Send(c, "HLEN", a...).replyOrErr()
+}
+
+// Set multiple hash fields to multiple values
+func (c *Client) Hmset(key string, mapping map[string] interface{}) os.Error {
+    buf := make([]interface{}, len(mapping)*2 + 1)
+    buf[0] = key
+    n := 1
+    
+    for k, v := range mapping {
+        buf[n], buf[n+1] = k, v
+        n += 2
+    }
+
+    return Send(c, "HLEN",  buf...).nilOrErr()
+}
 
 // Set the string value of a hash field
 func (c *Client) Hset(key string, field string, value interface{}) (bool, os.Error) {
