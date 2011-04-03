@@ -37,13 +37,13 @@ func TestGeneric(t *testing.T) {
     c.Set("foo", "foo")
     c.Set("bar", "bar")
     c.Set("baz", "baz")
-    
+
     if nr, err := c.Del("foo", "bar", "baz"); nr != 3 {
         error(t, "del", 3, nr, err)
     }
 
     c.Set("foo", "foo")
-    
+
     if res, err := c.Expire("foo", 10); !res {
         error(t, "expire", true, res, err)
     }
@@ -53,7 +53,7 @@ func TestGeneric(t *testing.T) {
     if res, err := c.Ttl("foo"); res == 0 {
         error(t, "ttl", 0, res, err)
     }
-    if res, err := c.Expireat("foo", time.Seconds() + 10); !res {
+    if res, err := c.Expireat("foo", time.Seconds()+10); !res {
         error(t, "expireat", true, res, err)
     }
     if res, err := c.Ttl("foo"); res <= 0 {
@@ -74,9 +74,9 @@ func TestGeneric(t *testing.T) {
     if res, err := c.Renamenx("foo", "bar"); res {
         error(t, "renamenx", false, res, err)
     }
-    
+
     c2 := New("", 1, "")
-    c2.Del("foo") 
+    c2.Del("foo")
     if res, err := c.Move("foo", 1); res != true {
         error(t, "move", true, res, err)
     }
@@ -87,7 +87,7 @@ func TestKeys(t *testing.T) {
     Send(c, "FLUSHDB")
     Send(c, "MSET", "foo", "one", "bar", "two", "baz", "three")
 
-    res, err := c.Keys("foo"); 
+    res, err := c.Keys("foo")
 
     if err != nil {
         error(t, "keys", nil, nil, err)
@@ -98,7 +98,7 @@ func TestKeys(t *testing.T) {
     if len(res) != len(expected) {
         error(t, "keys", len(res), len(expected), nil)
     }
-    
+
     for i, v := range res {
         if v != expected[i] {
             error(t, "keys", expected[i], v, nil)
@@ -109,9 +109,9 @@ func TestKeys(t *testing.T) {
 func TestSort(t *testing.T) {
     c := New("", 0, "")
     Send(c, "FLUSHDB")
-    Send(c, "RPUSH", "foo", "2") 
-    Send(c, "RPUSH", "foo", "3") 
-    Send(c, "RPUSH", "foo", "1") 
+    Send(c, "RPUSH", "foo", "2")
+    Send(c, "RPUSH", "foo", "3")
+    Send(c, "RPUSH", "foo", "1")
 
     res, err := c.Sort("foo")
 
@@ -124,7 +124,7 @@ func TestSort(t *testing.T) {
     if len(res) != len(expected) {
         error(t, "sort", len(res), len(expected), nil)
     }
-    
+
     for i, v := range res {
         r := int(v.Elem.Int64())
         if r != expected[i] {
@@ -202,7 +202,7 @@ func TestString(t *testing.T) {
     }
 
     out := []string{"foo", "bar", "qux"}
-    in := map[string]string{"foo":"foo", "bar":"bar", "qux":"qux"}
+    in := map[string]string{"foo": "foo", "bar": "bar", "qux": "qux"}
 
     if err := c.Mset(in); err != nil {
         error(t, "mset", nil, nil, err)
@@ -212,7 +212,7 @@ func TestString(t *testing.T) {
         error(t, "msetnx", false, res, err)
     }
 
-    res, err := c.Mget(append([]string{"il"}, out...)...) 
+    res, err := c.Mget(append([]string{"il"}, out...)...)
 
     if err != nil || len(res) != 3 {
         error(t, "mget", 3, len(res), err)
@@ -258,18 +258,27 @@ func TestList(t *testing.T) {
         error(t, "Lpop", "qux", res, err)
     }
 
-    expected := [][]byte{[]byte("foo"), []byte("bar")}
-
-    if res, err := c.Lrange("foobar", 0, 1); err != nil || !reflect.DeepEqual(expected, res) {
-        error(t, "Lrange", expected, res, err)
+    want1 := []*Reply{
+        &Reply{Elem: []byte("foo")},
+        &Reply{Elem: []byte("bar")},
     }
 
-    expected = [][]byte{}
-    for i := 0; i < 1000; i++ {
-        expected = append(expected, []byte(strconv.Itoa(i)))
+    if out, err := c.Lrange("foobar", 0, 1); err != nil || !reflect.DeepEqual(want1, out) {
+        error(t, "Lrange", nil, nil, err)
+    }
+
+    want1 = []*Reply{}
+    for i := 0; i < 600; i++ {
+        want1 = append(want1, &Reply{Elem: []byte(strconv.Itoa(i))})
         c.Rpush("foobaz", i)
-        if res, err := c.Lrange("foobaz", 0, i); err != nil || !reflect.DeepEqual(expected, res) {
-            error(t, "Lrange", nil, res, err)
+        j := 0
+
+        if i > 50 {
+            j = i - 50
+        }
+
+        if res, err := c.Lrange("foobaz", j, i); err != nil || !reflect.DeepEqual(want1[j:], res) {
+            error(t, "Lranges", nil, res, err)
             t.FailNow()
         }
     }
@@ -308,7 +317,7 @@ func TestList(t *testing.T) {
         error(t, "Rpushx", 4, res, err)
     }
 
-    if res, err := c.Rpop("foobar", ); err != nil || res.String() != "baz" {
+    if res, err := c.Rpop("foobar"); err != nil || res.String() != "baz" {
         error(t, "Rpop", "baz", res, err)
     }
 
@@ -343,10 +352,15 @@ func TestHash(t *testing.T) {
 
     c.Hset("foobar", "foo", 1)
     c.Hset("foobar", "bar", 2)
-    expected := [][]byte{[]byte("foo"), []byte("1"), []byte("bar"), []byte("2")}
+    want := []*Reply{
+        &Reply{Elem: []byte("foo")},
+        &Reply{Elem: []byte("1")},
+        &Reply{Elem: []byte("bar")},
+        &Reply{Elem: []byte("2")},
+    }
 
-    if res, err := c.Hgetall("foobar"); err != nil || !reflect.DeepEqual(expected, res) {
-        error(t, "Hexists", expected, res, err)
+    if res, err := c.Hgetall("foobar"); err != nil || !reflect.DeepEqual(want, res) {
+        error(t, "Hexists", want, res, err)
     }
 }
 
@@ -358,5 +372,5 @@ func BenchmarkRpush(b *testing.B) {
     }
     c.Del("qux")
     stop := time.Nanoseconds() - start
-    fmt.Fprintf(os.Stdout, "time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
+    fmt.Fprintf(os.Stdout, "time: %.2f\n", float32(stop/1.0e+6)/1000.0)
 }

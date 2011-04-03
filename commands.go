@@ -54,27 +54,27 @@ func (r *Reply) elemArrOrErr() ([]*Reply, os.Error) {
         return nil, r.Err
     }
 
-    return r.Elems,nil
+    return r.Elems, nil
 }
 
 func strToFaces(args []string) []interface{} {
-	interfaces := make([]interface{}, len(args))
+    interfaces := make([]interface{}, len(args))
 
-	for i, n := range args {
-		interfaces[i] = n
-	}
+    for i, n := range args {
+        interfaces[i] = n
+    }
 
-	return interfaces
+    return interfaces
 }
 
 func numsToFaces(args []int) []interface{} {
-	interfaces := make([]interface{}, len(args))
+    interfaces := make([]interface{}, len(args))
 
-	for i, n := range args {
-		interfaces[i] = n
-	}
+    for i, n := range args {
+        interfaces[i] = n
+    }
 
-	return interfaces
+    return interfaces
 }
 
 // generic
@@ -130,7 +130,7 @@ func (c *Client) Renamenx(key string, newkey string) (bool, os.Error) {
 }
 
 // Sort the elements in a list, set or sorted set
-func (c *Client) Sort(key string, args...string) ([]*Reply, os.Error) {
+func (c *Client) Sort(key string, args ...string) ([]*Reply, os.Error) {
     a := strToFaces(append([]string{key}, args...))
     return Send(c, "SORT", a...).elemArrOrErr()
     ///out := make([]byte, len(v))
@@ -212,11 +212,11 @@ func (c *Client) Mget(keys ...string) ([]string, os.Error) {
 
 // Set multiple keys to multiple values
 func (c *Client) Mset(mapping map[string]string) os.Error {
-    buf := make([]interface{}, len(mapping) * 2)
+    buf := make([]interface{}, len(mapping)*2)
     n := 0
 
     for k, v := range mapping {
-        buf[n], buf[n + 1] = k, v
+        buf[n], buf[n+1] = k, v
         n += 2
     }
 
@@ -225,11 +225,11 @@ func (c *Client) Mset(mapping map[string]string) os.Error {
 
 // Set multiple keys to multiple values, only if none of the keys exist
 func (c *Client) Msetnx(mapping map[string]string) (bool, os.Error) {
-    buf := make([]interface{}, len(mapping) * 2)
+    buf := make([]interface{}, len(mapping)*2)
     n := 0
 
     for k, v := range mapping {
-        buf[n], buf[n + 1] = k, v
+        buf[n], buf[n+1] = k, v
         n += 2
     }
 
@@ -402,7 +402,7 @@ func (c *Client) Hgetall(key string) ([]*Reply, os.Error) {
 
 // Set the string value of a hash field
 func (c *Client) Hset(key string, field string, value interface{}) (bool, os.Error) {
-   return Send(c, "HSET", key, field, value).boolOrErr()
+    return Send(c, "HSET", key, field, value).boolOrErr()
 }
 
 //// Set the value of a hash field, only if the field does not exist

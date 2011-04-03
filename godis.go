@@ -55,6 +55,13 @@ func (p *Pool) Push(c *net.TCPConn) {
 
 type Elem []byte
 
+func (e Elem) Byte() []byte {
+    if e != nil {
+        return []byte(e)
+    }
+    return nil
+}
+
 func (e Elem) String() string {
     if e != nil {
         return string([]byte(e))
@@ -71,6 +78,17 @@ type Reply struct {
     Err   os.Error
     Elem  Elem
     Elems []*Reply
+}
+
+func (r *Reply) Bytes() [][]byte {
+    buf := make([][]byte, len(r.Elems))
+    //log.Println(r)
+
+    for i, v := range r.Elems {
+        buf[i] = v.Elem
+    }
+
+    return buf
 }
 
 func (r *Reply) Strings() []string {
@@ -112,7 +130,7 @@ func (r *Reply) parseBulk(reader *bufio.Reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        return 
+        return
     }
 
     lr := io.LimitReader(reader, int64(l))
@@ -127,14 +145,14 @@ func (r *Reply) parseBulk(reader *bufio.Reader, res []byte) {
         log.Println(n, l)
     }
 
-    if LOG_CMD {
-        log.Printf("GODIS: %d %q\n", l, buf)
-    }
-
     r.Elem = buf.Bytes()
+
+    if LOG_CMD {
+        log.Printf("G: %d %q %q\n", l, buf, buf.Bytes())
+    }
 }
 
-func (r *Reply) parseMultiBulk(reader *bufio.Reader, res[]byte) {
+func (r *Reply) parseMultiBulk(reader *bufio.Reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
@@ -175,12 +193,12 @@ func read(reader *bufio.Reader) *Reply {
     res, err := reader.ReadBytes(ln)
 
     if err != nil {
-       reply.Err = err
-       return reply
+        reply.Err = err
+        return reply
     }
 
     typ := res[0]
-    line := res[1:len(res) - 2]
+    line := res[1 : len(res)-2]
 
     if LOG_CMD {
         log.Printf("GODIS: %c\n", typ)
@@ -201,7 +219,7 @@ func read(reader *bufio.Reader) *Reply {
         reply.Err = os.NewError("Unknown response " + string(typ))
     }
 
-    return reply 
+    return reply
 }
 
 func appendCmd(buf *bytes.Buffer, a []byte) {

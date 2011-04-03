@@ -27,10 +27,10 @@ func dummyReadWriter(data string) *redisReadWriter {
 }
 
 var simpleParserTests = []simpleParserTest{
-    {"+OK\r\n", Reply{Elem:[]byte("OK")}, "ok"},
-    {"-ERR\r\n", Reply{Err:os.NewError("ERR")}, "err", },
-    {":1\r\n", Reply{Elem:[]byte("1")}, "num"},
-    {"$3\r\nfoo\r\n", Reply{Elem:s2Bytes("foo")}, "bulk"},
+    {"+OK\r\n", Reply{Elem: []byte("OK")}, "ok"},
+    {"-ERR\r\n", Reply{Err: os.NewError("ERR")}, "err"},
+    {":1\r\n", Reply{Elem: []byte("1")}, "num"},
+    {"$3\r\nfoo\r\n", Reply{Elem: s2Bytes("foo")}, "bulk"},
     {"$-1\r\n", Reply{}, "bulk-nil"},
     {"*-1\r\n", Reply{}, "multi-bulk-nil"},
 }
@@ -87,9 +87,9 @@ type SimpleSendTest struct {
 }
 
 var simpleSendTests = []SimpleSendTest{
-    {"FLUSHDB", []string{}, Reply{Elem:[]byte("OK")}},
-    {"SET", []string{"key", "foo"}, Reply{Elem:[]byte("OK")}},
-    {"EXISTS", []string{"key"}, Reply{Elem:[]byte("1")}},
+    {"FLUSHDB", []string{}, Reply{Elem: []byte("OK")}},
+    {"SET", []string{"key", "foo"}, Reply{Elem: []byte("OK")}},
+    {"EXISTS", []string{"key"}, Reply{Elem: []byte("1")}},
     {"GET", []string{"key"}, Reply{Elem: s2Bytes("foo")}},
     {"RPUSH", []string{"list", "foo"}, Reply{Elem: []byte("1")}},
     {"RPUSH", []string{"list", "bar"}, Reply{Elem: []byte("2")}},
@@ -123,7 +123,7 @@ func BenchmarkParsing(b *testing.B) {
 
     stop := time.Nanoseconds() - start
 
-    log.Printf("time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
+    log.Printf("time: %.2f\n", float32(stop/1.0e+6)/1000.0)
     Send(c, "FLUSHDB")
 }
 
