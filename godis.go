@@ -56,17 +56,11 @@ func (p *Pool) Push(c *net.TCPConn) {
 type Elem []byte
 
 func (e Elem) Byte() []byte {
-    if e != nil {
-        return []byte(e)
-    }
-    return nil
+    return []byte(e)
 }
 
 func (e Elem) String() string {
-    if e != nil {
-        return string([]byte(e))
-    }
-    return ""
+    return string([]byte(e))
 }
 
 func (e Elem) Int64() int64 {
