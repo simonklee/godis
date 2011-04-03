@@ -237,12 +237,19 @@ func write(conn *net.TCPConn, name string, args ...interface{}) os.Error {
     return nil
 }
 
+type Writer interface {
+    Write(name string, args ...interface{}) *Reply
+}
+
+func Send(w Writer, name string, args ...interface{}) *Reply {
+    return w.Write(name, args...)
+}
+
 type Client struct {
     Addr     string
     Db       int
     Password string
     pool     *Pool
-    pipe     bool
 }
 
 func New(addr string, db int, password string) *Client {
@@ -287,7 +294,7 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     return conn, err
 }
 
-func (c *Client) Send(name string, args ...interface{}) *Reply {
+func (c *Client) Write(name string, args ...interface{}) *Reply {
     conn := c.pool.Pop()
 
     if conn == nil {

@@ -111,7 +111,7 @@ func strToFaces(args []string) []interface{} {
 func TestSimpleSend(t *testing.T) {
     c := New("", 0, "")
     for _, test := range simpleSendTests {
-        r := c.Send(test.cmd, strToFaces(test.args)...)
+        r := Send(c, test.cmd, strToFaces(test.args)...)
         compareReply(t, test.cmd, &test.out, r)
         t.Log(test.cmd, test.args)
         t.Logf("%q == %q\n", test.out, r)
@@ -122,19 +122,19 @@ func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
     for i := 0; i < 1000; i++ {
-        c.Send("RPUSH", []byte("list"), []byte("foo"))
+        Send(c, "RPUSH", []byte("list"), []byte("foo"))
     }
 
     start := time.Nanoseconds()
 
     for i := 0; i < b.N; i++ {
-        c.Send("LRANGE", []byte("list"), []byte("0"), []byte("50"))
+        Send(c, "LRANGE", []byte("list"), []byte("0"), []byte("50"))
     }
 
     stop := time.Nanoseconds() - start
 
     log.Printf("time: %.2f\n", float32(stop / 1.0e+6) / 1000.0)
-    c.Send("FLUSHDB")
+    Send(c, "FLUSHDB")
 }
 
 
