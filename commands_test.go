@@ -266,17 +266,11 @@ func TestList(t *testing.T) {
         error(t, "Lrange", nil, nil, err)
     }
 
-    want1 = []*Reply{}
+    var want3 [][]byte
     for i := 0; i < 600; i++ {
-        want1 = append(want1, &Reply{Elem: []byte(strconv.Itoa(i))})
+        want3 = append(want3, []byte(strconv.Itoa(i)))
         c.Rpush("foobaz", i)
-        j := 0
-
-        if i > 50 {
-            j = i - 50
-        }
-
-        if res, err := c.Lrange("foobaz", j, i); err != nil || !reflect.DeepEqual(want1[j:], res.Elems) {
+        if res, err := c.Lrange("foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.Bytes()) {
             error(t, "Lranges", nil, res, err)
             t.FailNow()
         }
