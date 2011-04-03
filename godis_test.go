@@ -98,16 +98,6 @@ var simpleSendTests = []SimpleSendTest{
     {"GET", []string{"/dev/null"}, Reply{}},
 }
 
-func strToFaces(args []string) []interface{} {
-	interfaces := make([]interface{}, len(args))
-
-	for i, n := range args {
-		interfaces[i] = n
-	}
-
-	return interfaces
-}
-
 func TestSimpleSend(t *testing.T) {
     c := New("", 0, "")
     for _, test := range simpleSendTests {

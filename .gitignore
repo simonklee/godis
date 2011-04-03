@@ -1,6 +1,7 @@
 *.6
 *.out
 misc/
+bench/
 godis
 _test*
 _obj

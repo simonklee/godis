@@ -56,7 +56,10 @@ func (p *Pool) Push(c *net.TCPConn) {
 type Elem []byte
 
 func (e Elem) String() string {
-    return string([]byte(e))
+    if e != nil {
+        return string([]byte(e))
+    }
+    return ""
 }
 
 func (e Elem) Int64() int64 {
@@ -70,12 +73,9 @@ type Reply struct {
     Elems []*Reply
 }
 
-func (r *Reply) Len() int {
-    return len(r.Elems)
-}
-
 func (r *Reply) Strings() []string {
-    buf := make([]string, r.Len())
+    buf := make([]string, len(r.Elems))
+    log.Println(r)
 
     for i, v := range r.Elems {
         buf[i] = v.Elem.String()
@@ -149,7 +149,7 @@ func (r *Reply) parseMultiBulk(reader *bufio.Reader, res[]byte) {
 
         if rr.Err != nil {
             r.Err = rr.Err
-            return 
+            return
         }
 
         // key not found, ignore `nil` value
@@ -162,8 +162,11 @@ func (r *Reply) parseMultiBulk(reader *bufio.Reader, res[]byte) {
         r.Elems[i] = rr
     }
 
+    // buffer is reduced to account for `nil` value returns
+    r.Elems = r.Elems[:l]
+
     if LOG_CMD {
-        log.Printf("GODIS: %d %q\n", l, r.Elems)
+        log.Printf("GODIS: %d == %d %q\n", l, len(r.Elems), r.Elems)
     }
 }
 
