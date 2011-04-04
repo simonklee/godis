@@ -339,9 +339,9 @@ func (c *Client) Write(name string, args ...interface{}) *Reply {
 
 type PipeClient struct {
     *Client
-    c  *net.TCPConn
-    w  *bufio.Writer
-    r  *bufio.Reader
+    c   *net.TCPConn
+    w   *bufio.Writer
+    r   *bufio.Reader
 }
 
 func NewPipe(addr string, db int, password string) *PipeClient {
@@ -365,7 +365,6 @@ func (p *PipeClient) Write(name string, args ...interface{}) *Reply {
         p.c = conn
     }
 
-
     if err := write(p.w, name, args...); err != nil {
         return &Reply{Err: err}
     }
@@ -375,7 +374,7 @@ func (p *PipeClient) Write(name string, args ...interface{}) *Reply {
 
 func (p *PipeClient) Read() *Reply {
     if p.w != nil {
-        if p.w.Available() > 0 { 
+        if p.w.Available() > 0 {
             p.w.Flush()
         }
 

@@ -111,7 +111,6 @@ func TestSimpleSend(t *testing.T) {
 func TestSimplePipe(t *testing.T) {
     c := NewPipe("", 0, "")
     
-    
     for _, test := range simpleSendTests {
         Send(c, test.cmd, strToFaces(test.args)...)
     }
