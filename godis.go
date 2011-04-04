@@ -55,7 +55,7 @@ func (p *Pool) Push(c *net.TCPConn) {
 
 type Elem []byte
 
-func (e Elem) Byte() []byte {
+func (e Elem) Bytes() []byte {
     return []byte(e)
 }
 
@@ -74,7 +74,7 @@ type Reply struct {
     Elems []*Reply
 }
 
-func (r *Reply) Bytes() [][]byte {
+func (r *Reply) BytesArray() [][]byte {
     buf := make([][]byte, len(r.Elems))
 
     for i, v := range r.Elems {
@@ -84,7 +84,7 @@ func (r *Reply) Bytes() [][]byte {
     return buf
 }
 
-func (r *Reply) Strings() []string {
+func (r *Reply) StringArray() []string {
     buf := make([]string, len(r.Elems))
 
     for i, v := range r.Elems {

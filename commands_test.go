@@ -270,7 +270,7 @@ func TestList(t *testing.T) {
     for i := 0; i < 600; i++ {
         want3 = append(want3, []byte(strconv.Itoa(i)))
         c.Rpush("foobaz", i)
-        if res, err := c.Lrange("foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.Bytes()) {
+        if res, err := c.Lrange("foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.BytesArray()) {
             error(t, "Lranges", nil, res, err)
             t.FailNow()
         }

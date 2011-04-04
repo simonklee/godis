@@ -38,7 +38,7 @@ func (r *Reply) stringArrOrErr() ([]string, os.Error) {
         return nil, r.Err
     }
 
-    return r.Strings(), nil
+    return r.StringArray(), nil
 }
 
 func (r *Reply) elemOrErr() (Elem, os.Error) {
@@ -203,7 +203,7 @@ func (c *Client) Getrange(key string, start int, end int) (string, os.Error) {
 }
 
 // Set the string value of a key and return its old value
-func (c *Client) Getset(key string, value string) (string, os.Error) {
+func (c *Client) Getset(key string, value interface{}) (string, os.Error) {
     return Send(c, "GETSET", key, value).stringOrErr()
 }
 
@@ -233,7 +233,7 @@ func (c *Client) Msetnx(mapping map[string]string) (bool, os.Error) {
 }
 
 // Set the string value of a key
-func (c *Client) Set(key string, value string) os.Error {
+func (c *Client) Set(key string, value interface{}) os.Error {
     return Send(c, "SET", key, value).nilOrErr()
 }
 
@@ -243,7 +243,7 @@ func (c *Client) Setbit(key string, offset int, value int) (int64, os.Error) {
 }
 
 // Set the value and expiration of a key
-func (c *Client) Setex(key string, seconds int64, value string) os.Error {
+func (c *Client) Setex(key string, seconds int64, value interface{}) os.Error {
     return Send(c, "SETEX", key, seconds, value).nilOrErr()
 }
 
@@ -389,7 +389,7 @@ func (c *Client) Hlen(key string) (int64, os.Error) {
 // Get the values of all the given hash fields
 func (c *Client) Hmget(key string, fields []string) (*Reply, os.Error) {
     a := strToFaces(append([]string{key}, fields...))
-    return Send(c, "HLEN", a...).replyOrErr()
+    return Send(c, "HMGET", a...).replyOrErr()
 }
 
 // Set multiple hash fields to multiple values
@@ -403,7 +403,7 @@ func (c *Client) Hmset(key string, mapping map[string] interface{}) os.Error {
         n += 2
     }
 
-    return Send(c, "HLEN",  buf...).nilOrErr()
+    return Send(c, "HMSET",  buf...).nilOrErr()
 }
 
 // Set the string value of a hash field
@@ -411,12 +411,12 @@ func (c *Client) Hset(key string, field string, value interface{}) (bool, os.Err
     return Send(c, "HSET", key, field, value).boolOrErr()
 }
 
-//// Set the value of a hash field, only if the field does not exist
-//func (c *Client) Hsetnx(key string, field string, value string) int64 {
-//
-//}
-//
-//// Get all the values in a hash
-//func (c *Client) Hvals(key string) [][]byte {
-//
-//}
+// Set the value of a hash field, only if the field does not exist
+func (c *Client) Hsetnx(key string, field string, value interface{}) (int64, os.Error) {
+    return Send(c, "HSETNX", key, field, value).intOrErr()
+}
+
+// Get all the values in a hash
+func (c *Client) Hvals(key string) (*Reply, os.Error) {
+    return Send(c, "HVALS", key).replyOrErr()
+}
