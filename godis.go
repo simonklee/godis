@@ -12,7 +12,7 @@ import (
 )
 
 const (
-    MaxClientConn = 5
+    MaxClientConn = 1
     LOG_CMD       = false
 )
 
@@ -224,7 +224,7 @@ func appendCmd(buf *bytes.Buffer, a []byte) {
     buf.WriteByte(ln)
 }
 
-func write(conn *net.TCPConn, name string, args ...interface{}) os.Error {
+func write(w io.Writer, name string, args ...interface{}) os.Error {
     n := len(args)
     buf := bytes.NewBuffer(nil)
 
@@ -240,10 +240,10 @@ func write(conn *net.TCPConn, name string, args ...interface{}) os.Error {
     }
 
     if LOG_CMD {
-        log.Println("GODIS: " + string(buf.Bytes()))
+        log.Printf("GODIS: %q", string(buf.Bytes()))
     }
 
-    if _, err := conn.Write(buf.Bytes()); err != nil {
+    if _, err := w.Write(buf.Bytes()); err != nil {
         return err
     }
 
@@ -254,8 +254,16 @@ type Writer interface {
     Write(name string, args ...interface{}) *Reply
 }
 
+type Reader interface {
+    Read() *Reply
+}
+
 func Send(w Writer, name string, args ...interface{}) *Reply {
     return w.Write(name, args...)
+}
+
+func ReadReply(r Reader) *Reply {
+    return r.Read()
 }
 
 type Client struct {
@@ -326,5 +334,67 @@ func (c *Client) Write(name string, args ...interface{}) *Reply {
 
     reply := read(bufio.NewReader(conn))
     c.pool.Push(conn)
+    return reply
+}
+
+type PipeClient struct {
+    *Client
+    c  *net.TCPConn
+    w  *bufio.Writer
+    r  *bufio.Reader
+}
+
+func NewPipe(addr string, db int, password string) *PipeClient {
+    return &PipeClient{New(addr, db, password), nil, nil, nil}
+}
+
+func (p *PipeClient) Write(name string, args ...interface{}) *Reply {
+    if p.w == nil {
+        conn := p.pool.Pop()
+
+        if conn == nil {
+            var err os.Error
+            conn, err = p.newConn()
+
+            if err != nil {
+                return &Reply{Err: err}
+            }
+        }
+
+        p.w = bufio.NewWriter(conn)
+        p.c = conn
+    }
+
+
+    if err := write(p.w, name, args...); err != nil {
+        return &Reply{Err: err}
+    }
+
+    return &Reply{}
+}
+
+func (p *PipeClient) Read() *Reply {
+    if p.w != nil {
+        if p.w.Available() > 0 { 
+            p.w.Flush()
+        }
+
+        p.w = nil
+    }
+
+    if p.r == nil {
+        p.r = bufio.NewReader(p.c)
+        p.c.SetReadTimeout(1e8) // 100ms
+    }
+
+    reply := read(p.r)
+
+    if reply.Err != nil {
+        // check if timeout
+        p.pool.Push(p.c)
+        p.c = nil
+        p.r = nil
+    }
+
     return reply
 }

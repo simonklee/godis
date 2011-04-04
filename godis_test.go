@@ -108,6 +108,22 @@ func TestSimpleSend(t *testing.T) {
     }
 }
 
+func TestSimplePipe(t *testing.T) {
+    c := NewPipe("", 0, "")
+    
+    
+    for _, test := range simpleSendTests {
+        Send(c, test.cmd, strToFaces(test.args)...)
+    }
+
+    for _, test := range simpleSendTests {
+        r := ReadReply(c)
+        compareReply(t, test.cmd, &test.out, r)
+        t.Log(test.cmd, test.args)
+        t.Logf("%q == %q\n", test.out, r)
+    }
+}
+
 func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
@@ -127,22 +143,20 @@ func BenchmarkParsing(b *testing.B) {
     Send(c, "FLUSHDB")
 }
 
-
-////func TestBenchmark(t *testing.T) {
-////    c := New("", 0, "")
-////    c.Send("FLUSHDB")
-////    start := time.Nanoseconds()
-////    n := 2000000
-////
-////    a, b := []byte("zrs"), []byte("hi")
-////    for i := 0; i < n; i++ {
-////        c.Send("RPUSH", a, b)
-////    }
-////
-////    //c.Del("zrs")
-////    stop := time.Nanoseconds() - start
-////
-////    ti := float32(stop / 1.0e+6) / 1000.0
-////    fmt.Fprintf(os.Stdout, "godis: %.2f %.2f per/s\n", ti, float32(n) / ti)
-////}
-////
+//func TestBenchmark(t *testing.T) {
+//    c := New("", 0, "")
+//    c.Send("FLUSHDB")
+//    start := time.Nanoseconds()
+//    n := 2000000
+//
+//    a, b := []byte("zrs"), []byte("hi")
+//    for i := 0; i < n; i++ {
+//        c.Send("RPUSH", a, b)
+//    }
+//
+//    //c.Del("zrs")
+//    stop := time.Nanoseconds() - start
+//
+//    ti := float32(stop / 1.0e+6) / 1000.0
+//    fmt.Fprintf(os.Stdout, "godis: %.2f %.2f per/s\n", ti, float32(n) / ti)
+//}
