@@ -295,7 +295,7 @@ func (c *Client) Llen(key string) (int64, os.Error) {
 }
 
 // Remove and get the first element in a list
-func (c *Client) Lpop(key string) ([]byte, os.Error) {
+func (c *Client) Lpop(key string) (Elem, os.Error) {
     return Send(c, "LPOP", key).elemOrErr()
 }
 
@@ -420,3 +420,79 @@ func (c *Client) Hsetnx(key string, field string, value interface{}) (int64, os.
 func (c *Client) Hvals(key string) (*Reply, os.Error) {
     return Send(c, "HVALS", key).replyOrErr()
 }
+
+// set
+
+// Add a member to a set
+func (c *Client) Sadd(key string, member interface{}) (bool, os.Error) {
+    return Send(c, "SADD", key, member).boolOrErr()
+}
+
+// Get the number of members in a set
+func (c *Client) Scard(key string) (int64, os.Error) {
+    return Send(c, "SCARD", key).intOrErr()
+}
+
+// Subtract multiple sets
+func (c *Client) Sdiff(keys ...string) (*Reply, os.Error) {
+    return Send(c, "SDIFF", strToFaces(keys)...).replyOrErr()
+}
+
+// Subtract multiple sets and store the resulting set in a key
+func (c *Client) Sdiffstore(destination string, keys ...string) (int64, os.Error) {
+    b := append([]string{destination}, keys...)
+    return Send(c, "SDIFFSTORE", strToFaces(b)...).intOrErr()
+}
+
+// Intersect multiple sets
+func (c *Client) Sinter(keys ...string) (*Reply, os.Error) {
+    return Send(c, "SINTER", strToFaces(keys)...).replyOrErr()
+}
+
+// Intersect multiple sets and store the resulting set in a key
+func (c *Client) Sinterstore(destination string, keys ...string) (int64, os.Error) {
+    b := append([]string{destination}, keys...)
+    return Send(c, "SINTERSTORE", strToFaces(b)...).intOrErr()
+}
+
+// Determine if a given value is a member of a set
+func (c *Client) Sismember(key string, member interface{}) (bool, os.Error) {
+    return Send(c, "SISMEMBER", key, member).boolOrErr()
+}
+
+// Get all the members in a set
+func (c *Client) Smembers(key string) (*Reply, os.Error) {
+    return Send(c, "SMEMBERS", key).replyOrErr()
+}
+
+// Move a member from one set to another
+func (c *Client) Smove(source string, destination string, member interface{}) (bool, os.Error) {
+    return Send(c, "SMOVE", source, destination, member).boolOrErr()
+}
+
+// Remove and return a random member from a set
+func (c *Client) Spop(key string) (Elem, os.Error) {
+    return Send(c, "SPOP", key).elemOrErr()
+}
+
+// Get a random member from a set
+func (c *Client) Srandmember(key string) (Elem, os.Error) {
+    return Send(c, "SRANDMEMBER", key).elemOrErr()
+}
+
+// Remove a member from a set
+func (c *Client) Srem(key string, member interface{}) (bool, os.Error) {
+    return Send(c, "SREM", key, member).boolOrErr()
+}
+
+// Add multiple sets
+func (c *Client) Sunion(key ...string) (*Reply, os.Error) {
+    return Send(c, "SUNION", strToFaces(key)...).replyOrErr()
+}
+
+// Add multiple sets and store the resulting set in a key
+func (c *Client) Sunionstore(destination string, keys ...string) (int64, os.Error) {
+    b := append([]string{destination}, keys...)
+    return Send(c, "SUNIONSTORE", strToFaces(b)...).intOrErr()
+}
+

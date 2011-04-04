@@ -253,7 +253,7 @@ func TestList(t *testing.T) {
         error(t, "Lpush", 3, res, err)
     }
 
-    if res, err := c.Lpop("foobar"); err != nil || string(res) != "qux" {
+    if res, err := c.Lpop("foobar"); err != nil || res.String() != "qux" {
         error(t, "Lpop", "qux", res, err)
     }
 
