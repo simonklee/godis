@@ -9,6 +9,29 @@ import (
     "log"
 )
 
+func compareReply(t *testing.T, name string, a, b *Reply) {
+    if a.Err != nil && b.Err == nil {
+        t.Fatalf("'%s': expected error `%v`", name, a.Err)
+    } else if b.Err != a.Err {
+        t.Fatalf("'%s': expected %s got %v", name, a.Err, b.Err)
+    } else if b.Elem != nil {
+        for i, c := range a.Elem {
+            if c != b.Elem[i] {
+                t.Errorf("'%s': expected %v got %v", name, b, a)
+            }
+        }
+    } else if b.Elems != nil {
+        for i, rep := range a.Elems {
+            for j, e := range rep.Elem {
+                if e != b.Elems[i].Elem[j] {
+                    t.Errorf("expected %v got %v", b, a)
+                    break
+                }
+            }
+        }
+    }
+}
+
 type simpleParserTest struct {
     in   string
     out  Reply
@@ -33,30 +56,6 @@ var simpleParserTests = []simpleParserTest{
     {"$3\r\nfoo\r\n", Reply{Elem: s2Bytes("foo")}, "bulk"},
     {"$-1\r\n", Reply{}, "bulk-nil"},
     {"*-1\r\n", Reply{}, "multi-bulk-nil"},
-}
-
-func compareReply(t *testing.T, name string, a, b *Reply) {
-    if a.Err != nil && b.Err == nil {
-        t.Errorf("'%s': unexpected error `%v`", name, a.Err)
-        t.FailNow()
-    } else if b.Err != a.Err {
-        t.Errorf("'%s': expected %s got %v", name, b, a)
-    } else if b.Elem != nil {
-        for i, c := range a.Elem {
-            if c != b.Elem[i] {
-                t.Errorf("'%s': expected %v got %v", name, b, a)
-            }
-        }
-    } else if b.Elems != nil {
-        for i, rep := range a.Elems {
-            for j, e := range rep.Elem {
-                if e != b.Elems[i].Elem[j] {
-                    t.Errorf("expected %v got %v", b, a)
-                    break
-                }
-            }
-        }
-    }
 }
 
 func TestParser(t *testing.T) {
@@ -112,9 +111,13 @@ func TestSimplePipe(t *testing.T) {
     c := NewPipe("", 0, "")
     
     for _, test := range simpleSendTests {
-        Send(c, test.cmd, strToFaces(test.args)...)
+        r := Send(c, test.cmd, strToFaces(test.args)...)
+        if r.Err != nil {
+            t.Fatal(r.Err)
+        }
     }
 
+    log.Println("out")
     for _, test := range simpleSendTests {
         r := ReadReply(c)
         compareReply(t, test.cmd, &test.out, r)

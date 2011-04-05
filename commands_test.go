@@ -6,7 +6,7 @@ import (
     "testing"
     "reflect"
     "time"
-    "fmt"
+    "log"
 )
 
 func error(t *testing.T, name string, expected, got interface{}, err os.Error) {
@@ -15,7 +15,9 @@ func error(t *testing.T, name string, expected, got interface{}, err os.Error) {
 
 func TestGeneric(t *testing.T) {
     c := New("", 0, "")
-    Send(c, "FLUSHDB")
+    if r := Send(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
 
     if res, err := c.Randomkey(); res != "" {
         error(t, "randomkey", "", res, err)
@@ -84,7 +86,9 @@ func TestGeneric(t *testing.T) {
 
 func TestKeys(t *testing.T) {
     c := New("", 0, "")
-    Send(c, "FLUSHDB")
+    if r := Send(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
     Send(c, "MSET", "foo", "one", "bar", "two", "baz", "three")
 
     res, err := c.Keys("foo")
@@ -108,7 +112,9 @@ func TestKeys(t *testing.T) {
 
 func TestSort(t *testing.T) {
     c := New("", 0, "")
-    Send(c, "FLUSHDB")
+    if r := Send(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
     Send(c, "RPUSH", "foo", "2")
     Send(c, "RPUSH", "foo", "3")
     Send(c, "RPUSH", "foo", "1")
@@ -134,7 +140,9 @@ func TestSort(t *testing.T) {
 
 func TestString(t *testing.T) {
     c := New("", 0, "")
-    Send(c, "FLUSHDB")
+    if r := Send(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
 
     if res, err := c.Decr("qux"); err != nil || res != -1 {
         error(t, "decr", -1, res, err)
@@ -227,7 +235,9 @@ func TestString(t *testing.T) {
 
 func TestList(t *testing.T) {
     c := New("", 0, "")
-    Send(c, "FLUSHDB")
+    if r := Send(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
 
     if res, err := c.Lpush("foobar", "foo"); err != nil || res != 1 {
         error(t, "LPUSH", 1, res, err)
@@ -321,7 +331,9 @@ func TestList(t *testing.T) {
 
 func TestHash(t *testing.T) {
     c := New("", 0, "")
-    Send(c, "FLUSHDB")
+    if r := Send(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
 
     if res, err := c.Hset("foobar", "foo", "foo"); err != nil || res != true {
         error(t, "Hset", true, res, err)
@@ -361,9 +373,12 @@ func BenchmarkRpush(b *testing.B) {
     c := New("", 0, "")
     start := time.Nanoseconds()
     for i := 0; i < b.N; i++ {
-        c.Rpush("qux", "qux")
+        if _, err := c.Rpush("qux", "qux"); err != nil {
+            log.Println("RPUSH", err)
+            return
+        }
     }
     c.Del("qux")
     stop := time.Nanoseconds() - start
-    fmt.Fprintf(os.Stdout, "time: %.2f\n", float32(stop/1.0e+6)/1000.0)
+    log.Printf("time: %.2f\n", float32(stop/1.0e+6)/1000.0)
 }

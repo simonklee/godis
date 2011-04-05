@@ -41,7 +41,10 @@ func TestPoolSize(t *testing.T) {
     c2 := New("", 0, "")
     expected := MaxClientConn*2 + ConnCtr
 
-    Send(c1, "SET", "foo", "foo")
+    if r := Send(c1, "SET", "foo", "foo"); r.Err != nil {
+        t.Fatalf("'%s': %s", "SET", r.Err)
+    }
+
     Send(c2, "SET", "bar", "bar")
 
     start := time.Nanoseconds()
