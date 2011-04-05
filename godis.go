@@ -319,19 +319,27 @@ func (c *Client) createConn() (conn *net.TCPConn, err os.Error) {
 
     if c.Db != 0 {
         err = bufferWrite(conn, buildCmd([]byte("SELECT"), []byte(strconv.Itoa(c.Db))))
-        parseResponse(bufio.NewReader(conn))
 
         if err != nil {
             return nil, err
         }
+
+        r := parseResponse(bufio.NewReader(conn))
+        if r.Err != nil {
+            return nil, r.Err
+        }
     }
 
     if c.Password != "" {
-        err = bufferWrite(conn, buildCmd([]byte("AUTH"), []byte(c.Password)))
-        parseResponse(bufio.NewReader(conn))
+        err := bufferWrite(conn, buildCmd([]byte("AUTH"), []byte(c.Password)))
 
         if err != nil {
             return nil, err
+        }
+
+        r := parseResponse(bufio.NewReader(conn))
+        if r.Err != nil {
+            return nil, r.Err
         }
     }
 
