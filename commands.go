@@ -14,6 +14,15 @@ func (r *Reply) intOrErr() (int64, os.Error) {
     return r.Elem.Int64(), nil
 }
 
+// helpers for handling common return values
+func (r *Reply) floatOrErr() (float64, os.Error) {
+    if r.Err != nil {
+        return -1.0, r.Err
+    }
+
+    return r.Elem.Float64(), nil
+}
+
 func (r *Reply) boolOrErr() (bool, os.Error) {
     if r.Err != nil {
         return false, r.Err
@@ -472,84 +481,91 @@ func (c *Client) Sunionstore(destination string, keys ...string) (int64, os.Erro
     return SendStr(c, "SUNIONSTORE", append([]string{destination}, keys...)...).intOrErr()
 }
 
-// // sorted_set
-// 
-// // Add a member to a sorted set, or update its score if it already exists
-// func (c *Client) Zadd(key string, score float64, member interface{}) (int64, os.Error) {
-//     return SendStr(c, "ZADD").intOrErr()
-// }
-// 
-// // Get the number of members in a sorted set
-// func (c *Client) Zcard(key string) (int64, os.Error) {
-//     return SendStr(c, "ZCARD").intOrErr()
-// }
-// 
-// // Count the members in a sorted set with scores within the given values
-// func (c *Client) Zcount(key string, min float64, max float64) (int64, os.Error) {
-//     return SendStr(c, "ZCOUNT").intOrErr()
-// }
-// 
-// // Increment the score of a member in a sorted set
-// func (c *Client) Zincrby(key string, increment int, member string) ([]byte, os.Error) {
-//     return SendStr(c, "ZINCRBY").elemOrErr()
-// }
-// 
-// // Intersect multiple sorted sets and store the resulting sorted set in a new key
-// func (c *Client) Zinterstore(destination string, numkeys int, key []string) (int64, os.Error) {
-//     return SendStr(c, "ZINTERSTORE").intOrErr()
-// }
-// 
-// // Return a range of members in a sorted set, by index
-// func (c *Client) Zrange(key string, start int, stop int) (*Reply, os.Error) {
-//     return SendStr(c, "ZRANGE").replyOrErr()
-// }
-// 
-// // Return a range of members in a sorted set, by score
-// func (c *Client) Zrangebyscore(key string, min float64, max float64) (*Reply, os.Error) {
-//     return SendStr(c, "ZRANGEBYSCORE").replyOrErr()
-// }
-// 
-// // Determine the index of a member in a sorted set
-// func (c *Client) Zrank(key string, member string) (int64, os.Error) {
-//     return SendStr(c, "ZRANK").intOrErr()
-// }
-// 
-// // Remove a member from a sorted set
-// func (c *Client) Zrem(key string, member string) (int64, os.Error) {
-//     return SendStr(c, "ZREM").intOrErr()
-// }
-// 
-// // Remove all members in a sorted set within the given indexes
-// func (c *Client) Zremrangebyrank(key string, start int, stop int) (int64, os.Error) {
-//     return SendStr(c, "ZREMRANGEBYRANK").intOrErr()
-// }
-// 
-// // Remove all members in a sorted set within the given scores
-// func (c *Client) Zremrangebyscore(key string, min float64, max float64) (int64, os.Error) {
-//     return SendStr(c, "ZREMRANGEBYSCORE").intOrErr()
-// }
-// 
-// // Return a range of members in a sorted set, by index, with scores ordered from high to low
-// func (c *Client) Zrevrange(key string, start int, stop int) (*Reply, os.Error) {
-//     return SendStr(c, "ZREVRANGE").replyOrErr()
-// }
-// 
-// // Return a range of members in a sorted set, by score, with scores ordered from high to low
-// func (c *Client) Zrevrangebyscore(key string, max float64, min float64) (*Reply, os.Error) {
-//     return SendStr(c, "ZREVRANGEBYSCORE").replyOrErr()
-// }
-// 
-// // Determine the index of a member in a sorted set, with scores ordered from high to low
-// func (c *Client) Zrevrank(key string, member string) (int64, os.Error) {
-//     return SendStr(c, "ZREVRANK").intOrErr()
-// }
-// 
-// // Get the score associated with the given member in a sorted set
-// func (c *Client) Zscore(key string, member string) ([]byte, os.Error) {
-//     return SendStr(c, "ZSCORE").elemOrErr()
-// }
-// 
-// // Add multiple sorted sets and store the resulting sorted set in a new key
-// func (c *Client) Zunionstore(destination string, numkeys int, key []string) (int64, os.Error) {
-//     return SendStr(c, "ZUNIONSTORE").intOrErr()
-// }
+// sorted_set
+
+// Add a member to a sorted set, or update its score if it already exists
+func (c *Client) Zadd(key string, score float64, member interface{}) (bool, os.Error) {
+    return SendIface(c, "ZADD", key, score, member).boolOrErr()
+}
+
+// Get the number of members in a sorted set
+func (c *Client) Zcard(key string) (int64, os.Error) {
+    return SendStr(c, "ZCARD", key).intOrErr()
+}
+
+// Count the members in a sorted set with scores within the given values
+func (c *Client) Zcount(key string, min float64, max float64) (int64, os.Error) {
+    return SendStr(c, "ZCOUNT", key, strconv.Ftoa64(min, 'f', -1), strconv.Ftoa64(max, 'f', -1)).intOrErr()
+}
+
+// Increment the score of a member in a sorted set
+func (c *Client) Zincrby(key string, increment float64, member interface{}) (float64, os.Error) {
+    return SendIface(c, "ZINCRBY", key, strconv.Ftoa64(increment, 'f', -1), member).floatOrErr()
+}
+
+// Intersect multiple sorted sets and store the resulting sorted set in a new key
+// `numkeys` is determined by the len of `keys` param
+func (c *Client) Zinterstore(destination string, keys []string, args ...string) (int64, os.Error) {
+    a := append([]string{destination, strconv.Itoa(len(keys))}, args...)
+    return SendStr(c, "ZINTERSTORE", a...).intOrErr()
+}
+
+// Return a range of members in a sorted set, by index
+func (c *Client) Zrange(key string, start int, stop int) (*Reply, os.Error) {
+    return SendStr(c, "ZRANGE", key, strconv.Itoa(start), strconv.Itoa(stop)).replyOrErr()
+}
+
+// Return a range of members in a sorted set, by score
+func (c *Client) Zrangebyscore(key string, min float64, max float64, args ...string) (*Reply, os.Error) {
+    a := append([]string{key, strconv.Ftoa64(min, 'f', -1), strconv.Ftoa64(max, 'f', -1)}, args...)
+    return SendStr(c, "ZRANGEBYSCORE", a...).replyOrErr()
+}
+
+// Determine the index of a member in a sorted set
+func (c *Client) Zrank(key string, member interface{}) (int64, os.Error) {
+    return SendIface(c, "ZRANK", key, member).intOrErr()
+}
+
+// Remove a member from a sorted set
+func (c *Client) Zrem(key string, member interface{}) (int64, os.Error) {
+    return SendIface(c, "ZREM", key, member).intOrErr()
+}
+
+// Remove all members in a sorted set within the given indexes
+func (c *Client) Zremrangebyrank(key string, start int, stop int) (int64, os.Error) {
+    return SendStr(c, "ZREMRANGEBYRANK", key, strconv.Itoa(start), strconv.Itoa(stop)).intOrErr()
+}
+
+// Remove all members in a sorted set within the given scores
+func (c *Client) Zremrangebyscore(key string, min float64, max float64) (int64, os.Error) {
+    return SendStr(c, "ZREMRANGEBYSCORE", key, strconv.Ftoa64(min, 'f', -1), strconv.Ftoa64(max, 'f', -1)).intOrErr()
+}
+
+// Return a range of members in a sorted set, by index, with scores ordered from high to low
+func (c *Client) Zrevrange(key string, start int, stop int, args ...string) (*Reply, os.Error) {
+    a := append([]string{key, strconv.Itoa(start), strconv.Itoa(stop)}, args...)
+    return SendStr(c, "ZREVRANGE", a...).replyOrErr()
+}
+
+// Return a range of members in a sorted set, by score, with scores ordered from high to low
+func (c *Client) Zrevrangebyscore(key string, max float64, min float64, args ...string) (*Reply, os.Error) {
+    a := append([]string{key, strconv.Ftoa64(max, 'f', -1), strconv.Ftoa64(min, 'f', -1)}, args...)
+    return SendStr(c, "ZREVRANGEBYSCORE", a...).replyOrErr()
+}
+
+// Determine the index of a member in a sorted set, with scores ordered from high to low
+func (c *Client) Zrevrank(key string, member interface{}) (int64, os.Error) {
+    return SendIface(c, "ZREVRANK", key, member).intOrErr()
+}
+
+// Get the score associated with the given member in a sorted set
+func (c *Client) Zscore(key string, member interface{}) (float64, os.Error) {
+    return SendIface(c, "ZSCORE", key, member).floatOrErr()
+}
+
+// Add multiple sorted sets and store the resulting sorted set in a new key
+// `numkeys` is determined by the len of `keys` param
+func (c *Client) Zunionstore(destination string, keys []string, args ...string) (int64, os.Error) {
+    a := append([]string{destination, strconv.Itoa(len(keys))}, args...)
+    return SendStr(c, "ZUNIONSTORE", a...).intOrErr()
+}

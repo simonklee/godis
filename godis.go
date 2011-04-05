@@ -69,6 +69,11 @@ func (e Elem) Int64() int64 {
     return v
 }
 
+func (e Elem) Float64() float64 {
+    v, _ := strconv.Atof64(string([]byte(e)))
+    return v
+}
+
 type Reply struct {
     Err   os.Error
     Elem  Elem

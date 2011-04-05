@@ -500,6 +500,34 @@ func TestSet(t *testing.T) {
     }
 }
 
+func TestSortedSet(t *testing.T) {
+    c := New("", 0, "")
+    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
+
+    m := map[string] float64 {
+        "foo": 1.0,
+        "bar": 2.0,
+        "baz": 3.0,
+        "qux": 4.0,
+    }
+
+    for k, v := range m {
+        if res, err := c.Zadd("foobar", v, k); err != nil || res != true {
+            error(t, "Zadd", true, res, err)
+        }
+    }
+
+    if res, err := c.Zcard("foobar"); err != nil || res != 4 {
+        error(t, "Zcard", 4, res, err)
+    }
+
+    if res, err := c.Zcount("foobar", 1, 2); err != nil || res != 2 {
+        error(t, "Zcount", 2, res, err)
+    }
+}
+
 func BenchmarkRpush(b *testing.B) {
     c := New("", 0, "")
     start := time.Nanoseconds()
