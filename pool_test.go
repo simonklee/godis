@@ -39,7 +39,7 @@ func TestPool(t *testing.T) {
 func TestPoolSize(t *testing.T) {
     c1 := New("", 0, "")
     c2 := New("", 0, "")
-    expected := MaxClientConn*2 + ConnCtr
+    expected := MaxClientConn*2 + connCount
 
     if r := SendStr(c1, "SET", "foo", "foo"); r.Err != nil {
         t.Fatalf("'%s': %s", "SET", r.Err)
@@ -62,7 +62,7 @@ func TestPoolSize(t *testing.T) {
     stop := time.Nanoseconds() - start
     t.Logf("time: %.3f\n", float32(stop/1.0e+6)/1000.0)
 
-    if expected != ConnCtr {
-        t.Errorf("ConnCtr: expected %d got %d ", expected, ConnCtr)
+    if expected != connCount {
+        t.Errorf("connCount: expected %d got %d ", expected, connCount)
     }
 }

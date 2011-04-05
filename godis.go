@@ -29,7 +29,7 @@ const (
 
 var (
     delim   = []byte{cr, ln}
-    ConnCtr int
+    connCount int
 )
 
 type Pool struct {
@@ -266,7 +266,7 @@ func Send(rw ReaderWriter, args ...[]byte) *Reply {
     return rw.read(c)
 }
 
-// uses reflection to create a byte string of args, then calls Send()
+// uses reflection to create a bytestring of args, then calls Send()
 func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
     buf := make([][]byte, len(args)+1)
     buf[0] = []byte(name)
@@ -278,7 +278,7 @@ func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
     return Send(rw, buf...)
 }
 
-// creates a byte string of strings parameter, then calls Send()
+// creates a bytestring of the string parameters, then calls Send()
 func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
     buf := make([][]byte, len(args)+1)
     buf[0] = []byte(name)
@@ -351,7 +351,7 @@ func (c *Client) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
         if conn, err = c.createConn(); err != nil {
             return nil, err
         }
-        ConnCtr++
+        connCount++
     }
 
     err = bufferWrite(conn, cmd)
