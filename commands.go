@@ -569,3 +569,156 @@ func (c *Client) Zunionstore(destination string, keys []string, args ...string) 
     a := append([]string{destination, strconv.Itoa(len(keys))}, args...)
     return SendStr(c, "ZUNIONSTORE", a...).intOrErr()
 }
+
+//// pubsub
+//
+//// Listen for messages published to channels matching the given patterns
+//func (c *Client) Psubscribe(mapping map[string][]byte) os.Error {
+//    return Send(c, "PSUBSCRIBE").
+//}
+//
+//// Post a message to a channel
+//func (c *Client) Publish(channel string, message string) (int64, os.Error) {
+//    return Send(c, "PUBLISH").intOrErr()
+//}
+//
+//// Stop listening for messages posted to channels matching the given patterns
+//func (c *Client) Punsubscribe() os.Error {
+//    return Send(c, "PUNSUBSCRIBE").
+//}
+//
+//// Listen for messages published to the given channels
+//func (c *Client) Subscribe(mapping map[string][]byte) os.Error {
+//    return Send(c, "SUBSCRIBE").
+//}
+//
+//// Stop listening for messages posted to the given channels
+//func (c *Client) Unsubscribe() os.Error {
+//    return Send(c, "UNSUBSCRIBE").
+//}
+//
+//// transactions
+//
+//// Discard all commands issued after MULTI
+//func (c *Client) Discard() (bool, os.Error) {
+//    return Send(c, "DISCARD").boolOrErr()
+//}
+//
+//// Execute all commands issued after MULTI
+//func (c *Client) Exec() (*Reply, os.Error) {
+//    return Send(c, "EXEC").replyOrErr()
+//}
+//
+//// Mark the start of a transaction block
+//func (c *Client) Multi() (bool, os.Error) {
+//    return Send(c, "MULTI").boolOrErr()
+//}
+//
+//// Forget about all watched keys
+//func (c *Client) Unwatch() (bool, os.Error) {
+//    return Send(c, "UNWATCH").boolOrErr()
+//}
+//
+// server
+
+// Asynchronously rewrite the append-only file
+func (c *Client) Bgrewriteaof() os.Error {
+    return Send(c, []byte("BGREWRITEAOF")).nilOrErr()
+}
+
+// Asynchronously save the dataset to disk
+func (c *Client) Bgsave() os.Error {
+    return Send(c, []byte("BGSAVE")).nilOrErr()
+}
+
+// Get the value of a configuration parameter
+func (c *Client) ConfigGet(parameter string) (Elem, os.Error) {
+    return SendStr(c, "CONFIG GET", parameter).elemOrErr()
+}
+
+// Reset the stats returned by INFO
+func (c *Client) ConfigResetstat() os.Error {
+    return Send(c, []byte("CONFIG RESETSTAT")).nilOrErr()
+}
+
+// Set a configuration parameter to the given value
+func (c *Client) ConfigSet(parameter string, value string) os.Error {
+    return SendStr(c, "CONFIG SET", parameter, value).nilOrErr()
+}
+
+// Return the number of keys in the selected database
+func (c *Client) Dbsize() (int64, os.Error) {
+    return Send(c, []byte("DBSIZE")).intOrErr()
+}
+
+// Get debugging information about a key
+func (c *Client) DebugObject(key string) (Elem, os.Error) {
+    return SendStr(c, "DEBUG OBJECT", key).elemOrErr()
+}
+
+// Make the server crash
+func (c *Client) DebugSegfault() os.Error {
+    return Send(c, []byte("DEBUG SEGFAULT")).nilOrErr()
+}
+
+// Remove all keys from all databases
+func (c *Client) Flushall() os.Error {
+    return Send(c, []byte("FLUSHALL")).nilOrErr()
+}
+
+// Remove all keys from the current database
+func (c *Client) Flushdb() os.Error {
+    return Send(c, []byte("FLUSHDB")).nilOrErr()
+}
+
+// Get information and statistics about the server
+func (c *Client) Info() (Elem, os.Error) {
+    return Send(c, []byte("INFO")).elemOrErr()
+}
+
+// Get the UNIX time stamp of the last successful save to disk
+func (c *Client) Lastsave() (int64, os.Error) {
+    return Send(c, []byte("LASTSAVE")).intOrErr()
+}
+
+// Listen for all requests received by the server in real time
+func (c *Client) Monitor() (*Reply, os.Error) {
+    return Send(c, []byte("MONITOR")).replyOrErr()
+}
+
+// Synchronously save the dataset to disk
+func (c *Client) Save() os.Error {
+    return Send(c, []byte("SAVE")).nilOrErr()
+}
+
+// Synchronously save the dataset to disk and then shut down the server
+func (c *Client) Shutdown() os.Error {
+    return Send(c, []byte("SHUTDOWN")).nilOrErr()
+}
+
+// connection
+
+//// Authenticate to the server
+//func (c *Client) Auth(password string) os.Error {
+//    return Send(c, "AUTH").
+//}
+
+// Echo the given string
+func (c *Client) Echo(message interface{}) (Elem, os.Error) {
+    return SendIface(c, "ECHO", message).elemOrErr()
+}
+
+// Ping the server
+func (c *Client) Ping() (Elem, os.Error) {
+    return Send(c, []byte("PING")).elemOrErr()
+}
+
+// Close the connection
+func (c *Client) Quit() os.Error {
+    return Send(c, []byte("QUIT")).nilOrErr()
+}
+
+// Change the selected database for the current connection
+func (c *Client) Select(index int) os.Error {
+    return SendStr(c, "SELECT", strconv.Itoa(index)).nilOrErr()
+}
