@@ -58,26 +58,6 @@ func (r *Reply) replyOrErr() (*Reply, os.Error) {
     return r, nil
 }
 
-func strToFaces(args []string) []interface{} {
-    interfaces := make([]interface{}, len(args))
-
-    for i, n := range args {
-        interfaces[i] = n
-    }
-
-    return interfaces
-}
-
-func numsToFaces(args []int) []interface{} {
-    interfaces := make([]interface{}, len(args))
-
-    for i, n := range args {
-        interfaces[i] = n
-    }
-
-    return interfaces
-}
-
 func smapToArr(mapping map[string]string) []string {
     buf := make([]string, len(mapping)*2)
     n := 0
