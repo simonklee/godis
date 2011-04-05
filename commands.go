@@ -368,7 +368,7 @@ func (c *Client) Hlen(key string) (int64, os.Error) {
 
 // Get the values of all the given hash fields
 func (c *Client) Hmget(key string, fields ...string) (*Reply, os.Error) {
-    return SendStr(c, "HMGET", fields...).replyOrErr()
+    return SendStr(c, "HMGET", append([]string{key}, fields...)...).replyOrErr()
 }
 
 // Set multiple hash fields to multiple values
@@ -391,8 +391,8 @@ func (c *Client) Hset(key string, field string, value interface{}) (bool, os.Err
 }
 
 // Set the value of a hash field, only if the field does not exist
-func (c *Client) Hsetnx(key string, field string, value interface{}) (int64, os.Error) {
-    return SendIface(c, "HSETNX", key, field, value).intOrErr()
+func (c *Client) Hsetnx(key string, field string, value interface{}) (bool, os.Error) {
+    return SendIface(c, "HSETNX", key, field, value).boolOrErr()
 }
 
 // Get all the values in a hash

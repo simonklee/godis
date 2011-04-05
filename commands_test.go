@@ -355,8 +355,11 @@ func TestHash(t *testing.T) {
         error(t, "Hexists", false, res, err)
     }
 
-    c.Hset("foobar", "foo", 1)
+    if res, err := c.Hsetnx("foobar", "foo", 1); err != nil || res != true {
+        error(t, "Hsetnx", true, res, err)
+    }
     c.Hset("foobar", "bar", 2)
+
     want := []*Reply{
         &Reply{Elem: []byte("foo")},
         &Reply{Elem: []byte("1")},
@@ -365,7 +368,48 @@ func TestHash(t *testing.T) {
     }
 
     if res, err := c.Hgetall("foobar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
-        error(t, "Hexists", want, res, err)
+        error(t, "Hgetall", want, res, err)
+    }
+
+    if res, err := c.Hincrby("foobar", "foo", 1); err != nil || int64(2) != res {
+        error(t, "Hincrby", int64(2), res, err)
+    }
+
+    want1 := []string{"foo", "bar"}
+
+    if res, err := c.Hkeys("foobar"); err != nil || !reflect.DeepEqual(want1, res) {
+        error(t, "Hkeys", want1, res, err)
+    }
+
+    if res, err := c.Hlen("foobar"); err != nil || int64(2) != res {
+        error(t, "Hlen", int64(2), res, err)
+    }
+
+    if res, err := c.Hlen("foobar"); err != nil || int64(2) != res {
+        error(t, "Hlen", int64(2), res, err)
+    }
+
+    want = []*Reply{
+        &Reply{Elem: []byte("2")},
+    }
+
+    if res, err := c.Hmget("foobar", "bar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+        error(t, "Hgetall", want, res, err)
+    }
+
+    m := map[string] interface{} {
+        "foo": 1,
+        "bar": 2,
+        "qux": 3,
+    }
+
+    if err := c.Hmset("foobar", m); err != nil {
+        error(t, "Hmset", nil, nil, err)
+    }
+
+    want2 := []int64{1, 2, 3}
+    if res, err := c.Hvals("foobar"); err != nil || !reflect.DeepEqual(want2, res.IntArray()) {
+        error(t, "Hvals", want2, res, err)
     }
 }
 

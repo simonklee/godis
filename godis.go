@@ -13,7 +13,7 @@ import (
 
 const (
     MaxClientConn = 1
-    LOG_CMD       = false
+    LOG_CMD       = true
 )
 
 // protocol bytes
@@ -90,6 +90,17 @@ func (r *Reply) StringArray() []string {
 
     for i, v := range r.Elems {
         buf[i] = v.Elem.String()
+    }
+
+    return buf
+}
+
+func (r *Reply) IntArray() []int64 {
+    buf := make([]int64, len(r.Elems))
+
+    for i, v := range r.Elems {
+        v, _ := strconv.Atoi64(v.Elem.String())
+        buf[i] = v
     }
 
     return buf
