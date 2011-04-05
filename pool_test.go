@@ -41,17 +41,17 @@ func TestPoolSize(t *testing.T) {
     c2 := New("", 0, "")
     expected := MaxClientConn*2 + ConnCtr
 
-    if r := Send(c1, "SET", "foo", "foo"); r.Err != nil {
+    if r := SendStr(c1, "SET", "foo", "foo"); r.Err != nil {
         t.Fatalf("'%s': %s", "SET", r.Err)
     }
 
-    Send(c2, "SET", "bar", "bar")
+    SendStr(c2, "SET", "bar", "bar")
 
     start := time.Nanoseconds()
 
     for i := 0; i < 1000; i++ {
-        r1 := Send(c1, "GET", "foo")
-        r2 := Send(c2, "GET", "bar")
+        r1 := SendStr(c1, "GET", "foo")
+        r2 := SendStr(c2, "GET", "bar")
 
         if r1.Elem.String() != "foo" && r2.Elem.String() != "bar" {
             t.Error(r1, r2)

@@ -1,14 +1,14 @@
 package godis
 
 import (
-    "fmt"
-    "os"
     "bufio"
     "bytes"
-    "strconv"
-    "net"
-    "log"
+    "fmt"
     "io"
+    "log"
+    "net"
+    "os"
+    "strconv"
 )
 
 const (
@@ -28,6 +28,7 @@ const (
 )
 
 var (
+    delim   = []byte{cr, ln}
     ConnCtr int
 )
 
@@ -155,7 +156,7 @@ func (r *Reply) parseMultiBulk(reader *bufio.Reader, res []byte) {
     r.Elems = make([]*Reply, l)
 
     for i := 0; i < l; i++ {
-        rr := read(reader)
+        rr := parseResponse(reader)
 
         if rr.Err != nil {
             r.Err = rr.Err
@@ -180,7 +181,7 @@ func (r *Reply) parseMultiBulk(reader *bufio.Reader, res []byte) {
     }
 }
 
-func read(reader *bufio.Reader) *Reply {
+func parseResponse(reader *bufio.Reader) *Reply {
     reply := new(Reply)
     res, err := reader.ReadBytes(ln)
 
@@ -214,56 +215,79 @@ func read(reader *bufio.Reader) *Reply {
     return reply
 }
 
-func appendCmd(buf *bytes.Buffer, a []byte) {
-    buf.WriteByte(dollar)
-    buf.WriteString(strconv.Itoa(len(a)))
-    buf.WriteByte(cr)
-    buf.WriteByte(ln)
-    buf.Write(a)
-    buf.WriteByte(cr)
-    buf.WriteByte(ln)
+func bufferWrite(w io.Writer, cmd []byte) os.Error {
+    _, err := w.Write(cmd)
+    return err
 }
 
-func write(w io.Writer, name string, args ...interface{}) os.Error {
-    n := len(args)
+func buildCmd(args ...[]byte) []byte {
     buf := bytes.NewBuffer(nil)
 
     buf.WriteByte(star)
-    buf.WriteString(strconv.Itoa(n + 1))
-    buf.WriteByte(cr)
-    buf.WriteByte(ln)
+    buf.WriteString(strconv.Itoa(len(args)))
+    buf.Write(delim)
 
-    appendCmd(buf, []byte(name))
-
-    for i := 0; i < n; i++ {
-        appendCmd(buf, []byte(fmt.Sprint(args[i])))
+    for _, arg := range args {
+        buf.WriteByte(dollar)
+        buf.WriteString(strconv.Itoa(len(arg)))
+        buf.Write(delim)
+        buf.Write(arg)
+        buf.Write(delim)
     }
 
     if LOG_CMD {
         log.Printf("GODIS: %q", string(buf.Bytes()))
     }
 
-    if _, err := w.Write(buf.Bytes()); err != nil {
-        return err
-    }
-
-    return nil
-}
-
-type Writer interface {
-    Write(name string, args ...interface{}) *Reply
+    return buf.Bytes()
 }
 
 type Reader interface {
-    Read() *Reply
+    read(c *net.TCPConn) *Reply
 }
 
-func Send(w Writer, name string, args ...interface{}) *Reply {
-    return w.Write(name, args...)
+type Writer interface {
+    write(b []byte) (*net.TCPConn, os.Error)
 }
 
-func ReadReply(r Reader) *Reply {
-    return r.Read()
+type ReaderWriter interface {
+    Reader
+    Writer
+}
+
+// send writes a message and returns the reply
+func Send(rw ReaderWriter, args ...[]byte) *Reply {
+    c, err := rw.write(buildCmd(args...))
+
+    if err != nil {
+        return &Reply{Err: err}
+    }
+
+    return rw.read(c)
+}
+
+// uses reflection to create a byte string of args, then calls Send()
+func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
+    buf := make([][]byte, len(args)+1)
+    buf[0] = []byte(name)
+
+    for i, arg := range args {
+        buf[i+1] = []byte(fmt.Sprint(arg))
+    }
+
+    return Send(rw, buf...)
+}
+
+// creates a byte string of strings parameter, then calls Send()
+func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
+    buf := make([][]byte, len(args)+1)
+    buf[0] = []byte(name)
+
+    for i, arg := range args {
+        buf[i+1] = []byte(arg)
+    }
+
+    return Send(rw, buf...)
 }
 
 type Client struct {
@@ -281,7 +305,7 @@ func New(addr string, db int, password string) *Client {
     return &Client{Addr: addr, Db: db, Password: password, pool: NewPool()}
 }
 
-func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
+func (c *Client) createConn() (conn *net.TCPConn, err os.Error) {
     addr, err := net.ResolveTCPAddr(c.Addr)
 
     if err != nil {
@@ -294,9 +318,8 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     }
 
     if c.Db != 0 {
-        err = write(conn, "SELECT", c.Db)
-        read(bufio.NewReader(conn))
-        //defer rw.read()
+        err = bufferWrite(conn, buildCmd([]byte("SELECT"), []byte(strconv.Itoa(c.Db))))
+        parseResponse(bufio.NewReader(conn))
 
         if err != nil {
             return nil, err
@@ -304,96 +327,103 @@ func (c *Client) newConn() (conn *net.TCPConn, err os.Error) {
     }
 
     if c.Password != "" {
-        err = write(conn, "AUTH", c.Password)
-        read(bufio.NewReader(conn))
-        //defer rw.read()
+        err = bufferWrite(conn, buildCmd([]byte("AUTH"), []byte(c.Password)))
+        parseResponse(bufio.NewReader(conn))
 
         if err != nil {
             return nil, err
         }
     }
+
     return conn, err
 }
 
-func (c *Client) Write(name string, args ...interface{}) *Reply {
-    conn := c.pool.Pop()
-
-    if conn == nil {
-        ConnCtr++
-        var err os.Error
-        conn, err = c.newConn()
-
-        if err != nil {
-            return &Reply{Err: err}
-        }
-    }
-
-    if err := write(conn, name, args...); err != nil {
-        return &Reply{Err: err}
-    }
-
-    reply := read(bufio.NewReader(conn))
+func (c *Client) read(conn *net.TCPConn) *Reply {
+    reply := parseResponse(bufio.NewReader(conn))
     c.pool.Push(conn)
     return reply
 }
 
-type PipeClient struct {
-    *Client
-    c   *net.TCPConn
-    w   *bufio.Writer
-    r   *bufio.Reader
-}
+func (c *Client) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
+    conn = c.pool.Pop()
 
-func NewPipe(addr string, db int, password string) *PipeClient {
-    return &PipeClient{New(addr, db, password), nil, nil, nil}
-}
-
-func (p *PipeClient) Write(name string, args ...interface{}) *Reply {
-    if p.w == nil {
-        conn := p.pool.Pop()
-
-        if conn == nil {
-            var err os.Error
-            conn, err = p.newConn()
-
-            if err != nil {
-                return &Reply{Err: err}
-            }
+    if conn == nil {
+        if conn, err = c.createConn(); err != nil {
+            return nil, err
         }
-
-        p.w = bufio.NewWriter(conn)
-        p.c = conn
+        ConnCtr++
     }
 
-    if err := write(p.w, name, args...); err != nil {
-        return &Reply{Err: err}
-    }
-
-    return &Reply{}
+    err = bufferWrite(conn, cmd)
+    return conn, err
 }
 
-func (p *PipeClient) Read() *Reply {
-    if p.w != nil {
-        if p.w.Available() > 0 {
-            p.w.Flush()
-        }
-
-        p.w = nil
-    }
-
-    if p.r == nil {
-        p.r = bufio.NewReader(p.c)
-        p.c.SetReadTimeout(1e8) // 100ms
-    }
-
-    reply := read(p.r)
-
-    if reply.Err != nil {
-        // check if timeout
-        p.pool.Push(p.c)
-        p.c = nil
-        p.r = nil
-    }
-
-    return reply
-}
+//type PipeClient struct {
+//    *Client
+//    writeOnly bool
+//    c         *net.TCPConn
+//    w         *bufio.Writer
+//    r         *bufio.Reader
+//}
+//
+//func NewPipe(addr string, db int, password string) *PipeClient {
+//    return &PipeClient{New(addr, db, password), true, nil, nil, nil}
+//}
+//
+//func (p *PipeClient) read(conn *net.TCPConn) *Reply {
+//    if p.c == nil {
+//        p.c = conn
+//    }
+//
+//    if p.writeOnly {
+//        return &Reply{}
+//    }
+//
+//    if p.w != nil {
+//        if p.w.Available() > 0 {
+//            p.w.Flush()
+//        }
+//
+//        p.w = nil
+//    }
+//
+//    if p.r == nil {
+//        p.r = bufio.NewReader(p.c)
+//    }
+//
+//    reply := parseResponse(p.r)
+//
+//    if reply.Err != nil {
+//        // check if timeout
+//        p.pool.Push(p.c)
+//        p.r = nil
+//        p.c = nil
+//    }
+//
+//    return reply
+//}
+//
+//func (p *PipeClient) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
+//    if p.w == nil {
+//        conn = p.pool.Pop()
+//
+//        if conn == nil {
+//            conn, err = p.createConn(); if err != nil {
+//                return nil, err
+//            }
+//        }
+//
+//        p.w = bufio.NewWriter(conn)
+//    }
+//
+//    err = bufferWrite(conn, cmd)
+//    return conn, err
+//}
+//
+//func (p *PipeClient) GetReply() *Reply {
+//    if p.writeOnly {
+//        p.writeOnly = false
+//    }
+//    return p.read(p.c)
+//}
+//

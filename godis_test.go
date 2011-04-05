@@ -53,7 +53,7 @@ var simpleParserTests = []simpleParserTest{
     {"+OK\r\n", Reply{Elem: []byte("OK")}, "ok"},
     {"-ERR\r\n", Reply{Err: os.NewError("ERR")}, "err"},
     {":1\r\n", Reply{Elem: []byte("1")}, "num"},
-    {"$3\r\nfoo\r\n", Reply{Elem: s2Bytes("foo")}, "bulk"},
+    {"$3\r\nfoo\r\n", Reply{Elem: []byte("foo")}, "bulk"},
     {"$-1\r\n", Reply{}, "bulk-nil"},
     {"*-1\r\n", Reply{}, "multi-bulk-nil"},
 }
@@ -61,20 +61,16 @@ var simpleParserTests = []simpleParserTest{
 func TestParser(t *testing.T) {
     for _, test := range simpleParserTests {
         rw := dummyReadWriter(test.in)
-        r := read(rw.reader)
+        r := parseResponse(rw.reader)
         compareReply(t, test.name, r, &test.out)
         t.Log(test.in, r, test.out)
     }
 }
 
-func s2Bytes(s string) []byte {
-    return bytes.NewBufferString(s).Bytes()
-}
-
 func s2MultiReply(ss ...string) []*Reply {
     var r = make([]*Reply, len(ss))
     for i := 0; i < len(ss); i++ {
-        r[i] = &Reply{Elem: s2Bytes(ss[i])}
+        r[i] = &Reply{Elem: []byte(ss[i])}
     }
     return r
 }
@@ -89,7 +85,7 @@ var simpleSendTests = []SimpleSendTest{
     {"FLUSHDB", []string{}, Reply{Elem: []byte("OK")}},
     {"SET", []string{"key", "foo"}, Reply{Elem: []byte("OK")}},
     {"EXISTS", []string{"key"}, Reply{Elem: []byte("1")}},
-    {"GET", []string{"key"}, Reply{Elem: s2Bytes("foo")}},
+    {"GET", []string{"key"}, Reply{Elem: []byte("foo")}},
     {"RPUSH", []string{"list", "foo"}, Reply{Elem: []byte("1")}},
     {"RPUSH", []string{"list", "bar"}, Reply{Elem: []byte("2")}},
     {"LRANGE", []string{"list", "0", "2"}, Reply{Elems: s2MultiReply("foo", "bar")}},
@@ -100,49 +96,48 @@ var simpleSendTests = []SimpleSendTest{
 func TestSimpleSend(t *testing.T) {
     c := New("", 0, "")
     for _, test := range simpleSendTests {
-        r := Send(c, test.cmd, strToFaces(test.args)...)
+        r := SendStr(c, test.cmd, test.args...)
         compareReply(t, test.cmd, &test.out, r)
         t.Log(test.cmd, test.args)
         t.Logf("%q == %q\n", test.out, r)
     }
 }
 
-func TestSimplePipe(t *testing.T) {
-    c := NewPipe("", 0, "")
-    
-    for _, test := range simpleSendTests {
-        r := Send(c, test.cmd, strToFaces(test.args)...)
-        if r.Err != nil {
-            t.Fatal(r.Err)
-        }
-    }
-
-    log.Println("out")
-    for _, test := range simpleSendTests {
-        r := ReadReply(c)
-        compareReply(t, test.cmd, &test.out, r)
-        t.Log(test.cmd, test.args)
-        t.Logf("%q == %q\n", test.out, r)
-    }
-}
+//func TestSimplePipe(t *testing.T) {
+//    c := NewPipe("", 0, "")
+//    
+//    for _, test := range simpleSendTests {
+//        r := SendStr(c, test.cmd, test.args...)
+//        if r.Err != nil {
+//            t.Error(test.cmd, r.Err, test.args)
+//        }
+//    }
+//
+//    for _, test := range simpleSendTests {
+//        r := c.GetReply()
+//        compareReply(t, test.cmd, &test.out, r)
+//        t.Log(test.cmd, test.args)
+//        t.Logf("%q == %q\n", test.out, r)
+//    }
+//}
 
 func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
     for i := 0; i < 1000; i++ {
-        Send(c, "RPUSH", []byte("list"), []byte("foo"))
+        SendStr(c, "RPUSH", "list", "foo")
     }
 
     start := time.Nanoseconds()
 
     for i := 0; i < b.N; i++ {
-        Send(c, "LRANGE", []byte("list"), []byte("0"), []byte("50"))
+        SendStr(c, "LRANGE", "list", "0", "50")
     }
 
     stop := time.Nanoseconds() - start
 
     log.Printf("time: %.2f\n", float32(stop/1.0e+6)/1000.0)
-    Send(c, "FLUSHDB")
+    Send(c, []byte("FLUSHDB"))
 }
 
 //func TestBenchmark(t *testing.T) {
