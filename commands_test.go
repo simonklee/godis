@@ -413,6 +413,93 @@ func TestHash(t *testing.T) {
     }
 }
 
+func TestSet(t *testing.T) {
+    c := New("", 0, "")
+    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
+
+    if res, err := c.Sadd("foobar", "foo"); err != nil || res != true {
+        error(t, "Sadd", true, res, err)
+    }
+
+    if res, err := c.Sadd("foobar", "foo"); err != nil || res != false {
+        error(t, "Sadd", false, res, err)
+    }
+
+    if res, err := c.Scard("foobar"); err != nil || res != 1 {
+        error(t, "Scard", 1, res, err)
+    }
+
+    c.Sadd("foobar", "bar")
+    c.Sadd("foobaz", "foo")
+
+    want := []*Reply{
+        &Reply{Elem: []byte("foo")},
+        &Reply{Elem: []byte("bar")},
+    }
+
+    if res, err := c.Sunion("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+        error(t, "Sunion", want, res, err)
+    }
+
+    if res, err := c.Sunionstore("fooqux", "foobar", "foobaz"); err != nil || res != 2 {
+        error(t, "Sunionstore", 2, res, err)
+    }
+
+    want = []*Reply{
+        &Reply{Elem: []byte("bar")},
+    }
+    
+    if res, err := c.Sdiff("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+        error(t, "Sdiff", want, res, err)
+    }
+
+    if res, err := c.Sdiffstore("foobar", "foobaz"); err != nil || res != 1 {
+        error(t, "Sdiffstore", 1, res, err)
+    }
+
+    want = []*Reply{
+        &Reply{Elem: []byte("foo")},
+    }
+
+    if res, err := c.Sinter("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+        error(t, "Sinter", want, res, err)
+    }
+
+    if res, err := c.Sinterstore("foobar", "foobaz"); err != nil || res != 1 {
+        error(t, "Sinterstore", 1, res, err)
+    }
+
+    if res, err := c.Sismember("foobar", "qux"); err != nil || res != false {
+        error(t, "Sismember", false, res, err)
+    }
+
+    if res, err := c.Smembers("foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+        error(t, "smembers", want, res, err)
+    }
+
+    if res, err := c.Smove("foobar", "foobaz", "foo"); err != nil || res != true { 
+        error(t, "smove", true, res, err)
+    }
+
+    if res, err := c.Spop("foobaz"); err != nil || res.String() != "foo" { 
+        error(t, "spop", "foo", res, err)
+    }
+
+    if res, err := c.Srandmember("foobaz"); err != nil || res != nil { 
+        error(t, "srandmember", nil, res, err)
+    }
+
+    c.Sadd("foobar", "foo")
+    c.Sadd("foobar", "bar")
+    c.Sadd("foobar", "baz")
+
+    if res, err := c.Srem("foobar", "baz"); err != nil || res != true { 
+        error(t, "srem", nil, res, err)
+    }
+}
+
 func BenchmarkRpush(b *testing.B) {
     c := New("", 0, "")
     start := time.Nanoseconds()
