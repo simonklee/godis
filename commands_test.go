@@ -9,10 +9,6 @@ import (
     "log"
 )
 
-func error(t *testing.T, name string, expected, got interface{}, err os.Error) {
-    t.Errorf("`%s` expected `%v` got `%v`, err(%v)", name, expected, got, err)
-}
-
 func TestGeneric(t *testing.T) {
     c := New("", 0, "")
     if r := SendStr(c, "FLUSHDB"); r.Err != nil {

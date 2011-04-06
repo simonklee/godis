@@ -288,7 +288,14 @@ func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
     buf[0] = []byte(name)
 
     for i, arg := range args {
-        buf[i+1] = []byte(fmt.Sprint(arg))
+        switch v := arg.(type) {
+        case []byte:
+            buf[i+1] = v
+        case string:
+            buf[i+1] = []byte(v)
+        default:
+            buf[i+1] = []byte(fmt.Sprint(arg))
+        }
     }
 
     return Send(rw, buf...)

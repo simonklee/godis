@@ -9,6 +9,10 @@ import (
     "log"
 )
 
+func error(t *testing.T, name string, expected, got interface{}, err os.Error) {
+    t.Errorf("`%s` expected `%v` got `%v`, err(%v)", name, expected, got, err)
+}
+
 func compareReply(t *testing.T, name string, a, b *Reply) {
     if a.Err != nil && b.Err == nil {
         t.Fatalf("'%s': expected error `%v`", name, a.Err)
@@ -100,6 +104,56 @@ func TestSimpleSend(t *testing.T) {
         compareReply(t, test.cmd, &test.out, r)
         t.Log(test.cmd, test.args)
         t.Logf("%q == %q\n", test.out, r)
+    }
+}
+
+func equals(a, b []byte) bool {
+    for i, c := range a {
+        if c != b[i] {
+            return false
+        }
+    }
+    return true
+}
+
+func TestBinarySafe(t *testing.T) {
+    c := New("", 0, "")
+    want1 := make([]byte, 256)
+    for i := 0; i < 256; i++ {
+        want1[i] = byte(i)
+    }
+
+    Send(c, []byte("SET"), []byte("foo"), want1)
+
+    if res := Send(c, []byte("GET"), []byte("foo")); !equals(res.Elem.Bytes(), want1) {
+        error(t, "ascii-table-Send", want1, res.Elem.Bytes(), res.Err)
+    }
+
+    SendIface(c, "SET", "bar", string(want1))
+
+    if res := SendIface(c, "GET", "bar"); !equals(res.Elem.Bytes(), want1) {
+        error(t, "ascii-table-SendIface", want1, res.Elem.Bytes(), res.Err)
+    }
+
+    want2 := []byte("♥\r\nµs\r\n")
+    Send(c, []byte("SET"), []byte("foo"), want2)
+
+    if res := Send(c, []byte("GET"), []byte("foo")); !equals(res.Elem.Bytes(), want2) {
+        error(t, "unicode-Send", want2, res.Elem.Bytes(), res.Err)
+    }
+
+    SendIface(c, "SET", "bar", want2)
+
+    if res := SendIface(c, "GET", "bar"); !equals(res.Elem.Bytes(), want2) {
+        error(t, "unicode-SendIface", want2, res.Elem.Bytes(), res.Err)
+    }
+
+    for _, b := range want2 {
+        SendIface(c, "SET", "bar", b)
+        res := SendIface(c, "GET", "bar")
+        if uint8(res.Elem.Int64()) != b {
+            error(t, "unicode-SendIface", b, res.Elem, res.Err)
+        }
     }
 }
 
