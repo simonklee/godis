@@ -397,7 +397,7 @@ func TestHash(t *testing.T) {
         error(t, "Hgetall", want, res, err)
     }
 
-    m := map[string] interface{} {
+    m := map[string]interface{}{
         "foo": 1,
         "bar": 2,
         "qux": 3,
@@ -450,7 +450,7 @@ func TestSet(t *testing.T) {
     want = []*Reply{
         &Reply{Elem: []byte("bar")},
     }
-    
+
     if res, err := c.Sdiff("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
         error(t, "Sdiff", want, res, err)
     }
@@ -479,15 +479,15 @@ func TestSet(t *testing.T) {
         error(t, "smembers", want, res, err)
     }
 
-    if res, err := c.Smove("foobar", "foobaz", "foo"); err != nil || res != true { 
+    if res, err := c.Smove("foobar", "foobaz", "foo"); err != nil || res != true {
         error(t, "smove", true, res, err)
     }
 
-    if res, err := c.Spop("foobaz"); err != nil || res.String() != "foo" { 
+    if res, err := c.Spop("foobaz"); err != nil || res.String() != "foo" {
         error(t, "spop", "foo", res, err)
     }
 
-    if res, err := c.Srandmember("foobaz"); err != nil || res != nil { 
+    if res, err := c.Srandmember("foobaz"); err != nil || res != nil {
         error(t, "srandmember", nil, res, err)
     }
 
@@ -495,7 +495,7 @@ func TestSet(t *testing.T) {
     c.Sadd("foobar", "bar")
     c.Sadd("foobar", "baz")
 
-    if res, err := c.Srem("foobar", "baz"); err != nil || res != true { 
+    if res, err := c.Srem("foobar", "baz"); err != nil || res != true {
         error(t, "srem", nil, res, err)
     }
 }
@@ -506,7 +506,7 @@ func TestSortedSet(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    m := map[string] float64 {
+    m := map[string]float64{
         "foo": 1.0,
         "bar": 2.0,
         "baz": 3.0,
@@ -526,6 +526,42 @@ func TestSortedSet(t *testing.T) {
     if res, err := c.Zcount("foobar", 1, 2); err != nil || res != 2 {
         error(t, "Zcount", 2, res, err)
     }
+}
+
+func TestConnection(t *testing.T) {
+    c := New("", 0, "")
+    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
+
+    if res, err := c.Echo("foo"); err != nil || res.String() != "foo" {
+        error(t, "Echo", "foo", res, err)
+    }
+
+    if res, err := c.Ping(); err != nil || res.String() != "PONG" {
+        error(t, "Ping", "PONG", res, err)
+    }
+
+    c.Set("foo", "foo")
+
+    if err := c.Select(2); err != nil {
+        error(t, "select", nil, nil, err)
+    }
+
+    if _, err := c.Get("foo"); err == nil {
+        error(t, "select", nil, nil, err)
+    }
+
+    // know bug will return EOF, but connection will not be restared
+    //for i := 0; i < MaxClientConn; i++ {
+    //    if err := c.Quit(); err != nil {
+    //        error(t, "quite", nil, nil, err)
+    //    }
+    //}
+
+    //if err := c.Set("foo", "foo"); err != nil {
+    //    error(t, "quit", nil, nil, err)
+    //}
 }
 
 func BenchmarkRpush(b *testing.B) {

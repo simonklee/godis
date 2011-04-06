@@ -28,7 +28,7 @@ const (
 )
 
 var (
-    delim   = []byte{cr, ln}
+    delim     = []byte{cr, ln}
     connCount int
 )
 
