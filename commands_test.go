@@ -15,67 +15,67 @@ func TestGeneric(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Randomkey(); res != "" {
+    if res, err := Randomkey(c); res != "" {
         error(t, "randomkey", "", res, err)
     }
 
-    c.Set("foo", "foo")
+    Set(c, "foo", "foo")
 
-    if res, err := c.Randomkey(); res != "foo" {
+    if res, err := Randomkey(c); res != "foo" {
         error(t, "randomkey", "foo", res, err)
     }
 
-    ex, _ := c.Exists("key")
-    nr, _ := c.Del("key")
+    ex, _ := Exists(c, "key")
+    nr, _ := Del(c, "key")
 
     if (ex && nr != 1) || (!ex && nr != 0) {
         error(t, "del", "unknown", nr, nil)
     }
 
-    c.Set("foo", "foo")
-    c.Set("bar", "bar")
-    c.Set("baz", "baz")
+    Set(c, "foo", "foo")
+    Set(c, "bar", "bar")
+    Set(c, "baz", "baz")
 
-    if nr, err := c.Del("foo", "bar", "baz"); nr != 3 {
+    if nr, err := Del(c, "foo", "bar", "baz"); nr != 3 {
         error(t, "del", 3, nr, err)
     }
 
-    c.Set("foo", "foo")
+    Set(c, "foo", "foo")
 
-    if res, err := c.Expire("foo", 10); !res {
+    if res, err := Expire(c, "foo", 10); !res {
         error(t, "expire", true, res, err)
     }
-    if res, err := c.Persist("foo"); !res {
+    if res, err := Persist(c, "foo"); !res {
         error(t, "persist", true, res, err)
     }
-    if res, err := c.Ttl("foo"); res == 0 {
+    if res, err := Ttl(c, "foo"); res == 0 {
         error(t, "ttl", 0, res, err)
     }
-    if res, err := c.Expireat("foo", time.Seconds()+10); !res {
+    if res, err := Expireat(c, "foo", time.Seconds()+10); !res {
         error(t, "expireat", true, res, err)
     }
-    if res, err := c.Ttl("foo"); res <= 0 {
+    if res, err := Ttl(c, "foo"); res <= 0 {
         error(t, "ttl", "> 0", res, err)
     }
-    if err := c.Rename("foo", "bar"); err != nil {
+    if err := Rename(c, "foo", "bar"); err != nil {
         error(t, "rename", nil, nil, err)
     }
-    if err := c.Rename("foo", "bar"); err == nil {
+    if err := Rename(c, "foo", "bar"); err == nil {
         error(t, "rename", "error", nil, err)
     }
-    if res, err := c.Renamenx("bar", "foo"); !res {
+    if res, err := Renamenx(c, "bar", "foo"); !res {
         error(t, "renamenx", true, res, err)
     }
 
-    c.Set("bar", "bar")
+    Set(c, "bar", "bar")
 
-    if res, err := c.Renamenx("foo", "bar"); res {
+    if res, err := Renamenx(c, "foo", "bar"); res {
         error(t, "renamenx", false, res, err)
     }
 
     c2 := New("", 1, "")
-    c2.Del("foo")
-    if res, err := c.Move("foo", 1); res != true {
+    Del(c2, "foo")
+    if res, err := Move(c, "foo", 1); res != true {
         error(t, "move", true, res, err)
     }
 }
@@ -87,7 +87,7 @@ func TestKeys(t *testing.T) {
     }
     SendStr(c, "MSET", "foo", "one", "bar", "two", "baz", "three")
 
-    res, err := c.Keys("foo")
+    res, err := Keys(c, "foo")
 
     if err != nil {
         error(t, "keys", nil, nil, err)
@@ -115,7 +115,7 @@ func TestSort(t *testing.T) {
     SendStr(c, "RPUSH", "foo", "3")
     SendStr(c, "RPUSH", "foo", "1")
 
-    res, err := c.Sort("foo")
+    res, err := Sort(c, "foo")
 
     if err != nil {
         error(t, "sort", nil, nil, err)
@@ -140,82 +140,82 @@ func TestString(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Decr("qux"); err != nil || res != -1 {
+    if res, err := Decr(c, "qux"); err != nil || res != -1 {
         error(t, "decr", -1, res, err)
     }
 
-    if res, err := c.Decrby("qux", 1); err != nil || res != -2 {
+    if res, err := Decrby(c, "qux", 1); err != nil || res != -2 {
         error(t, "decrby", -2, res, err)
     }
 
-    if res, err := c.Incrby("qux", 1); err != nil || res != -1 {
+    if res, err := Incrby(c, "qux", 1); err != nil || res != -1 {
         error(t, "incrby", -1, res, err)
     }
 
-    if res, err := c.Incr("qux"); err != nil || res != 0 {
+    if res, err := Incr(c, "qux"); err != nil || res != 0 {
         error(t, "incrby", 0, res, err)
     }
 
-    if res, err := c.Setbit("qux", 0, 1); err != nil || res != 0 {
+    if res, err := Setbit(c, "qux", 0, 1); err != nil || res != 0 {
         error(t, "setbit", 0, res, err)
     }
 
-    if res, err := c.Getbit("qux", 0); err != nil || res != 1 {
+    if res, err := Getbit(c, "qux", 0); err != nil || res != 1 {
         error(t, "getbit", 1, res, err)
     }
 
-    if err := c.Set("foo", "foo"); err != nil {
+    if err := Set(c, "foo", "foo"); err != nil {
         t.Errorf(err.String())
     }
 
-    if res, err := c.Append("foo", "bar"); err != nil || res != 6 {
+    if res, err := Append(c, "foo", "bar"); err != nil || res != 6 {
         error(t, "append", 6, res, err)
     }
 
-    if res, err := c.Get("foo"); err != nil || res != "foobar" {
+    if res, err := Get(c, "foo"); err != nil || res != "foobar" {
         error(t, "get", "foobar", res, err)
     }
 
-    if _, err := c.Get("foobar"); err == nil {
+    if _, err := Get(c, "foobar"); err == nil {
         error(t, "get", "error", nil, err)
     }
 
-    if res, err := c.Getrange("foo", 0, 2); err != nil || res != "foo" {
+    if res, err := Getrange(c, "foo", 0, 2); err != nil || res != "foo" {
         error(t, "getrange", "foo", res, err)
     }
 
-    if res, err := c.Setrange("foo", 0, "qux"); err != nil || res != 6 {
+    if res, err := Setrange(c, "foo", 0, "qux"); err != nil || res != 6 {
         error(t, "setrange", 6, res, err)
     }
 
-    if res, err := c.Getset("foo", "foo"); err != nil || res != "quxbar" {
+    if res, err := Getset(c, "foo", "foo"); err != nil || res != "quxbar" {
         error(t, "getset", "quxbar", res, err)
     }
 
-    if res, err := c.Setnx("foo", "bar"); err != nil || res != false {
+    if res, err := Setnx(c, "foo", "bar"); err != nil || res != false {
         error(t, "setnx", false, res, err)
     }
 
-    if res, err := c.Strlen("foo"); err != nil || res != 3 {
+    if res, err := Strlen(c, "foo"); err != nil || res != 3 {
         error(t, "strlen", 3, res, err)
     }
 
-    if err := c.Setex("foo", 10, "bar"); err != nil {
+    if err := Setex(c, "foo", 10, "bar"); err != nil {
         error(t, "setex", nil, nil, err)
     }
 
     out := []string{"foo", "bar", "qux"}
     in := map[string]string{"foo": "foo", "bar": "bar", "qux": "qux"}
 
-    if err := c.Mset(in); err != nil {
+    if err := Mset(c, in); err != nil {
         error(t, "mset", nil, nil, err)
     }
 
-    if res, err := c.Msetnx(in); err != nil || res == true {
+    if res, err := Msetnx(c, in); err != nil || res == true {
         error(t, "msetnx", false, res, err)
     }
 
-    res, err := c.Mget(append([]string{"il"}, out...)...)
+    res, err := Mget(c, append([]string{"il"}, out...)...)
 
     if err != nil || len(res) != 3 {
         error(t, "mget", 3, len(res), err)
@@ -235,31 +235,31 @@ func TestList(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Lpush("foobar", "foo"); err != nil || res != 1 {
+    if res, err := Lpush(c, "foobar", "foo"); err != nil || res != 1 {
         error(t, "LPUSH", 1, res, err)
     }
 
-    if res, err := c.Linsert("foobar", "AFTER", "foo", "bar"); err != nil || res != 2 {
+    if res, err := Linsert(c, "foobar", "AFTER", "foo", "bar"); err != nil || res != 2 {
         error(t, "Linsert", 2, res, err)
     }
 
-    if res, err := c.Linsert("foobar", "AFTER", "qux", "bar"); err != nil || res != -1 {
+    if res, err := Linsert(c, "foobar", "AFTER", "qux", "bar"); err != nil || res != -1 {
         error(t, "Linsert", -1, res, err)
     }
 
-    if res, err := c.Llen("foobar"); err != nil || res != 2 {
+    if res, err := Llen(c, "foobar"); err != nil || res != 2 {
         error(t, "Llen", 2, res, err)
     }
 
-    if res, err := c.Lindex("foobar", 0); err != nil || res.String() != "foo" {
+    if res, err := Lindex(c, "foobar", 0); err != nil || res.String() != "foo" {
         error(t, "Lindex", "foo", res, err)
     }
 
-    if res, err := c.Lpush("foobar", "qux"); err != nil || res != 3 {
+    if res, err := Lpush(c, "foobar", "qux"); err != nil || res != 3 {
         error(t, "Lpush", 3, res, err)
     }
 
-    if res, err := c.Lpop("foobar"); err != nil || res.String() != "qux" {
+    if res, err := Lpop(c, "foobar"); err != nil || res.String() != "qux" {
         error(t, "Lpop", "qux", res, err)
     }
 
@@ -268,15 +268,15 @@ func TestList(t *testing.T) {
         &Reply{Elem: []byte("bar")},
     }
 
-    if out, err := c.Lrange("foobar", 0, 1); err != nil || !reflect.DeepEqual(want1, out.Elems) {
+    if out, err := Lrange(c, "foobar", 0, 1); err != nil || !reflect.DeepEqual(want1, out.Elems) {
         error(t, "Lrange", nil, nil, err)
     }
 
     var want3 [][]byte
     for i := 0; i < 600; i++ {
         want3 = append(want3, []byte(strconv.Itoa(i)))
-        c.Rpush("foobaz", i)
-        if res, err := c.Lrange("foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.BytesArray()) {
+        Rpush(c, "foobaz", i)
+        if res, err := Lrange(c, "foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.BytesArray()) {
             error(t, "Lranges", nil, res, err)
             t.FailNow()
         }
@@ -284,19 +284,19 @@ func TestList(t *testing.T) {
 
     want := []string{"foo"}
 
-    if res, err := c.Lrem("foobar", 0, "bar"); err != nil || res != 1 {
+    if res, err := Lrem(c, "foobar", 0, "bar"); err != nil || res != 1 {
         error(t, "Lrem", 1, res, err)
     }
 
     want = []string{"bar"}
 
-    if err := c.Lset("foobar", 0, "bar"); err != nil {
+    if err := Lset(c, "foobar", 0, "bar"); err != nil {
         error(t, "Lrem", nil, nil, err)
     }
 
     want = []string{}
 
-    if err := c.Ltrim("foobar", 1, 0); err != nil {
+    if err := Ltrim(c, "foobar", 1, 0); err != nil {
         error(t, "Ltrim", nil, nil, err)
     }
 
@@ -305,22 +305,22 @@ func TestList(t *testing.T) {
     var err os.Error
 
     for _, v := range want {
-        res, err = c.Rpush("foobar", v)
+        res, err = Rpush(c, "foobar", v)
     }
 
     if err != nil || res != 3 {
         error(t, "Rpush", 3, res, err)
     }
 
-    if res, err := c.Rpushx("foobar", "baz"); err != nil || res != 4 {
+    if res, err := Rpushx(c, "foobar", "baz"); err != nil || res != 4 {
         error(t, "Rpushx", 4, res, err)
     }
 
-    if res, err := c.Rpop("foobar"); err != nil || res.String() != "baz" {
+    if res, err := Rpop(c, "foobar"); err != nil || res.String() != "baz" {
         error(t, "Rpop", "baz", res, err)
     }
 
-    if res, err := c.Rpoplpush("foobar", "foobaz"); err != nil || res.String() != "qux" {
+    if res, err := Rpoplpush(c, "foobar", "foobaz"); err != nil || res.String() != "qux" {
         error(t, "Rpop", "qux", res, err)
     }
 }
@@ -331,30 +331,30 @@ func TestHash(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Hset("foobar", "foo", "foo"); err != nil || res != true {
+    if res, err := Hset(c, "foobar", "foo", "foo"); err != nil || res != true {
         error(t, "Hset", true, res, err)
     }
 
-    if res, err := c.Hset("foobar", "foo", "foo"); err != nil || res != false {
+    if res, err := Hset(c, "foobar", "foo", "foo"); err != nil || res != false {
         error(t, "Hset", false, res, err)
     }
 
-    if res, err := c.Hget("foobar", "foo"); err != nil || res.String() != "foo" {
+    if res, err := Hget(c, "foobar", "foo"); err != nil || res.String() != "foo" {
         error(t, "Hget", "foo", res, err)
     }
 
-    if res, err := c.Hdel("foobar", "foo"); err != nil || res != true {
+    if res, err := Hdel(c, "foobar", "foo"); err != nil || res != true {
         error(t, "Hdel", true, res, err)
     }
 
-    if res, err := c.Hexists("foobar", "foo"); err != nil || res != false {
+    if res, err := Hexists(c, "foobar", "foo"); err != nil || res != false {
         error(t, "Hexists", false, res, err)
     }
 
-    if res, err := c.Hsetnx("foobar", "foo", 1); err != nil || res != true {
+    if res, err := Hsetnx(c, "foobar", "foo", 1); err != nil || res != true {
         error(t, "Hsetnx", true, res, err)
     }
-    c.Hset("foobar", "bar", 2)
+    Hset(c, "foobar", "bar", 2)
 
     want := []*Reply{
         &Reply{Elem: []byte("foo")},
@@ -363,25 +363,25 @@ func TestHash(t *testing.T) {
         &Reply{Elem: []byte("2")},
     }
 
-    if res, err := c.Hgetall("foobar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Hgetall(c, "foobar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
         error(t, "Hgetall", want, res, err)
     }
 
-    if res, err := c.Hincrby("foobar", "foo", 1); err != nil || int64(2) != res {
+    if res, err := Hincrby(c, "foobar", "foo", 1); err != nil || int64(2) != res {
         error(t, "Hincrby", int64(2), res, err)
     }
 
     want1 := []string{"foo", "bar"}
 
-    if res, err := c.Hkeys("foobar"); err != nil || !reflect.DeepEqual(want1, res) {
+    if res, err := Hkeys(c, "foobar"); err != nil || !reflect.DeepEqual(want1, res) {
         error(t, "Hkeys", want1, res, err)
     }
 
-    if res, err := c.Hlen("foobar"); err != nil || int64(2) != res {
+    if res, err := Hlen(c, "foobar"); err != nil || int64(2) != res {
         error(t, "Hlen", int64(2), res, err)
     }
 
-    if res, err := c.Hlen("foobar"); err != nil || int64(2) != res {
+    if res, err := Hlen(c, "foobar"); err != nil || int64(2) != res {
         error(t, "Hlen", int64(2), res, err)
     }
 
@@ -389,7 +389,7 @@ func TestHash(t *testing.T) {
         &Reply{Elem: []byte("2")},
     }
 
-    if res, err := c.Hmget("foobar", "bar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Hmget(c, "foobar", "bar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
         error(t, "Hgetall", want, res, err)
     }
 
@@ -399,12 +399,12 @@ func TestHash(t *testing.T) {
         "qux": 3,
     }
 
-    if err := c.Hmset("foobar", m); err != nil {
+    if err := Hmset(c, "foobar", m); err != nil {
         error(t, "Hmset", nil, nil, err)
     }
 
     want2 := []int64{1, 2, 3}
-    if res, err := c.Hvals("foobar"); err != nil || !reflect.DeepEqual(want2, res.IntArray()) {
+    if res, err := Hvals(c, "foobar"); err != nil || !reflect.DeepEqual(want2, res.IntArray()) {
         error(t, "Hvals", want2, res, err)
     }
 }
@@ -415,31 +415,31 @@ func TestSet(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Sadd("foobar", "foo"); err != nil || res != true {
+    if res, err := Sadd(c, "foobar", "foo"); err != nil || res != true {
         error(t, "Sadd", true, res, err)
     }
 
-    if res, err := c.Sadd("foobar", "foo"); err != nil || res != false {
+    if res, err := Sadd(c, "foobar", "foo"); err != nil || res != false {
         error(t, "Sadd", false, res, err)
     }
 
-    if res, err := c.Scard("foobar"); err != nil || res != 1 {
+    if res, err := Scard(c, "foobar"); err != nil || res != 1 {
         error(t, "Scard", 1, res, err)
     }
 
-    c.Sadd("foobar", "bar")
-    c.Sadd("foobaz", "foo")
+    Sadd(c, "foobar", "bar")
+    Sadd(c, "foobaz", "foo")
 
     want := []*Reply{
         &Reply{Elem: []byte("foo")},
         &Reply{Elem: []byte("bar")},
     }
 
-    if res, err := c.Sunion("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Sunion(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
         error(t, "Sunion", want, res, err)
     }
 
-    if res, err := c.Sunionstore("fooqux", "foobar", "foobaz"); err != nil || res != 2 {
+    if res, err := Sunionstore(c, "fooqux", "foobar", "foobaz"); err != nil || res != 2 {
         error(t, "Sunionstore", 2, res, err)
     }
 
@@ -447,11 +447,11 @@ func TestSet(t *testing.T) {
         &Reply{Elem: []byte("bar")},
     }
 
-    if res, err := c.Sdiff("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Sdiff(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
         error(t, "Sdiff", want, res, err)
     }
 
-    if res, err := c.Sdiffstore("foobar", "foobaz"); err != nil || res != 1 {
+    if res, err := Sdiffstore(c, "foobar", "foobaz"); err != nil || res != 1 {
         error(t, "Sdiffstore", 1, res, err)
     }
 
@@ -459,39 +459,39 @@ func TestSet(t *testing.T) {
         &Reply{Elem: []byte("foo")},
     }
 
-    if res, err := c.Sinter("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Sinter(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
         error(t, "Sinter", want, res, err)
     }
 
-    if res, err := c.Sinterstore("foobar", "foobaz"); err != nil || res != 1 {
+    if res, err := Sinterstore(c, "foobar", "foobaz"); err != nil || res != 1 {
         error(t, "Sinterstore", 1, res, err)
     }
 
-    if res, err := c.Sismember("foobar", "qux"); err != nil || res != false {
+    if res, err := Sismember(c, "foobar", "qux"); err != nil || res != false {
         error(t, "Sismember", false, res, err)
     }
 
-    if res, err := c.Smembers("foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Smembers(c, "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
         error(t, "smembers", want, res, err)
     }
 
-    if res, err := c.Smove("foobar", "foobaz", "foo"); err != nil || res != true {
+    if res, err := Smove(c, "foobar", "foobaz", "foo"); err != nil || res != true {
         error(t, "smove", true, res, err)
     }
 
-    if res, err := c.Spop("foobaz"); err != nil || res.String() != "foo" {
+    if res, err := Spop(c, "foobaz"); err != nil || res.String() != "foo" {
         error(t, "spop", "foo", res, err)
     }
 
-    if res, err := c.Srandmember("foobaz"); err != nil || res != nil {
+    if res, err := Srandmember(c, "foobaz"); err != nil || res != nil {
         error(t, "srandmember", nil, res, err)
     }
 
-    c.Sadd("foobar", "foo")
-    c.Sadd("foobar", "bar")
-    c.Sadd("foobar", "baz")
+    Sadd(c, "foobar", "foo")
+    Sadd(c, "foobar", "bar")
+    Sadd(c, "foobar", "baz")
 
-    if res, err := c.Srem("foobar", "baz"); err != nil || res != true {
+    if res, err := Srem(c, "foobar", "baz"); err != nil || res != true {
         error(t, "srem", nil, res, err)
     }
 }
@@ -510,16 +510,16 @@ func TestSortedSet(t *testing.T) {
     }
 
     for k, v := range m {
-        if res, err := c.Zadd("foobar", v, k); err != nil || res != true {
+        if res, err := Zadd(c, "foobar", v, k); err != nil || res != true {
             error(t, "Zadd", true, res, err)
         }
     }
 
-    if res, err := c.Zcard("foobar"); err != nil || res != 4 {
+    if res, err := Zcard(c, "foobar"); err != nil || res != 4 {
         error(t, "Zcard", 4, res, err)
     }
 
-    if res, err := c.Zcount("foobar", 1, 2); err != nil || res != 2 {
+    if res, err := Zcount(c, "foobar", 1, 2); err != nil || res != 2 {
         error(t, "Zcount", 2, res, err)
     }
 }
@@ -530,32 +530,32 @@ func TestConnection(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Echo("foo"); err != nil || res.String() != "foo" {
+    if res, err := Echo(c, "foo"); err != nil || res.String() != "foo" {
         error(t, "Echo", "foo", res, err)
     }
 
-    if res, err := c.Ping(); err != nil || res.String() != "PONG" {
+    if res, err := Ping(c); err != nil || res.String() != "PONG" {
         error(t, "Ping", "PONG", res, err)
     }
 
-    c.Set("foo", "foo")
+    Set(c, "foo", "foo")
 
-    if err := c.Select(2); err != nil {
+    if err := Select(c, 2); err != nil {
         error(t, "select", nil, nil, err)
     }
 
-    if _, err := c.Get("foo"); err == nil {
+    if _, err := Get(c, "foo"); err == nil {
         error(t, "select", nil, nil, err)
     }
 
     // know bug will return EOF, but connection will not be restared
     //for i := 0; i < MaxClientConn; i++ {
-    //    if err := c.Quit(); err != nil {
+    //    if err := Quit(c); err != nil {
     //        error(t, "quite", nil, nil, err)
     //    }
     //}
 
-    //if err := c.Set("foo", "foo"); err != nil {
+    //if err := Set(c, "foo", "foo"); err != nil {
     //    error(t, "quit", nil, nil, err)
     //}
 }
@@ -564,12 +564,12 @@ func BenchmarkRpush(b *testing.B) {
     c := New("", 0, "")
     start := time.Nanoseconds()
     for i := 0; i < b.N; i++ {
-        if _, err := c.Rpush("qux", "qux"); err != nil {
+        if _, err := Rpush(c, "qux", "qux"); err != nil {
             log.Println("RPUSH", err)
             return
         }
     }
-    c.Del("qux")
+    Del(c, "qux")
     stop := time.Nanoseconds() - start
     log.Printf("time: %.2f\n", float32(stop/1.0e+6)/1000.0)
 }
