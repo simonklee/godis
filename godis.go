@@ -22,7 +22,7 @@ type Client struct {
     Addr     string
     Db       int
     Password string
-    pool     *Pool
+    pool     *pool
 }
 
 // writes a command a and returns single the reply object.
@@ -96,7 +96,7 @@ func New(addr string, db int, password string) *Client {
         addr = "127.0.0.1:6379"
     }
 
-    return &Client{Addr: addr, Db: db, Password: password, pool: NewPool()}
+    return &Client{Addr: addr, Db: db, Password: password, pool: newPool()}
 }
 
 func (c *Client) createConn() (conn *net.TCPConn, err os.Error) {
@@ -144,17 +144,17 @@ func (c *Client) createConn() (conn *net.TCPConn, err os.Error) {
 
 func (c *Client) read(conn *conn) *Reply {
     reply := conn.readReply()
-    c.pool.Push(conn)
+    c.pool.push(conn)
     return reply
 }
 
 func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
-    conn = c.pool.Pop()
+    conn = c.pool.pop()
 
     defer func() {
         if err != nil {
             log.Printf("ERR (%v), conn: %q", err, conn)
-            c.pool.Push(nil)
+            c.pool.push(nil)
         }
     }()
 
@@ -211,7 +211,7 @@ func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
 //
 //    if reply.Err != nil {
 //        // check if timeout
-//        p.pool.Push(p.c)
+//        p.pool.push(p.c)
 //        p.r = nil
 //        p.c = nil
 //    }
@@ -221,7 +221,7 @@ func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
 //
 //func (p *Pipe) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
 //    if p.w == nil {
-//        conn = p.pool.Pop()
+//        conn = p.pool.pop()
 //
 //        if conn == nil {
 //            conn, err = p.createConn(); if err != nil {

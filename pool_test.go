@@ -23,16 +23,16 @@ func getConn(t *testing.T) *conn {
 }
 
 func TestPoolSimple(t *testing.T) {
-    p := NewPool()
+    p := newPool()
 
     for i := 0; i < 10; i++ {
-        c := p.Pop()
+        c := p.pop()
         if c == nil {
             c = getConn(t)
         }
 
         go func(c *conn) {
-            p.Push(c)
+            p.push(c)
         }(c)
     }
 }

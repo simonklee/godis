@@ -35,8 +35,8 @@ type conn struct {
     buf *bufio.ReadWriter
 }
 
-type Pool struct {
-    pool chan *conn
+type pool struct {
+    free chan *conn
 }
 
 type Elem []byte
@@ -48,22 +48,22 @@ type Reply struct {
     Elems []*Reply
 }
 
-func NewPool() *Pool {
-    p := Pool{make(chan *conn, MaxClientConn)}
+func newPool() *pool {
+    p := pool{make(chan *conn, MaxClientConn)}
 
     for i := 0; i < MaxClientConn; i++ {
-        p.pool <- nil
+        p.free <- nil
     }
 
     return &p
 }
 
-func (p *Pool) Pop() *conn {
-    return <-p.pool
+func (p *pool) pop() *conn {
+    return <-p.free
 }
 
-func (p *Pool) Push(c *conn) {
-    p.pool <- c
+func (p *pool) push(c *conn) {
+    p.free <- c
 }
 
 func newConn(rwc net.Conn) *conn {
