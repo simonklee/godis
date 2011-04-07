@@ -172,7 +172,7 @@ func TestString(t *testing.T) {
         error(t, "append", 6, res, err)
     }
 
-    if res, err := Get(c, "foo"); err != nil || res != "foobar" {
+    if res, err := Get(c, "foo"); err != nil || res.String() != "foobar" {
         error(t, "get", "foobar", res, err)
     }
 
@@ -180,7 +180,7 @@ func TestString(t *testing.T) {
         error(t, "get", "error", nil, err)
     }
 
-    if res, err := Getrange(c, "foo", 0, 2); err != nil || res != "foo" {
+    if res, err := Getrange(c, "foo", 0, 2); err != nil || res.String() != "foo" {
         error(t, "getrange", "foo", res, err)
     }
 
@@ -188,7 +188,7 @@ func TestString(t *testing.T) {
         error(t, "setrange", 6, res, err)
     }
 
-    if res, err := Getset(c, "foo", "foo"); err != nil || res != "quxbar" {
+    if res, err := Getset(c, "foo", "foo"); err != nil || res.String() != "quxbar" {
         error(t, "getset", "quxbar", res, err)
     }
 
@@ -217,12 +217,12 @@ func TestString(t *testing.T) {
 
     res, err := Mget(c, append([]string{"il"}, out...)...)
 
-    if err != nil || len(res) != 3 {
-        error(t, "mget", 3, len(res), err)
+    if err != nil || len(res.Elems) != 3 {
+        error(t, "mget", 3, len(res.Elems), err)
         t.FailNow()
     }
 
-    for i, v := range res {
+    for i, v := range res.StringArray() {
         if v != out[i] {
             error(t, "mget", out[i], v, nil)
         }

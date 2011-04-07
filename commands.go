@@ -171,14 +171,14 @@ func Decrby(rw ReaderWriter, key string, decrement int64) (int64, os.Error) {
 }
 
 // Get the value of a key
-func Get(rw ReaderWriter, key string) (string, os.Error) {
+func Get(rw ReaderWriter, key string) (Elem, os.Error) {
     r := SendStr(rw, "GET", key)
 
     if r.Err == nil && r.Elem == nil {
         r.Err = os.NewError("key `" + key + "`does not exist")
     }
 
-    return r.stringOrErr()
+    return r.elemOrErr()
 }
 
 // Returns the bit value at offset in the string value stored at key
@@ -187,13 +187,13 @@ func Getbit(rw ReaderWriter, key string, offset int) (int64, os.Error) {
 }
 
 // Get a substring of the string stored at a key
-func Getrange(rw ReaderWriter, key string, start int, end int) (string, os.Error) {
-    return SendStr(rw, "GETRANGE", key, strconv.Itoa(start), strconv.Itoa(end)).stringOrErr()
+func Getrange(rw ReaderWriter, key string, start int, end int) (Elem, os.Error) {
+    return SendStr(rw, "GETRANGE", key, strconv.Itoa(start), strconv.Itoa(end)).elemOrErr()
 }
 
 // Set the string value of a key and return its old value
-func Getset(rw ReaderWriter, key string, value interface{}) (string, os.Error) {
-    return SendIface(rw, "GETSET", key, value).stringOrErr()
+func Getset(rw ReaderWriter, key string, value interface{}) (Elem, os.Error) {
+    return SendIface(rw, "GETSET", key, value).elemOrErr()
 }
 
 // Increment the integer value of a key by one
@@ -207,8 +207,8 @@ func Incrby(rw ReaderWriter, key string, increment int64) (int64, os.Error) {
 }
 
 // Get the values of all the given keys
-func Mget(rw ReaderWriter, keys ...string) ([]string, os.Error) {
-    return SendStr(rw, "MGET", keys...).stringArrOrErr()
+func Mget(rw ReaderWriter, keys ...string) (*Reply, os.Error) {
+    return SendStr(rw, "MGET", keys...).replyOrErr()
 }
 
 // Set multiple keys to multiple values
