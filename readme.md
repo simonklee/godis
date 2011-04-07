@@ -2,6 +2,10 @@
 
 A simple Redis client for Go.
 
+* Commands API exactly mimics the Redis commands. It is extremly consistent with
+  the real deal.
+* Flexible design to with the goal of bringing support for pipelining to the client.
+
 ## usage
 
     // new client on default IP/port, redis db to 0 and no password
