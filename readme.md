@@ -4,7 +4,7 @@ A simple client for [Redis](http://redis.io).
 
 * Commands API exactly mimics the Redis commands. It is extremly consistent with
   the real deal.
-* Flexible design with the goal of bringing support for pipelining.
+* Flexible design with support for piped commands.
 
 ## Install
 
@@ -43,9 +43,7 @@ Simply use goinstall to get the client and dependencies.
 
 * Implement pub-sub and transactions.
 
-* PipeClient logic is not safe at all. If an error occurs and the user
-continues to call ReadReply after that, a new connection will be poped and we
-will try to continue reading, making the client hang/timeout ... repeat.
+* Pipeline need more testing.
 
 ## acknowledgment
 

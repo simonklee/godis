@@ -160,23 +160,23 @@ func TestBinarySafe(t *testing.T) {
     }
 }
 
-//func TestSimplePipe(t *testing.T) {
-//    c := NewPipe("", 0, "")
-//    
-//    for _, test := range simpleSendTests {
-//        r := SendStr(c, test.cmd, test.args...)
-//        if r.Err != nil {
-//            t.Error(test.cmd, r.Err, test.args)
-//        }
-//    }
-//
-//    for _, test := range simpleSendTests {
-//        r := c.GetReply()
-//        compareReply(t, test.cmd, &test.out, r)
-//        t.Log(test.cmd, test.args)
-//        t.Logf("%q == %q\n", test.out, r)
-//    }
-//}
+func TestSimplePipe(t *testing.T) {
+    c := NewPipe("", 0, "")
+    
+    for _, test := range simpleSendTests {
+        r := SendStr(c, test.cmd, test.args...)
+        if r.Err != nil {
+            t.Error(test.cmd, r.Err, test.args)
+        }
+    }
+
+    for _, test := range simpleSendTests {
+        r := c.GetReply()
+        compareReply(t, test.cmd, &test.out, r)
+        t.Log(test.cmd, test.args)
+        t.Logf("%q == %q\n", test.out, r)
+    }
+}
 
 func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")

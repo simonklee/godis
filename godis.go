@@ -173,73 +173,73 @@ func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
     conn.buf.Flush()
     return conn, err
 }
-//// Represents a pipelined command. This is currently not thread-safe.
-//type Pipe struct {
-//    *Client
-//    writeOnly bool
-//    c         *net.TCPConn
-//    w         *bufio.Writer
-//    r         *bufio.Reader
-//}
-//
-//func NewPipe(addr string, db int, password string) *Pipe {
-//    return &Pipe{New(addr, db, password), true, nil, nil, nil}
-//}
-//
-//func (p *Pipe) read(conn *net.TCPConn) *Reply {
-//    if p.c == nil {
-//        p.c = conn
-//    }
-//
-//    if p.writeOnly {
-//        return &Reply{}
-//    }
-//
-//    if p.w != nil {
-//        if p.w.Available() > 0 {
-//            p.w.Flush()
-//        }
-//
-//        p.w = nil
-//    }
-//
-//    if p.r == nil {
-//        p.r = bufio.NewReader(p.c)
-//    }
-//
-//    reply := readReply(p.r)
-//
-//    if reply.Err != nil {
-//        // check if timeout
-//        p.pool.push(p.c)
-//        p.r = nil
-//        p.c = nil
-//    }
-//
-//    return reply
-//}
-//
-//func (p *Pipe) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
-//    if p.w == nil {
-//        conn = p.pool.pop()
-//
-//        if conn == nil {
-//            conn, err = p.createConn(); if err != nil {
-//                return nil, err
-//            }
-//        }
-//
-//        p.w = bufio.NewWriter(conn)
-//    }
-//
-//    err = writeRequest(conn, cmd)
-//    return conn, err
-//}
-//
-//func (p *Pipe) GetReply() *Reply {
-//    if p.writeOnly {
-//        p.writeOnly = false
-//    }
-//    return p.read(p.c)
-//}
-//
+
+// Represents a pipelined command. This is currently not thread-safe.
+type Pipe struct {
+    *Client
+    conn *conn
+    appendMode bool
+}
+
+func NewPipe(addr string, db int, password string) *Pipe {
+    return &Pipe{New(addr, db, password), nil, true}
+}
+
+func (p *Pipe) read(conn *conn) *Reply {
+    if p.appendMode {
+        return &Reply{}
+    }
+
+    if p.conn.buf.Available() > 0 {
+        p.conn.buf.Flush()
+    }
+
+    reply := p.conn.readReply()
+
+    if reply.Err != nil {
+        // check if timeout
+        p.pool.push(p.conn)
+        p.conn = nil
+        p.appendMode = true
+    }
+
+    return reply
+}
+
+func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
+    var err os.Error
+
+    if p.conn == nil {
+        c := p.pool.pop()
+
+         defer func() {
+            if err != nil {
+                p.pool.push(nil)
+            }
+        }()
+
+        if c == nil {
+            rwc, err := p.createConn()
+
+            if err != nil {
+                return nil, err
+            }
+
+            c = newConn(rwc)
+            connCount++
+        }
+
+        p.conn = c
+    }
+
+    _, err = p.conn.buf.Write(cmd)
+    return p.conn, err
+}
+
+
+func (p *Pipe) GetReply() *Reply {
+    if p.appendMode {
+        p.appendMode = false
+    }
+    return p.read(p.conn)
+}
