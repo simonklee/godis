@@ -7,7 +7,7 @@ import (
 
 func main() {
     // new client on default IP/port, redis db to 0 and no password
-    c := godis.New("127.0.0.1:6379", 0, "") 
+    c := godis.New("127.0.0.1:6379", 0, "")
 
     // set a "foo" to "bar" 
     godis.Set(c, "foo", "bar")

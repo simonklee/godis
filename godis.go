@@ -177,7 +177,7 @@ func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
 // Represents a pipelined command. This is currently not thread-safe.
 type Pipe struct {
     *Client
-    conn *conn
+    conn       *conn
     appendMode bool
 }
 
@@ -212,7 +212,7 @@ func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
     if p.conn == nil {
         c := p.pool.pop()
 
-         defer func() {
+        defer func() {
             if err != nil {
                 p.pool.push(nil)
             }

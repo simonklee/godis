@@ -162,7 +162,7 @@ func TestBinarySafe(t *testing.T) {
 
 func TestSimplePipe(t *testing.T) {
     c := NewPipe("", 0, "")
-    
+
     for _, test := range simpleSendTests {
         r := SendStr(c, test.cmd, test.args...)
         if r.Err != nil {
