@@ -2,6 +2,7 @@
 *.out
 misc/
 bench/
+redis/
 godis
 _test*
 _obj
