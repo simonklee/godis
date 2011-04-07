@@ -1,24 +1,39 @@
 # godis
 
-A simple Redis client for Go.
+A simple client for [Redis](http://redis.io).
 
 * Commands API exactly mimics the Redis commands. It is extremly consistent with
   the real deal.
 * Flexible design to with the goal of bringing support for pipelining to the client.
 
-## usage
+## Install
 
-    // new client on default IP/port, redis db to 0 and no password
-    c := godis.New("127.0.0.1:6379", 0, "") 
+Simply use goinstall to get the client and dependencies.
 
-    // set a "foo" to "bar" 
-    godis.Set(c, "foo", "bar")
+    $ goinstall github.com/simonz05/godis
 
-    // retrieve the value of "foo"
-    foo, _ := godis.Get(c, "foo")
+### Example
 
-    // convert return value back to string and print it
-    fmt.Println("foo: ", foo.String())
+    package main
+
+    import (
+        "github.com/simonz05/godis"
+        "fmt"
+    )
+
+    func main() {
+        // new client on default IP/port, redis db to 0 and no password
+        c := godis.New("127.0.0.1:6379", 0, "") 
+
+        // set a "foo" to "bar" 
+        godis.Set(c, "foo", "bar")
+
+        // retrieve the value of "foo"
+        foo, _ := godis.Get(c, "foo")
+
+        // convert return value back to string and print it
+        fmt.Println("foo: ", foo.String())
+    }
 
 ## todo
 
