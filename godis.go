@@ -185,6 +185,14 @@ func NewPipe(addr string, db int, password string) *Pipe {
     return &Pipe{New(addr, db, password), nil, true}
 }
 
+// Get reply will return the reply in the order the calls were made
+func (p *Pipe) GetReply() *Reply {
+    if p.appendMode {
+        p.appendMode = false
+    }
+    return p.read(p.conn)
+}
+
 func (p *Pipe) read(conn *conn) *Reply {
     if p.appendMode {
         return &Reply{}
@@ -234,12 +242,4 @@ func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
 
     _, err = p.conn.buf.Write(cmd)
     return p.conn, err
-}
-
-
-func (p *Pipe) GetReply() *Reply {
-    if p.appendMode {
-        p.appendMode = false
-    }
-    return p.read(p.conn)
 }
