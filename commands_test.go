@@ -263,12 +263,9 @@ func TestList(t *testing.T) {
         error(t, "Lpop", "qux", res, err)
     }
 
-    want1 := []*Reply{
-        &Reply{Elem: []byte("foo")},
-        &Reply{Elem: []byte("bar")},
-    }
+    want1 := []string{"foo", "bar"}
 
-    if out, err := Lrange(c, "foobar", 0, 1); err != nil || !reflect.DeepEqual(want1, out.Elems) {
+    if out, err := Lrange(c, "foobar", 0, 1); err != nil || !reflect.DeepEqual(want1, out.StringArray()) {
         error(t, "Lrange", nil, nil, err)
     }
 
@@ -356,14 +353,9 @@ func TestHash(t *testing.T) {
     }
     Hset(c, "foobar", "bar", 2)
 
-    want := []*Reply{
-        &Reply{Elem: []byte("foo")},
-        &Reply{Elem: []byte("1")},
-        &Reply{Elem: []byte("bar")},
-        &Reply{Elem: []byte("2")},
-    }
+    want := []string{"foo", "1", "bar", "2"}
 
-    if res, err := Hgetall(c, "foobar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Hgetall(c, "foobar"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "Hgetall", want, res, err)
     }
 
@@ -385,11 +377,9 @@ func TestHash(t *testing.T) {
         error(t, "Hlen", int64(2), res, err)
     }
 
-    want = []*Reply{
-        &Reply{Elem: []byte("2")},
-    }
+    want = []string{"2"}
 
-    if res, err := Hmget(c, "foobar", "bar"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Hmget(c, "foobar", "bar"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "Hgetall", want, res, err)
     }
 
@@ -430,12 +420,9 @@ func TestSet(t *testing.T) {
     Sadd(c, "foobar", "bar")
     Sadd(c, "foobaz", "foo")
 
-    want := []*Reply{
-        &Reply{Elem: []byte("foo")},
-        &Reply{Elem: []byte("bar")},
-    }
+    want := []string{"foo", "bar"}
 
-    if res, err := Sunion(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Sunion(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "Sunion", want, res, err)
     }
 
@@ -443,11 +430,9 @@ func TestSet(t *testing.T) {
         error(t, "Sunionstore", 2, res, err)
     }
 
-    want = []*Reply{
-        &Reply{Elem: []byte("bar")},
-    }
+    want = []string{"bar"}
 
-    if res, err := Sdiff(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Sdiff(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "Sdiff", want, res, err)
     }
 
@@ -455,11 +440,9 @@ func TestSet(t *testing.T) {
         error(t, "Sdiffstore", 1, res, err)
     }
 
-    want = []*Reply{
-        &Reply{Elem: []byte("foo")},
-    }
+    want = []string{"foo"}
 
-    if res, err := Sinter(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Sinter(c, "foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "Sinter", want, res, err)
     }
 
@@ -471,7 +454,7 @@ func TestSet(t *testing.T) {
         error(t, "Sismember", false, res, err)
     }
 
-    if res, err := Smembers(c, "foobaz"); err != nil || !reflect.DeepEqual(want, res.Elems) {
+    if res, err := Smembers(c, "foobaz"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "smembers", want, res, err)
     }
 

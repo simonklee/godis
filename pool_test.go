@@ -6,7 +6,7 @@ import (
     "time"
 )
 
-func getConn(t *testing.T) (conn *net.TCPConn) {
+func getConn(t *testing.T) *conn {
     var defaultAddr string = "127.0.0.1:6379"
 
     addr, err := net.ResolveTCPAddr(defaultAddr)
@@ -14,14 +14,15 @@ func getConn(t *testing.T) (conn *net.TCPConn) {
         t.Errorf("ResolveAddr error for " + defaultAddr)
     }
 
-    conn, err = net.DialTCP("tcp", nil, addr)
+    c, err := net.DialTCP("tcp", nil, addr)
     if err != nil {
         t.Errorf("Connection error " + addr.String())
     }
-    return
+
+    return newConn(c)
 }
 
-func TestPool(t *testing.T) {
+func TestPoolSimple(t *testing.T) {
     p := NewPool()
 
     for i := 0; i < 10; i++ {
@@ -30,7 +31,7 @@ func TestPool(t *testing.T) {
             c = getConn(t)
         }
 
-        go func(c *net.TCPConn) {
+        go func(c *conn) {
             p.Push(c)
         }(c)
     }

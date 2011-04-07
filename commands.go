@@ -117,7 +117,7 @@ func Persist(rw ReaderWriter, key string) (bool, os.Error) {
 }
 
 // Return a random key from the keyspace
-func Randomkey(rw ReaderWriter, ) (string, os.Error) {
+func Randomkey(rw ReaderWriter) (string, os.Error) {
     return SendStr(rw, "RANDOMKEY").stringOrErr()
 }
 
@@ -622,12 +622,12 @@ func Zunionstore(rw ReaderWriter, destination string, keys []string, args ...str
 // server
 
 // Asynchronously rewrite the append-only file
-func Bgrewriteaof(rw ReaderWriter, ) os.Error {
+func Bgrewriteaof(rw ReaderWriter) os.Error {
     return Send(rw, []byte("BGREWRITEAOF")).nilOrErr()
 }
 
 // Asynchronously save the dataset to disk
-func Bgsave(rw ReaderWriter, ) os.Error {
+func Bgsave(rw ReaderWriter) os.Error {
     return Send(rw, []byte("BGSAVE")).nilOrErr()
 }
 
@@ -637,7 +637,7 @@ func ConfigGet(rw ReaderWriter, parameter string) (Elem, os.Error) {
 }
 
 // Reset the stats returned by INFO
-func ConfigResetstat(rw ReaderWriter, ) os.Error {
+func ConfigResetstat(rw ReaderWriter) os.Error {
     return Send(rw, []byte("CONFIG RESETSTAT")).nilOrErr()
 }
 
@@ -647,7 +647,7 @@ func ConfigSet(rw ReaderWriter, parameter string, value string) os.Error {
 }
 
 // Return the number of keys in the selected database
-func Dbsize(rw ReaderWriter, ) (int64, os.Error) {
+func Dbsize(rw ReaderWriter) (int64, os.Error) {
     return Send(rw, []byte("DBSIZE")).intOrErr()
 }
 
@@ -657,42 +657,42 @@ func DebugObject(rw ReaderWriter, key string) (Elem, os.Error) {
 }
 
 // Make the server crash
-func DebugSegfault(rw ReaderWriter, ) os.Error {
+func DebugSegfault(rw ReaderWriter) os.Error {
     return Send(rw, []byte("DEBUG SEGFAULT")).nilOrErr()
 }
 
 // Remove all keys from all databases
-func Flushall(rw ReaderWriter, ) os.Error {
+func Flushall(rw ReaderWriter) os.Error {
     return Send(rw, []byte("FLUSHALL")).nilOrErr()
 }
 
 // Remove all keys from the current database
-func Flushdb(rw ReaderWriter, ) os.Error {
+func Flushdb(rw ReaderWriter) os.Error {
     return Send(rw, []byte("FLUSHDB")).nilOrErr()
 }
 
 // Get information and statistics about the server
-func Info(rw ReaderWriter, ) (Elem, os.Error) {
+func Info(rw ReaderWriter) (Elem, os.Error) {
     return Send(rw, []byte("INFO")).elemOrErr()
 }
 
 // Get the UNIX time stamp of the last successful save to disk
-func Lastsave(rw ReaderWriter, ) (int64, os.Error) {
+func Lastsave(rw ReaderWriter) (int64, os.Error) {
     return Send(rw, []byte("LASTSAVE")).intOrErr()
 }
 
 // Listen for all requests received by the server in real time
-func Monitor(rw ReaderWriter, ) (*Reply, os.Error) {
+func Monitor(rw ReaderWriter) (*Reply, os.Error) {
     return Send(rw, []byte("MONITOR")).replyOrErr()
 }
 
 // Synchronously save the dataset to disk
-func Save(rw ReaderWriter, ) os.Error {
+func Save(rw ReaderWriter) os.Error {
     return Send(rw, []byte("SAVE")).nilOrErr()
 }
 
 // Synchronously save the dataset to disk and then shut down the server
-func Shutdown(rw ReaderWriter, ) os.Error {
+func Shutdown(rw ReaderWriter) os.Error {
     return Send(rw, []byte("SHUTDOWN")).nilOrErr()
 }
 
@@ -709,12 +709,12 @@ func Echo(rw ReaderWriter, message interface{}) (Elem, os.Error) {
 }
 
 // Ping the server
-func Ping(rw ReaderWriter, ) (Elem, os.Error) {
+func Ping(rw ReaderWriter) (Elem, os.Error) {
     return Send(rw, []byte("PING")).elemOrErr()
 }
 
 // Close the connection
-func Quit(rw ReaderWriter, ) os.Error {
+func Quit(rw ReaderWriter) os.Error {
     return Send(rw, []byte("QUIT")).nilOrErr()
 }
 

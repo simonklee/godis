@@ -1,10 +1,8 @@
 package godis
 
 import (
-    "bufio"
     "bytes"
     "fmt"
-    "io"
     "log"
     "net"
     "os"
@@ -12,266 +10,22 @@ import (
 )
 
 const (
-    MaxClientConn = 1
-    LOG_CMD       = false
+    LOG_CMD = false
 )
-
-// protocol bytes
-const (
-    cr     byte = 13
-    ln     byte = 10
-    dollar byte = 36
-    colon  byte = 58
-    minus  byte = 45
-    plus   byte = 43
-    star   byte = 42
-)
-
-var (
-    delim     = []byte{cr, ln}
-    connCount int
-)
-
-type Pool struct {
-    pool chan *net.TCPConn
-}
-
-func NewPool() *Pool {
-    p := Pool{make(chan *net.TCPConn, MaxClientConn)}
-
-    for i := 0; i < MaxClientConn; i++ {
-        p.pool <- nil
-    }
-
-    return &p
-}
-
-func (p *Pool) Pop() *net.TCPConn {
-    return <-p.pool
-}
-
-func (p *Pool) Push(c *net.TCPConn) {
-    p.pool <- c
-}
-
-type Elem []byte
-
-func (e Elem) Bytes() []byte {
-    return []byte(e)
-}
-
-func (e Elem) String() string {
-    return string([]byte(e))
-}
-
-func (e Elem) Int64() int64 {
-    v, _ := strconv.Atoi64(string([]byte(e)))
-    return v
-}
-
-func (e Elem) Float64() float64 {
-    v, _ := strconv.Atof64(string([]byte(e)))
-    return v
-}
-
-type Reply struct {
-    Err   os.Error
-    Elem  Elem
-    Elems []*Reply
-}
-
-func (r *Reply) BytesArray() [][]byte {
-    buf := make([][]byte, len(r.Elems))
-
-    for i, v := range r.Elems {
-        buf[i] = v.Elem
-    }
-
-    return buf
-}
-
-func (r *Reply) StringArray() []string {
-    buf := make([]string, len(r.Elems))
-
-    for i, v := range r.Elems {
-        buf[i] = v.Elem.String()
-    }
-
-    return buf
-}
-
-func (r *Reply) IntArray() []int64 {
-    buf := make([]int64, len(r.Elems))
-
-    for i, v := range r.Elems {
-        v, _ := strconv.Atoi64(v.Elem.String())
-        buf[i] = v
-    }
-
-    return buf
-}
-
-func (r *Reply) parseErr(res []byte) {
-    r.Err = os.NewError(string(res))
-
-    if LOG_CMD {
-        log.Println("GODIS: " + string(res))
-    }
-}
-
-func (r *Reply) parseStr(res []byte) {
-    r.Elem = res
-
-    if LOG_CMD {
-        log.Println("GODIS: " + string(res))
-    }
-}
-
-func (r *Reply) parseInt(res []byte) {
-    r.Elem = res
-
-    if LOG_CMD {
-        log.Println("GODIS: " + string(res))
-    }
-}
-
-func (r *Reply) parseBulk(reader *bufio.Reader, res []byte) {
-    l, _ := strconv.Atoi(string(res))
-
-    if l == -1 {
-        return
-    }
-
-    lr := io.LimitReader(reader, int64(l))
-    buf := bytes.NewBuffer(make([]byte, 0, l))
-    n, err := buf.ReadFrom(lr)
-
-    if err == nil {
-        _, err = reader.ReadBytes(ln)
-    }
-
-    if n != int64(l) {
-        log.Println(n, l)
-    }
-
-    r.Elem = buf.Bytes()
-
-    if LOG_CMD {
-        log.Printf("G: %d %q %q\n", l, buf, buf.Bytes())
-    }
-}
-
-func (r *Reply) parseMultiBulk(reader *bufio.Reader, res []byte) {
-    l, _ := strconv.Atoi(string(res))
-
-    if l == -1 {
-        r.Err = nil //os.NewError("nothing to read")
-        return
-    }
-
-    r.Elems = make([]*Reply, l)
-
-    for i := 0; i < l; i++ {
-        rr := parseResponse(reader)
-
-        if rr.Err != nil {
-            r.Err = rr.Err
-            return
-        }
-
-        // key not found, ignore `nil` value
-        if rr.Elem == nil {
-            i -= 1
-            l -= 1
-            continue
-        }
-
-        r.Elems[i] = rr
-    }
-
-    // buffer is reduced to account for `nil` value returns
-    r.Elems = r.Elems[:l]
-
-    if LOG_CMD {
-        log.Printf("GODIS: %d == %d %q\n", l, len(r.Elems), r.Elems)
-    }
-}
-
-func parseResponse(reader *bufio.Reader) *Reply {
-    reply := new(Reply)
-    res, err := reader.ReadBytes(ln)
-
-    if err != nil {
-        reply.Err = err
-        return reply
-    }
-
-    typ := res[0]
-    line := res[1 : len(res)-2]
-
-    if LOG_CMD {
-        log.Printf("GODIS: %c\n", typ)
-    }
-
-    switch typ {
-    case minus:
-        reply.parseErr(line)
-    case plus:
-        reply.parseStr(line)
-    case colon:
-        reply.parseInt(line)
-    case dollar:
-        reply.parseBulk(reader, line)
-    case star:
-        reply.parseMultiBulk(reader, line)
-    default:
-        reply.Err = os.NewError("Unknown response " + string(typ))
-    }
-
-    return reply
-}
-
-func bufferWrite(w io.Writer, cmd []byte) os.Error {
-    _, err := w.Write(cmd)
-    return err
-}
-
-func buildCmd(args ...[]byte) []byte {
-    buf := bytes.NewBuffer(nil)
-
-    buf.WriteByte(star)
-    buf.WriteString(strconv.Itoa(len(args)))
-    buf.Write(delim)
-
-    for _, arg := range args {
-        buf.WriteByte(dollar)
-        buf.WriteString(strconv.Itoa(len(arg)))
-        buf.Write(delim)
-        buf.Write(arg)
-        buf.Write(delim)
-    }
-
-    if LOG_CMD {
-        log.Printf("GODIS: %q", string(buf.Bytes()))
-    }
-
-    return buf.Bytes()
-}
-
-type Reader interface {
-    read(c *net.TCPConn) *Reply
-}
-
-type Writer interface {
-    write(b []byte) (*net.TCPConn, os.Error)
-}
 
 type ReaderWriter interface {
-    Reader
-    Writer
+    write(b []byte) (*conn, os.Error)
+    read(c *conn) *Reply
 }
 
-// send writes a message and returns the reply
+type Client struct {
+    Addr     string
+    Db       int
+    Password string
+    pool     *Pool
+}
+
+// writes a command a and returns single the reply object.
 func Send(rw ReaderWriter, args ...[]byte) *Reply {
     c, err := rw.write(buildCmd(args...))
 
@@ -313,11 +67,28 @@ func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
     return Send(rw, buf...)
 }
 
-type Client struct {
-    Addr     string
-    Db       int
-    Password string
-    pool     *Pool
+// takes a [][]byte and returns a redis command formatted using
+// the unified request protocol
+func buildCmd(args ...[]byte) []byte {
+    buf := bytes.NewBuffer(nil)
+
+    buf.WriteByte(star)
+    buf.WriteString(strconv.Itoa(len(args)))
+    buf.Write(delim)
+
+    for _, arg := range args {
+        buf.WriteByte(dollar)
+        buf.WriteString(strconv.Itoa(len(arg)))
+        buf.Write(delim)
+        buf.Write(arg)
+        buf.Write(delim)
+    }
+
+    if LOG_CMD {
+        log.Printf("GODIS: %q", string(buf.Bytes()))
+    }
+
+    return buf.Bytes()
 }
 
 func New(addr string, db int, password string) *Client {
@@ -341,26 +112,28 @@ func (c *Client) createConn() (conn *net.TCPConn, err os.Error) {
     }
 
     if c.Db != 0 {
-        err = bufferWrite(conn, buildCmd([]byte("SELECT"), []byte(strconv.Itoa(c.Db))))
+        co := newConn(conn)
+        _, err = co.rwc.Write(buildCmd([]byte("SELECT"), []byte(strconv.Itoa(c.Db))))
 
         if err != nil {
             return nil, err
         }
 
-        r := parseResponse(bufio.NewReader(conn))
+        r := co.readReply()
         if r.Err != nil {
             return nil, r.Err
         }
     }
 
     if c.Password != "" {
-        err := bufferWrite(conn, buildCmd([]byte("AUTH"), []byte(c.Password)))
+        co := newConn(conn)
+        _, err := co.rwc.Write(buildCmd([]byte("AUTH"), []byte(c.Password)))
 
         if err != nil {
             return nil, err
         }
 
-        r := parseResponse(bufio.NewReader(conn))
+        r := co.readReply()
         if r.Err != nil {
             return nil, r.Err
         }
@@ -369,27 +142,39 @@ func (c *Client) createConn() (conn *net.TCPConn, err os.Error) {
     return conn, err
 }
 
-func (c *Client) read(conn *net.TCPConn) *Reply {
-    reply := parseResponse(bufio.NewReader(conn))
+func (c *Client) read(conn *conn) *Reply {
+    reply := conn.readReply()
     c.pool.Push(conn)
     return reply
 }
 
-func (c *Client) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
+func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
     conn = c.pool.Pop()
 
+    defer func() {
+        if err != nil {
+            log.Printf("ERR (%v), conn: %q", err, conn)
+            c.pool.Push(nil)
+        }
+    }()
+
     if conn == nil {
-        if conn, err = c.createConn(); err != nil {
+        rwc, err := c.createConn()
+
+        if err != nil {
             return nil, err
         }
+
+        conn = newConn(rwc)
         connCount++
     }
 
-    err = bufferWrite(conn, cmd)
+    _, err = conn.buf.Write(cmd)
+    conn.buf.Flush()
     return conn, err
 }
-
-//type PipeClient struct {
+//// Represents a pipelined command. This is currently not thread-safe.
+//type Pipe struct {
 //    *Client
 //    writeOnly bool
 //    c         *net.TCPConn
@@ -397,11 +182,11 @@ func (c *Client) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
 //    r         *bufio.Reader
 //}
 //
-//func NewPipe(addr string, db int, password string) *PipeClient {
-//    return &PipeClient{New(addr, db, password), true, nil, nil, nil}
+//func NewPipe(addr string, db int, password string) *Pipe {
+//    return &Pipe{New(addr, db, password), true, nil, nil, nil}
 //}
 //
-//func (p *PipeClient) read(conn *net.TCPConn) *Reply {
+//func (p *Pipe) read(conn *net.TCPConn) *Reply {
 //    if p.c == nil {
 //        p.c = conn
 //    }
@@ -422,7 +207,7 @@ func (c *Client) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
 //        p.r = bufio.NewReader(p.c)
 //    }
 //
-//    reply := parseResponse(p.r)
+//    reply := readReply(p.r)
 //
 //    if reply.Err != nil {
 //        // check if timeout
@@ -434,7 +219,7 @@ func (c *Client) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
 //    return reply
 //}
 //
-//func (p *PipeClient) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
+//func (p *Pipe) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
 //    if p.w == nil {
 //        conn = p.pool.Pop()
 //
@@ -447,11 +232,11 @@ func (c *Client) write(cmd []byte) (conn *net.TCPConn, err os.Error) {
 //        p.w = bufio.NewWriter(conn)
 //    }
 //
-//    err = bufferWrite(conn, cmd)
+//    err = writeRequest(conn, cmd)
 //    return conn, err
 //}
 //
-//func (p *PipeClient) GetReply() *Reply {
+//func (p *Pipe) GetReply() *Reply {
 //    if p.writeOnly {
 //        p.writeOnly = false
 //    }

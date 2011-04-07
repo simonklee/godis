@@ -47,10 +47,13 @@ type redisReadWriter struct {
     reader *bufio.Reader
 }
 
-func dummyReadWriter(data string) *redisReadWriter {
+func dummyReadWriter(data string) *conn {
     r := bufio.NewReader(bytes.NewBufferString(data))
     w := bufio.NewWriter(bytes.NewBufferString(data))
-    return &redisReadWriter{w, r}
+    return &conn{
+        rwc: nil,
+        buf: bufio.NewReadWriter(r, w),
+    }
 }
 
 var simpleParserTests = []simpleParserTest{
@@ -65,7 +68,7 @@ var simpleParserTests = []simpleParserTest{
 func TestParser(t *testing.T) {
     for _, test := range simpleParserTests {
         rw := dummyReadWriter(test.in)
-        r := parseResponse(rw.reader)
+        r := rw.readReply()
         compareReply(t, test.name, r, &test.out)
         t.Log(test.in, r, test.out)
     }
