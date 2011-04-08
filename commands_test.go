@@ -127,7 +127,7 @@ func TestSort(t *testing.T) {
     }
 
     for i, v := range res.Elems {
-        r := int(v.Elem.Int64())
+        r := int(v.Int64())
         if r != expected[i] {
             error(t, "sort", expected[i], v, nil)
         }
@@ -531,7 +531,10 @@ func TestConnection(t *testing.T) {
         error(t, "select", nil, nil, err)
     }
 
-    // know bug will return EOF, but connection will not be restared
+    res, _ := Info(c)
+    log.Println(res)
+
+    // know bug will return EOF, but connection will not be restarted
     //for i := 0; i < MaxClientConn; i++ {
     //    if err := Quit(c); err != nil {
     //        error(t, "quite", nil, nil, err)
