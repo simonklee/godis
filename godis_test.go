@@ -25,10 +25,9 @@ func compareReply(t *testing.T, name string, a, b *Reply) {
             }
         }
     } else if b.Elems != nil {
-        bbytes := b.BytesArray()
-        for i, abyte := range a.BytesArray() {
-            for j, e := range abyte {
-                if e !=  bbytes[i][j] {
+        for i, rep := range a.Elems {
+            for j, e := range rep.Elem {
+                if e != b.Elems[i].Elem[j] {
                     t.Errorf("expected %v got %v", b, a)
                     break
                 }
@@ -75,11 +74,10 @@ func TestParser(t *testing.T) {
     }
 }
 
-func s2MultiReply(args ...string) []*Elem {
-    var r = make([]*Elem, len(args))
-    for i, s := range args {
-        var e Elem = []byte(s)
-        r[i] = &e
+func s2MultiReply(ss ...string) []*Reply {
+    var r = make([]*Reply, len(ss))
+    for i := 0; i < len(ss); i++ {
+        r[i] = &Reply{Elem: []byte(ss[i])}
     }
     return r
 }

@@ -45,7 +45,7 @@ type Reply struct {
     conn  *conn
     Err   os.Error
     Elem  Elem
-    Elems []*Elem
+    Elems []*Reply
 }
 
 func newPool() *pool {
@@ -101,7 +101,7 @@ func (c *conn) readReply() *Reply {
     case colon:
         r.parseInt(line)
     case dollar:
-        r.Elem = r.parseBulk(line)
+        r.parseBulk(line)
     case star:
         r.parseMultiBulk(line)
     default:
@@ -133,7 +133,7 @@ func (r *Reply) BytesArray() [][]byte {
     buf := make([][]byte, len(r.Elems))
 
     for i, v := range r.Elems {
-        buf[i] = []byte(*v)
+        buf[i] = v.Elem
     }
 
     return buf
@@ -143,7 +143,7 @@ func (r *Reply) StringArray() []string {
     buf := make([]string, len(r.Elems))
 
     for i, v := range r.Elems {
-        buf[i] = v.String()
+        buf[i] = v.Elem.String()
     }
 
     return buf
@@ -153,7 +153,7 @@ func (r *Reply) IntArray() []int64 {
     buf := make([]int64, len(r.Elems))
 
     for i, v := range r.Elems {
-        v, _ := strconv.Atoi64(v.String())
+        v, _ := strconv.Atoi64(v.Elem.String())
         buf[i] = v
     }
 
@@ -184,11 +184,11 @@ func (r *Reply) parseInt(res []byte) {
     }
 }
 
-func (r *Reply) parseBulk(res []byte) Elem {
+func (r *Reply) parseBulk(res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        return nil
+        return
     }
 
     lr := io.LimitReader(r.conn.buf, int64(l))
@@ -203,11 +203,11 @@ func (r *Reply) parseBulk(res []byte) Elem {
         log.Println(n, l)
     }
 
+    r.Elem = buf.Bytes()
+
     if LOG_CMD {
         log.Printf("G: %d %q %q\n", l, buf, buf.Bytes())
     }
-
-    return buf.Bytes()
 }
 
 func (r *Reply) parseMultiBulk(res []byte) {
@@ -218,35 +218,24 @@ func (r *Reply) parseMultiBulk(res []byte) {
         return
     }
 
-    r.Elems = make([]*Elem, l)
+    r.Elems = make([]*Reply, l)
 
     for i := 0; i < l; i++ {
-        re, err := r.conn.buf.ReadBytes(ln)
+        rr := r.conn.readReply()
 
-        if err != nil {
-            r.Err = err
+        if rr.Err != nil {
+            r.Err = rr.Err
             return
         }
 
-        typ := re[0]
-        line := re[1 : len(re)-2]
-
-        if typ != dollar {
-            r.Err = os.NewError("ERR unexpected return type")
-            log.Printf("%c", typ)
-            return 
-        }
-
-        rr := r.parseBulk(line)
-
         // key not found, ignore `nil` value
-        if rr == nil {
+        if rr.Elem == nil {
             i -= 1
             l -= 1
             continue
         }
 
-        r.Elems[i] = &rr
+        r.Elems[i] = rr
     }
 
     // buffer is reduced to account for `nil` value returns
