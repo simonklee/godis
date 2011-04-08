@@ -25,7 +25,7 @@ type Client struct {
     pool     *pool
 }
 
-// writes a command a and returns single the reply object.
+// writes a command a and returns single the Reply object
 func Send(rw ReaderWriter, args ...[]byte) *Reply {
     c, err := rw.write(buildCmd(args...))
 
@@ -36,7 +36,8 @@ func Send(rw ReaderWriter, args ...[]byte) *Reply {
     return rw.read(c)
 }
 
-// uses reflection to create a bytestring of args, then calls Send()
+// uses reflection to create a bytestring of the name and args parameters, 
+// then calls Send()
 func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
     buf := make([][]byte, len(args)+1)
     buf[0] = []byte(name)
@@ -55,7 +56,7 @@ func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
     return Send(rw, buf...)
 }
 
-// creates a bytestring of the string parameters, then calls Send()
+// creates a bytestring of the name and args parameters, then calls Send()
 func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
     buf := make([][]byte, len(args)+1)
     buf[0] = []byte(name)
@@ -174,22 +175,23 @@ func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
     return conn, err
 }
 
-// Represents a pipelined command. This is currently not thread-safe.
 type Pipe struct {
     *Client
     conn       *conn
     appendMode bool
 }
 
+// Pipe implements the ReaderWriter interface, can be used with all commands
 func NewPipe(addr string, db int, password string) *Pipe {
     return &Pipe{New(addr, db, password), nil, true}
 }
 
-// Get reply will return the reply in the order the calls were made
+// will return the Reply object made in the order commands where made
 func (p *Pipe) GetReply() *Reply {
     if p.appendMode {
         p.appendMode = false
     }
+
     return p.read(p.conn)
 }
 
@@ -205,7 +207,7 @@ func (p *Pipe) read(conn *conn) *Reply {
     reply := p.conn.readReply()
 
     if reply.Err != nil {
-        // check if timeout
+        // TODO: find out when there are no more replies
         p.pool.push(p.conn)
         p.conn = nil
         p.appendMode = true
