@@ -2,7 +2,6 @@ package godis
 
 import (
     "os"
-    "strconv"
     "testing"
     "reflect"
     "time"
@@ -267,16 +266,6 @@ func TestList(t *testing.T) {
 
     if out, err := Lrange(c, "foobar", 0, 1); err != nil || !reflect.DeepEqual(want1, out.StringArray()) {
         error(t, "Lrange", nil, nil, err)
-    }
-
-    var want3 [][]byte
-    for i := 0; i < 600; i++ {
-        want3 = append(want3, []byte(strconv.Itoa(i)))
-        Rpush(c, "foobaz", i)
-        if res, err := Lrange(c, "foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.BytesArray()) {
-            error(t, "Lranges", nil, res, err)
-            t.FailNow()
-        }
     }
 
     want := []string{"foo"}

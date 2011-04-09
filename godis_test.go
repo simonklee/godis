@@ -4,6 +4,8 @@ import (
     "testing"
     "bytes"
     "bufio"
+    "reflect"
+    //"strconv"
     "os"
     "time"
     "log"
@@ -11,6 +13,13 @@ import (
 
 func error(t *testing.T, name string, expected, got interface{}, err os.Error) {
     t.Errorf("`%s` expected `%v` got `%v`, err(%v)", name, expected, got, err)
+}
+
+func printCmdCount() {
+    log.Println("command | count ")
+    for k, v := range cmdCount {
+        log.Printf("      %c | %d\n", k, v)
+    }
 }
 
 func compareReply(t *testing.T, name string, a, b *Reply) {
@@ -178,6 +187,49 @@ func TestSimplePipe(t *testing.T) {
     }
 }
 
+func TestMemory(t *testing.T) {
+    c := New("", 0, "")
+    n := 2
+    Send(c, []byte("FLUSHDB"))
+
+    for i := 0; i < 5; i++ {
+        SendIface(c, "RPUSH", "list", i)
+    }
+
+    //time.Sleep(1.0e+9 * 10)
+    start := time.Nanoseconds()
+    replies := make([]*Reply, n)
+
+    for i := 0; i < n; i++ {
+        replies[i], _ = Lrange(c, "list", 0, 4)
+    }
+
+    stop := time.Nanoseconds() - start
+    log.Printf("time: %.2f\n", float32(stop/1.0e+9))
+    //time.Sleep(1.0e+9 * 10)
+    //printCmdCount()
+}
+
+func TestReadingBulk(t *testing.T) {
+    c := New("", 0, "")
+
+    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
+
+    var want3 []int64
+
+    for i := 0; i < 600; i++ {
+        want3 = append(want3, int64(i))
+        Rpush(c, "foobaz", i)
+
+        if res, err := Lrange(c, "foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.IntArray()) {
+            error(t, "Lranges", nil, nil, err)
+            t.FailNow()
+        }
+    }
+}
+
 func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
@@ -193,7 +245,7 @@ func BenchmarkParsing(b *testing.B) {
 
     stop := time.Nanoseconds() - start
 
-    log.Printf("time: %.2f\n", float32(stop/1.0e+6)/1000.0)
+    log.Printf("time: %.2f\n", float32(stop/1.0e+9))
     Send(c, []byte("FLUSHDB"))
 }
 

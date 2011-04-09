@@ -9,10 +9,6 @@ import (
     "strconv"
 )
 
-const (
-    LOG_CMD = false
-)
-
 type ReaderWriter interface {
     write(b []byte) (*conn, os.Error)
     read(c *conn) *Reply
@@ -204,7 +200,7 @@ func (p *Pipe) read(conn *conn) *Reply {
         p.conn.buf.Flush()
     }
 
-    reply := p.conn.readReply()
+    reply := conn.readReply()
 
     if reply.Err != nil {
         // TODO: find out when there are no more replies
