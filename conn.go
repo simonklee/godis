@@ -10,13 +10,13 @@ import (
 
 // protocol bytes
 const (
-    cr     byte = 13
-    ln     byte = 10
-    dollar byte = 36
-    colon  byte = 58
-    minus  byte = 45
-    plus   byte = 43
-    star   byte = 42
+    CR     byte = 13
+    LF     byte = 10
+    DOLLAR byte = 36
+    COLON  byte = 58
+    MINUS  byte = 45
+    PLUS   byte = 43
+    STAR   byte = 42
 )
 
 const (
@@ -25,9 +25,9 @@ const (
 )
 
 var (
-    delim     = []byte{cr, ln}
+    DELIM     = []byte{CR, LF}
     connCount int
-    cmdCount  = map[byte]int{dollar: 0, colon: 0, minus: 0, plus: 0, star: 0}
+    cmdCount  = map[byte]int{DOLLAR: 0, COLON: 0, MINUS: 0, PLUS: 0, STAR: 0}
 )
 
 type conn struct {
@@ -153,7 +153,7 @@ func (r *Reply) parseBulk(res []byte) {
 
     // if we were unable to read all date from socket, try again
     if n != l && err == nil {
-        more := make([]byte, l - n)
+        more := make([]byte, l-n)
 
         if _, err := r.conn.buf.Read(more); err != nil {
             r.Err = err
@@ -215,7 +215,7 @@ func (r *Reply) parseMultiBulk(res []byte) {
 func (c *conn) readReply() *Reply {
     r := new(Reply)
     r.conn = c
-    res, err := c.buf.ReadBytes(ln)
+    res, err := c.buf.ReadBytes(LF)
 
     if err != nil {
         r.Err = err
@@ -231,15 +231,15 @@ func (c *conn) readReply() *Reply {
     }
 
     switch typ {
-    case minus:
+    case MINUS:
         r.parseErr(line)
-    case plus:
+    case PLUS:
         r.parseStr(line)
-    case colon:
+    case COLON:
         r.parseInt(line)
-    case dollar:
+    case DOLLAR:
         r.parseBulk(line)
-    case star:
+    case STAR:
         r.parseMultiBulk(line)
     default:
         r.Err = os.NewError("Unknown response " + string(typ))

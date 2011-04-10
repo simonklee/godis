@@ -69,16 +69,16 @@ func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
 func buildCmd(args ...[]byte) []byte {
     buf := bytes.NewBuffer(nil)
 
-    buf.WriteByte(star)
+    buf.WriteByte(STAR)
     buf.WriteString(strconv.Itoa(len(args)))
-    buf.Write(delim)
+    buf.Write(DELIM)
 
     for _, arg := range args {
-        buf.WriteByte(dollar)
+        buf.WriteByte(DOLLAR)
         buf.WriteString(strconv.Itoa(len(arg)))
-        buf.Write(delim)
+        buf.Write(DELIM)
         buf.Write(arg)
-        buf.Write(delim)
+        buf.Write(DELIM)
     }
 
     if LOG_CMD {
