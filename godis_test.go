@@ -226,22 +226,6 @@ func TestPipeConn(t *testing.T) {
     if r := c.GetReply(); r.Err == nil {
         error(t, "PIPE-GET-SET", nil, r.Elem, nil)
     }
-
-    if err := Set(c, "baz", "baz"); err != nil {
-        error(t, "PIPE-SET", nil, nil, err)
-    }
-
-    if elem, _ := Get(c, "baz"); elem != nil {
-        error(t, "PIPE-GET", nil, nil, nil)
-    }
-
-    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
-        error(t, "PIPE-GET-SET", want, r.Elem, r.Err)
-    }
-
-    if r := c.GetReply(); r.Err != nil || r.Elem.String() != "baz" {
-        error(t, "PIPE-GET-GET", "baz", r.Elem.String(), r.Err)
-    }
 }
 
 func TestMemory(t *testing.T) {
@@ -258,7 +242,7 @@ func TestMemory(t *testing.T) {
     replies := make([]*Reply, n)
 
     for i := 0; i < n; i++ {
-        replies[i], _ = Lrange(c, "list", 0, 4)
+        replies[i], _ = c.Lrange("list", 0, 4)
     }
 
     stop := time.Nanoseconds() - start
@@ -278,9 +262,9 @@ func TestReadingBulk(t *testing.T) {
 
     for i := 0; i < 600; i++ {
         want3 = append(want3, int64(i))
-        Rpush(c, "foobaz", i)
+        c.Rpush("foobaz", i)
 
-        if res, err := Lrange(c, "foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.IntArray()) {
+        if res, err := c.Lrange("foobaz", 0, i); err != nil || !reflect.DeepEqual(want3, res.IntArray()) {
             error(t, "Lranges", nil, nil, err)
             t.FailNow()
         }

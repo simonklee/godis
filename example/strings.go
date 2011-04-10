@@ -10,10 +10,10 @@ func main() {
     c := godis.New("127.0.0.1:6379", 0, "")
 
     // set a "foo" to "bar" 
-    godis.Set(c, "foo", "bar")
+    c.Set("foo", "bar")
 
     // retrieve the value of "foo"
-    foo, _ := godis.Get(c, "foo")
+    foo, _ := c.Get("foo")
 
     // convert return value back to string and print it
     fmt.Println("foo: ", foo.String())
