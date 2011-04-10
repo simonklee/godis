@@ -22,6 +22,17 @@ func printCmdCount() {
     }
 }
 
+func printRes(t *testing.T, r *Reply) {
+    if len(r.Elems) > 0 {
+        t.Logf("str arr: %q", r.StringArray())
+    } else {
+        t.Logf("str: %q", r.Elem.String())
+    }
+    if r.Err != nil {
+        t.Logf("err: %q", r.Err)
+    }
+}
+
 func compareReply(t *testing.T, name string, a, b *Reply) {
     if a.Err != nil && b.Err == nil {
         t.Fatalf("'%s': expected error `%v`", name, a.Err)
@@ -215,16 +226,21 @@ func TestPipeConn(t *testing.T) {
     if r := c.GetReply(); r.Err == nil {
         error(t, "PIPE-GET-SET", nil, r.Elem, nil)
     }
-}
 
-func printR(t *testing.T, r *Reply) {
-    if len(r.Elems) > 0 {
-        t.Logf("str arr: %q", r.StringArray())
-    } else {
-        t.Logf("str: %q", r.Elem.String())
+    if err := Set(c, "baz", "baz"); err != nil {
+        error(t, "PIPE-SET", nil, nil, err)
     }
-    if r.Err != nil {
-        t.Logf("err: %q", r.Err)
+
+    if elem, _ := Get(c, "baz"); elem != nil {
+        error(t, "PIPE-GET", nil, nil, nil)
+    }
+
+    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
+        error(t, "PIPE-GET-SET", want, r.Elem, r.Err)
+    }
+
+    if r := c.GetReply(); r.Err != nil || r.Elem.String() != "baz" {
+        error(t, "PIPE-GET-GET", "baz", r.Elem.String(), r.Err)
     }
 }
 

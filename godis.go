@@ -175,7 +175,7 @@ type Pipe struct {
     *Client
     conn         *conn
     appendMode   bool
-    repliesCount int
+    replyCount   int
 }
 
 // Pipe implements the ReaderWriter interface, can be used with all commands.
@@ -184,10 +184,10 @@ func NewPipe(addr string, db int, password string) *Pipe {
     return &Pipe{New(addr, db, password), nil, true, 0}
 }
 
-// will return the Reply object made in the order commands where made
+// read a reply from the socket if we are expecting it.
 func (p *Pipe) GetReply() *Reply {
-    if p.repliesCount > 0 {
-        p.repliesCount--
+    if p.Count() > 0 {
+        p.replyCount--
         p.appendMode = false
     } else {
         p.appendMode = true
@@ -195,6 +195,11 @@ func (p *Pipe) GetReply() *Reply {
     }
 
     return p.read(p.conn)
+}
+
+// retrieve the number of replies available
+func (p *Pipe) Count() int {
+    return p.replyCount
 }
 
 func (p *Pipe) read(conn *conn) *Reply {
@@ -247,6 +252,6 @@ func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
 
     _, err = p.conn.w.Write(cmd)
     p.appendMode = true
-    p.repliesCount++
+    p.replyCount++
     return p.conn, err
 }
