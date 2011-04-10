@@ -166,26 +166,32 @@ func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
         connCount++
     }
 
-    _, err = conn.buf.Write(cmd)
-    conn.buf.Flush()
+    _, err = conn.w.Write(cmd)
+    conn.w.Flush()
     return conn, err
 }
 
 type Pipe struct {
     *Client
-    conn       *conn
-    appendMode bool
+    conn         *conn
+    appendMode   bool
+    repliesCount int
 }
 
-// Pipe implements the ReaderWriter interface, can be used with all commands
+// Pipe implements the ReaderWriter interface, can be used with all commands.
+// Currently its not possible to use a Pipe object in a concurrent context.
 func NewPipe(addr string, db int, password string) *Pipe {
-    return &Pipe{New(addr, db, password), nil, true}
+    return &Pipe{New(addr, db, password), nil, true, 0}
 }
 
 // will return the Reply object made in the order commands where made
 func (p *Pipe) GetReply() *Reply {
-    if p.appendMode {
+    if p.repliesCount > 0 {
+        p.repliesCount--
         p.appendMode = false
+    } else {
+        p.appendMode = true
+        return &Reply{Err: os.NewError("No replies expected from conn")}
     }
 
     return p.read(p.conn)
@@ -196,8 +202,9 @@ func (p *Pipe) read(conn *conn) *Reply {
         return &Reply{}
     }
 
-    if p.conn.buf.Available() > 0 {
-        p.conn.buf.Flush()
+    if p.conn.w.Buffered() > 0 {
+        log.Printf("%d bytes were written to socket\n", p.conn.w.Buffered())
+        p.conn.w.Flush()
     }
 
     reply := conn.readReply()
@@ -238,6 +245,8 @@ func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
         p.conn = c
     }
 
-    _, err = p.conn.buf.Write(cmd)
+    _, err = p.conn.w.Write(cmd)
+    p.appendMode = true
+    p.repliesCount++
     return p.conn, err
 }

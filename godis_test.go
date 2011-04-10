@@ -57,12 +57,9 @@ type redisReadWriter struct {
 }
 
 func dummyReadWriter(data string) *conn {
-    r := bufio.NewReader(bytes.NewBufferString(data))
-    w := bufio.NewWriter(bytes.NewBufferString(data))
-    return &conn{
-        rwc: nil,
-        buf: bufio.NewReadWriter(r, w),
-    }
+    br := bufio.NewReader(bytes.NewBufferString(data))
+    bw := bufio.NewWriter(bytes.NewBufferString(data))
+    return &conn{rwc: nil, r: br, w: bw}
 }
 
 var simpleParserTests = []simpleParserTest{
@@ -182,8 +179,52 @@ func TestSimplePipe(t *testing.T) {
     for _, test := range simpleSendTests {
         r := c.GetReply()
         compareReply(t, test.cmd, &test.out, r)
-        t.Log(test.cmd, test.args)
-        t.Logf("%q == %q\n", test.out, r)
+
+    }
+}
+
+func TestPipeConn(t *testing.T) {
+    c := NewPipe("", 0, "")
+
+    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
+
+    if r := SendStr(c, "SET", "foo", "foo"); r.Elem != nil {
+        error(t, "PIPE-SET", nil, r.Elem, r.Err)
+    }
+
+    want := []byte("OK")
+
+    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
+        error(t, "PIPE-GET-FLUSHDB", want, r.Elem, r.Err)
+    }
+
+    if r := SendStr(c, "SET", "bar", "bar"); r.Elem != nil {
+        error(t, "PIPE-SET", nil, r.Elem, r.Err)
+    }
+
+    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
+        error(t, "PIPE-GET-SET", want, r.Elem, r.Err)
+    }
+
+    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
+        error(t, "PIPE-GET-SET", want, r.Elem, r.Err)
+    }
+
+    if r := c.GetReply(); r.Err == nil {
+        error(t, "PIPE-GET-SET", nil, r.Elem, nil)
+    }
+}
+
+func printR(t *testing.T, r *Reply) {
+    if len(r.Elems) > 0 {
+        t.Logf("str arr: %q", r.StringArray())
+    } else {
+        t.Logf("str: %q", r.Elem.String())
+    }
+    if r.Err != nil {
+        t.Logf("err: %q", r.Err)
     }
 }
 

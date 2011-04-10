@@ -20,7 +20,7 @@ const (
 
     // other
     MaxClientConn = 1
-    LOG_CMD       = false
+    LOG_CMD       = true
 )
 
 var (
@@ -31,7 +31,8 @@ var (
 
 type conn struct {
     rwc net.Conn
-    buf *bufio.ReadWriter
+    r   *bufio.Reader
+    w   *bufio.Writer
 }
 
 type pool struct {
@@ -142,19 +143,20 @@ func (r *Reply) parseBulk(res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
+        log.Println("GODIS: l was -1")
         return
     }
 
     l += 2 // make sure to read \r\n
     data := make([]byte, l)
 
-    n, err := r.conn.buf.Read(data)
+    n, err := r.conn.r.Read(data)
 
     // if we were unable to read all date from socket, try again
     if n != l && err == nil {
         more := make([]byte, l-n)
 
-        if _, err := r.conn.buf.Read(more); err != nil {
+        if _, err := r.conn.r.Read(more); err != nil {
             r.Err = err
             return
         }
@@ -214,7 +216,7 @@ func (r *Reply) parseMultiBulk(res []byte) {
 func (c *conn) readReply() *Reply {
     r := new(Reply)
     r.conn = c
-    res, err := c.buf.ReadBytes(LF)
+    res, err := c.r.ReadBytes(LF)
 
     if err != nil {
         r.Err = err
@@ -226,7 +228,7 @@ func (c *conn) readReply() *Reply {
 
     if LOG_CMD {
         cmdCount[typ]++
-        //log.Printf("CONN: alloc new Reply for `%c`: %q\n", typ, r.conn)
+        //log.Printf("CONN: alloc new Reply for `%c`\n", typ)
     }
 
     switch typ {
@@ -251,8 +253,5 @@ func newConn(rwc net.Conn) *conn {
     br := bufio.NewReader(rwc)
     bw := bufio.NewWriter(rwc)
 
-    return &conn{
-        rwc: rwc,
-        buf: bufio.NewReadWriter(br, bw),
-    }
+    return &conn{rwc: rwc, r: br, w: bw}
 }
