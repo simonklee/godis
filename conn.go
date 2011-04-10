@@ -8,8 +8,8 @@ import (
     "strconv"
 )
 
-// protocol bytes
 const (
+    // protocol bytes
     CR     byte = 13
     LF     byte = 10
     DOLLAR byte = 36
@@ -17,9 +17,8 @@ const (
     MINUS  byte = 45
     PLUS   byte = 43
     STAR   byte = 42
-)
 
-const (
+    // other
     MaxClientConn = 1
     LOG_CMD       = false
 )
