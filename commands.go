@@ -570,28 +570,36 @@ func (c *Client) Zunionstore(destination string, keys []string, args ...string) 
     return SendStr(c, "ZUNIONSTORE", a...).intOrErr()
 }
 
-//// pubsub
-//
+// pubsub
+
 //// Listen for messages published to channels matching the given patterns
 //func (c *Client) Psubscribe(mapping map[string][]byte) os.Error {
 //    return Send(c, "PSUBSCRIBE").
 //}
-//
-//// Post a message to a channel
-//func (c *Client) Publish(channel string, message string) (int64, os.Error) {
-//    return Send(c, "PUBLISH").intOrErr()
-//}
-//
+
+// Post a message to a channel
+func (c *Client) Publish(channel string, message interface{}) (int64, os.Error) {
+    return SendIface(c, "PUBLISH", channel, message).intOrErr()
+}
+
 //// Stop listening for messages posted to channels matching the given patterns
 //func (c *Client) Punsubscribe() os.Error {
 //    return Send(c, "PUNSUBSCRIBE").
 //}
-//
-//// Listen for messages published to the given channels
-//func (c *Client) Subscribe(mapping map[string][]byte) os.Error {
-//    return Send(c, "SUBSCRIBE").
-//}
-//
+
+// Listen for messages published to the given channels
+func (c *Client) Subscribe(channels ...string) (chan *Reply, os.Error) {
+    s := newSub(c)
+
+    if err := SendStr(s, "SUBSCRIBE", channels...).nilOrErr(); err != nil {
+        return nil, err
+    }
+    
+    out := make(chan *Reply, 0)
+    go s.listen(out)
+    return out, nil
+}
+
 //// Stop listening for messages posted to the given channels
 //func (c *Client) Unsubscribe() os.Error {
 //    return Send(c, "UNSUBSCRIBE").
@@ -720,5 +728,12 @@ func (c *Client) Quit() os.Error {
 
 // Change the selected database for the current connection
 func (c *Client) Select(index int) os.Error {
-    return SendStr(c, "SELECT", strconv.Itoa(index)).nilOrErr()
+    for i := 0; i < MaxClientConn; i++ {
+        c.pool.pop()
+    }
+
+    c.Db = index
+    c.pool = newPool()
+    err := SendStr(c, "SELECT", strconv.Itoa(index)).nilOrErr()
+    return err
 }

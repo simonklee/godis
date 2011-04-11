@@ -498,7 +498,7 @@ func TestSortedSet(t *testing.T) {
 
 func TestConnection(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c, "flushall"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -516,8 +516,8 @@ func TestConnection(t *testing.T) {
         error(t, "select", nil, nil, err)
     }
 
-    if _, err := c.Get("foo"); err == nil {
-        error(t, "select", nil, nil, err)
+    if res, err := c.Get("foo"); err == nil || res != nil {
+        error(t, "get-select", nil, res, err)
     }
 
     // know bug will return EOF, but connection will not be restared
@@ -530,6 +530,32 @@ func TestConnection(t *testing.T) {
     //if err := c.Set("foo", "foo"); err != nil {
     //    error(t, "quit", nil, nil, err)
     //}
+}
+
+func TestPubSub(t *testing.T) {
+    c := New("", 0, "")
+
+    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
+
+    go func() {
+        resStream, err := c.Subscribe("foosttream")
+
+        if err != nil {
+            t.Fatalf("subscribe", nil, nil, err)
+        }
+
+        if res := <-resStream; res.Elem.String() != "foo" {
+            error(t, "subscribe", "foo", res, nil)
+        }
+    }()
+
+    time.Sleep(1e7)
+
+    if res, err := c.Publish("foostream", "foo"); err != nil || res != 1 {
+        error(t, "publish", 1, res, err)
+    }
 }
 
 func BenchmarkRpush(b *testing.B) {

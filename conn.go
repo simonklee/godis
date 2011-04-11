@@ -19,7 +19,7 @@ const (
     STAR   byte = 42
 
     // other
-    MaxClientConn = 1
+    MaxClientConn = 4
     LOG_CMD       = false
 )
 

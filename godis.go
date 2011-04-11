@@ -96,7 +96,6 @@ func New(addr string, db int, password string) *Client {
     return &Client{Addr: addr, Db: db, Password: password, pool: newPool()}
 }
 
-
 func (c *Client) getConn() (*conn, os.Error) {
     cc := c.pool.pop()
 
@@ -219,4 +218,62 @@ func (p *Pipe) end() {
     p.pool.push(p.conn)
     p.conn = nil
     p.appendMode = true
+}
+
+type sub struct {
+    *Client
+    conn *conn
+}
+
+func newSub(c *Client) *sub {
+    return &sub{c, nil}
+}
+
+func (s *sub) read(conn *conn) *Reply {
+    reply := s.conn.readReply()
+
+    if reply.Err != nil {
+        s.end()
+    }
+
+    return reply
+}
+
+func (s *sub) write(cmd []byte) (*conn, os.Error) {
+    var err os.Error
+
+    if s.conn == nil {
+        if c, err := s.getConn(); err != nil {
+            return nil, err
+        } else {
+            s.conn = c
+        }
+    }
+
+    if _, err = s.conn.w.Write(cmd); err != nil {
+        s.end()
+        return nil, err
+    }
+
+    s.conn.w.Flush()
+    return s.conn, nil
+}
+
+func (s *sub) listen(out chan<- *Reply) {
+    if s.conn == nil {
+        return
+    }
+
+    for {
+        r := s.read(s.conn)
+        if r.Err != nil {
+            break
+        }
+        out <- r
+    }
+}
+
+func (s *sub) end() {
+    s.pool.push(s.conn)
+    s.conn = nil
 }
