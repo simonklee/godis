@@ -96,47 +96,29 @@ func New(addr string, db int, password string) *Client {
     return &Client{Addr: addr, Db: db, Password: password, pool: newPool()}
 }
 
-func (c *Client) createConn() (conn *net.TCPConn, err os.Error) {
+
+func (c *Client) getConn() (*conn, os.Error) {
+    cc := c.pool.pop()
+
+    if cc != nil {
+        return cc, nil
+    }
+
     addr, err := net.ResolveTCPAddr(c.Addr)
 
     if err != nil {
         return nil, os.NewError("ResolveAddr error for " + c.Addr)
     }
 
-    conn, err = net.DialTCP("tcp", nil, addr)
+    tcpc, err := net.DialTCP("tcp", nil, addr)
     if err != nil {
-        err = os.NewError("Connection error " + addr.String())
+        return nil, os.NewError("Connection error " + addr.String())
     }
 
-    if c.Db != 0 {
-        co := newConn(conn)
-        _, err = co.rwc.Write(buildCmd([]byte("SELECT"), []byte(strconv.Itoa(c.Db))))
-
-        if err != nil {
-            return nil, err
-        }
-
-        r := co.readReply()
-        if r.Err != nil {
-            return nil, r.Err
-        }
-    }
-
-    if c.Password != "" {
-        co := newConn(conn)
-        _, err := co.rwc.Write(buildCmd([]byte("AUTH"), []byte(c.Password)))
-
-        if err != nil {
-            return nil, err
-        }
-
-        r := co.readReply()
-        if r.Err != nil {
-            return nil, r.Err
-        }
-    }
-
-    return conn, err
+    cc = newConn(tcpc)
+    err = cc.configConn(c)
+    connCount++
+    return cc, err
 }
 
 func (c *Client) read(conn *conn) *Reply {
@@ -146,36 +128,24 @@ func (c *Client) read(conn *conn) *Reply {
 }
 
 func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
-    conn = c.pool.pop()
-
-    defer func() {
-        if err != nil {
-            log.Printf("ERR (%v), conn: %q", err, conn)
-            c.pool.push(nil)
-        }
-    }()
-
-    if conn == nil {
-        rwc, err := c.createConn()
-
-        if err != nil {
-            return nil, err
-        }
-
-        conn = newConn(rwc)
-        connCount++
+    if conn, err = c.getConn(); err != nil {
+        return nil, err
     }
 
-    _, err = conn.w.Write(cmd)
+    if _, err = conn.w.Write(cmd); err != nil {
+        c.pool.push(conn)
+        return nil, err
+    }
+
     conn.w.Flush()
     return conn, err
 }
 
 type Pipe struct {
     *Client
-    conn         *conn
-    appendMode   bool
-    replyCount   int
+    conn       *conn
+    appendMode bool
+    replyCount int
 }
 
 // Pipe implements the ReaderWriter interface, can be used with all commands.
@@ -208,7 +178,9 @@ func (p *Pipe) read(conn *conn) *Reply {
     }
 
     if p.conn.w.Buffered() > 0 {
-        log.Printf("%d bytes were written to socket\n", p.conn.w.Buffered())
+        if LOG_CMD {
+            log.Printf("%d bytes were written to socket\n", p.conn.w.Buffered())
+        }
         p.conn.w.Flush()
     }
 
@@ -216,9 +188,7 @@ func (p *Pipe) read(conn *conn) *Reply {
 
     if reply.Err != nil {
         // TODO: find out when there are no more replies
-        p.pool.push(p.conn)
-        p.conn = nil
-        p.appendMode = true
+        p.end()
     }
 
     return reply
@@ -228,30 +198,25 @@ func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
     var err os.Error
 
     if p.conn == nil {
-        c := p.pool.pop()
-
-        defer func() {
-            if err != nil {
-                p.pool.push(nil)
-            }
-        }()
-
-        if c == nil {
-            rwc, err := p.createConn()
-
-            if err != nil {
-                return nil, err
-            }
-
-            c = newConn(rwc)
-            connCount++
+        if c, err := p.getConn(); err != nil {
+            return nil, err
+        } else {
+            p.conn = c
         }
-
-        p.conn = c
     }
 
-    _, err = p.conn.w.Write(cmd)
+    if _, err = p.conn.w.Write(cmd); err != nil {
+        p.end()
+        return nil, err
+    }
+
     p.appendMode = true
     p.replyCount++
-    return p.conn, err
+    return p.conn, nil
+}
+
+func (p *Pipe) end() {
+    p.pool.push(p.conn)
+    p.conn = nil
+    p.appendMode = true
 }

@@ -143,7 +143,9 @@ func (r *Reply) parseBulk(res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        log.Println("GODIS: l was -1")
+        if LOG_CMD {
+            log.Println("GODIS: l was -1")
+        }
         return
     }
 
@@ -173,7 +175,7 @@ func (r *Reply) parseBulk(res []byte) {
     r.Elem = data[:l]
 
     if LOG_CMD {
-        //log.Printf("CONN: read %d byte, bulk-data %q\n", l, data)
+        log.Printf("CONN: read %d byte, bulk-data %q\n", l, data)
     }
 }
 
@@ -219,6 +221,7 @@ func (c *conn) readReply() *Reply {
     res, err := c.r.ReadBytes(LF)
 
     if err != nil {
+        log.Println(err)
         r.Err = err
         return r
     }
@@ -228,7 +231,7 @@ func (c *conn) readReply() *Reply {
 
     if LOG_CMD {
         cmdCount[typ]++
-        //log.Printf("CONN: alloc new Reply for `%c`\n", typ)
+        log.Printf("CONN: alloc new Reply for `%c`\n", typ)
     }
 
     switch typ {
@@ -249,9 +252,38 @@ func (c *conn) readReply() *Reply {
     return r
 }
 
-func newConn(rwc net.Conn) *conn {
+func newConn(rwc *net.TCPConn) *conn {
     br := bufio.NewReader(rwc)
     bw := bufio.NewWriter(rwc)
 
     return &conn{rwc: rwc, r: br, w: bw}
+}
+
+func (cc *conn) configConn(c *Client) os.Error {
+    if c.Db != 0 {
+        _, err := cc.rwc.Write(buildCmd([]byte("SELECT"), []byte(strconv.Itoa(c.Db))))
+
+        if err != nil {
+            return err
+        }
+
+        r := cc.readReply()
+        if r.Err != nil {
+            return r.Err
+        }
+    }
+
+    if c.Password != "" {
+        _, err := cc.rwc.Write(buildCmd([]byte("AUTH"), []byte(c.Password)))
+
+        if err != nil {
+            return err
+        }
+
+        r := cc.readReply()
+        if r.Err != nil {
+            return r.Err
+        }
+    }
+    return nil
 }
