@@ -32,6 +32,11 @@ func Send(rw ReaderWriter, args ...[]byte) *Reply {
     return rw.read(c)
 }
 
+// writes a command without calling read
+func appendSend(rw ReaderWriter, args ...[]byte) (*conn, os.Error) {
+    return rw.write(buildCmd(args...))
+}
+
 // uses reflection to create a bytestring of the name and args parameters, 
 // then calls Send()
 func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
@@ -52,8 +57,8 @@ func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
     return Send(rw, buf...)
 }
 
-// creates a bytestring of the name and args parameters, then calls Send()
-func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
+// writes a command without calling read
+func appendSendStr(rw ReaderWriter, name string, args ...string) (*conn, os.Error) {
     buf := make([][]byte, len(args)+1)
     buf[0] = []byte(name)
 
@@ -61,7 +66,18 @@ func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
         buf[i+1] = []byte(arg)
     }
 
-    return Send(rw, buf...)
+    return appendSend(rw, buf...)
+}
+
+// creates a bytestring of the name and args parameters, then calls Send()
+func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
+    c, err := appendSendStr(rw, name, args...)
+
+    if err != nil {
+        return &Reply{Err: err}
+    }
+
+    return rw.read(c)
 }
 
 // takes a [][]byte and returns a redis command formatted using
@@ -186,7 +202,6 @@ func (p *Pipe) read(conn *conn) *Reply {
     reply := conn.readReply()
 
     if reply.Err != nil {
-        // TODO: find out when there are no more replies
         p.end()
     }
 
@@ -220,30 +235,26 @@ func (p *Pipe) end() {
     p.appendMode = true
 }
 
-type sub struct {
-    *Client
-    conn *conn
+type Sub struct {
+    c          *Client
+    conn       *conn
+    subscribed bool
+    Messages   chan *Message
 }
 
-func newSub(c *Client) *sub {
-    return &sub{c, nil}
+func NewSub(addr string, db int, password string) *Sub {
+    return &Sub{c: New(addr, db, password)}
 }
 
-func (s *sub) read(conn *conn) *Reply {
-    reply := s.conn.readReply()
-
-    if reply.Err != nil {
-        s.end()
-    }
-
-    return reply
+func (s *Sub) read(conn *conn) *Reply {
+    return s.conn.readReply()
 }
 
-func (s *sub) write(cmd []byte) (*conn, os.Error) {
+func (s *Sub) write(cmd []byte) (*conn, os.Error) {
     var err os.Error
 
     if s.conn == nil {
-        if c, err := s.getConn(); err != nil {
+        if c, err := s.c.getConn(); err != nil {
             return nil, err
         } else {
             s.conn = c
@@ -251,7 +262,7 @@ func (s *sub) write(cmd []byte) (*conn, os.Error) {
     }
 
     if _, err = s.conn.w.Write(cmd); err != nil {
-        s.end()
+        s.Close()
         return nil, err
     }
 
@@ -259,21 +270,40 @@ func (s *sub) write(cmd []byte) (*conn, os.Error) {
     return s.conn, nil
 }
 
-func (s *sub) listen(out chan<- *Reply) {
+func (s *Sub) listen() {
     if s.conn == nil {
         return
     }
 
     for {
         r := s.read(s.conn)
+
         if r.Err != nil {
-            break
+            go s.free()
+            return
         }
-        out <- r
+
+        if m := r.Message(); m != nil {
+            s.Messages <- m
+        }
     }
 }
 
-func (s *sub) end() {
-    s.pool.push(s.conn)
+func (s *Sub) subscribe() {
+    s.subscribed = true
+    s.Messages = make(chan *Message, 64)
+    go s.listen()
+}
+
+// Free the connection and close the chan
+func (s *Sub) Close() {
+    s.conn.rwc.Close()
+}
+
+func (s *Sub) free() {
     s.conn = nil
+    s.c.pool.push(nil)
+    s.subscribed = false
+
+    close(s.Messages)
 }

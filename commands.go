@@ -570,41 +570,6 @@ func (c *Client) Zunionstore(destination string, keys []string, args ...string) 
     return SendStr(c, "ZUNIONSTORE", a...).intOrErr()
 }
 
-// pubsub
-
-//// Listen for messages published to channels matching the given patterns
-//func (c *Client) Psubscribe(mapping map[string][]byte) os.Error {
-//    return Send(c, "PSUBSCRIBE").
-//}
-
-// Post a message to a channel
-func (c *Client) Publish(channel string, message interface{}) (int64, os.Error) {
-    return SendIface(c, "PUBLISH", channel, message).intOrErr()
-}
-
-//// Stop listening for messages posted to channels matching the given patterns
-//func (c *Client) Punsubscribe() os.Error {
-//    return Send(c, "PUNSUBSCRIBE").
-//}
-
-// Listen for messages published to the given channels
-func (c *Client) Subscribe(channels ...string) (chan *Reply, os.Error) {
-    s := newSub(c)
-
-    if err := SendStr(s, "SUBSCRIBE", channels...).nilOrErr(); err != nil {
-        return nil, err
-    }
-    
-    out := make(chan *Reply, 0)
-    go s.listen(out)
-    return out, nil
-}
-
-//// Stop listening for messages posted to the given channels
-//func (c *Client) Unsubscribe() os.Error {
-//    return Send(c, "UNSUBSCRIBE").
-//}
-//
 //// transactions
 //
 //// Discard all commands issued after MULTI
@@ -736,4 +701,73 @@ func (c *Client) Select(index int) os.Error {
     c.pool = newPool()
     err := SendStr(c, "SELECT", strconv.Itoa(index)).nilOrErr()
     return err
+}
+
+// pubsub
+
+// Post a message to a channel
+func (c *Client) Publish(channel string, message interface{}) (int64, os.Error) {
+    return SendIface(c, "PUBLISH", channel, message).intOrErr()
+}
+
+// Listen for messages published to the given channels.
+func (c *Client) Subscribe(channels ...string) (*Sub, os.Error) {
+    s := &Sub{c: c}
+    err := s.Subscribe(channels...)
+    return s, err
+}
+
+// Listen for messages published to the given channels.
+func (c *Client) Psubscribe(patterns ...string) (*Sub, os.Error) {
+    s := &Sub{c: c}
+    err := s.Psubscribe(patterns...)
+    return s, err
+}
+
+// Stop listening for messages posted to channels matching the given patterns
+func (s *Sub) Punsubscribe(patterns ...string) os.Error {
+
+    if !s.subscribed {
+        return os.NewError("Cannot PUNSUBSCRIBE before subscribing")
+    }
+
+    _, err := appendSendStr(s, "PUNSUBSCRIBE", patterns...)
+    return err
+}
+
+// Listen for messages published to the given channels
+func (s *Sub) Psubscribe(patterns ...string) os.Error {
+    if _, err := appendSendStr(s, "PSUBSCRIBE", patterns...); err != nil {
+        return err
+    }
+
+    if !s.subscribed {
+        s.subscribe()
+    }
+
+    return nil
+}
+
+// Stop listening for messages posted to the given channels
+func (s *Sub) Unsubscribe(channels ...string) os.Error {
+
+    if !s.subscribed {
+        return os.NewError("Cannot UNSUBSCRIBE before subscribing")
+    }
+
+    _, err := appendSendStr(s, "UNSUBSCRIBE", channels...)
+    return err
+}
+
+// Listen for messages published to the given channels
+func (s *Sub) Subscribe(channels ...string) os.Error {
+    if _, err := appendSendStr(s, "SUBSCRIBE", channels...); err != nil {
+        return err
+    }
+
+    if !s.subscribed {
+        s.subscribe()
+    }
+
+    return nil
 }

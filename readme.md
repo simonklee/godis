@@ -4,7 +4,7 @@ A simple client for [Redis](http://redis.io).
 
 * Commands API exactly mimics the Redis commands. It is extremly consistent with
   the real deal.
-* Flexible design with support for piped commands.
+* Flexible design with support for pipelines, subpub etc.
 
 ## Install
 
@@ -41,7 +41,7 @@ Simply use goinstall to get the client and dependencies.
 
 * Add all tests for sorted set and some server stuff.
 
-* Implement pub-sub and transactions.
+* Implement transactions.
 
 * Pipeline need more testing.
 

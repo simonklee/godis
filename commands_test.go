@@ -539,23 +539,69 @@ func TestPubSub(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
+    sub, err := c.Subscribe("foochan", "barchan")
+
+    if err != nil {
+        t.Fatalf("subscribe", nil, nil, err)
+    }
+
+    if res, err := c.Publish("foochan", "foo"); err != nil || res != 1 {
+        error(t, "publish", 1, res, err)
+    }
+
     go func() {
-        resStream, err := c.Subscribe("foosttream")
-
-        if err != nil {
-            t.Fatalf("subscribe", nil, nil, err)
-        }
-
-        if res := <-resStream; res.Elem.String() != "foo" {
-            error(t, "subscribe", "foo", res, nil)
+        m := <-sub.Messages
+        if m.Elem.String() != "foo" || m.Channel != "foochan" {
+            error(t, "res-subscribe", "foo "+"foochan", m.Elem.String()+m.Channel, nil)
         }
     }()
 
-    time.Sleep(1e7)
-
-    if res, err := c.Publish("foostream", "foo"); err != nil || res != 1 {
+    time.Sleep(1e8)
+    if res, err := c.Publish("barchan", "bar"); err != nil || res != 1 {
         error(t, "publish", 1, res, err)
     }
+
+    time.Sleep(1e8)
+
+    if m := <-sub.Messages; m.Elem.String() != "bar" || m.Channel != "barchan" {
+        error(t, "subscribe barchan", "bar", m, nil)
+    }
+
+    if err := sub.Unsubscribe("foochan"); err != nil {
+        error(t, "unsubscribe", nil, nil, err)
+    }
+
+    if res, err := c.Publish("foochan", "foo"); err != nil || res != 0 {
+        error(t, "publish", 0, res, err)
+    }
+
+    if res, err := c.Publish("barchan", "bar"); err != nil || res != 1 {
+        error(t, "publish", 1, res, err)
+    }
+
+    if m := <-sub.Messages; m.Elem.String() != "bar" || m.Channel != "barchan" {
+        error(t, "subscribe barchan", "bar", m.Elem.String(), nil)
+    }
+
+    if err := sub.Psubscribe("*chan"); err != nil {
+        error(t, "psubscribe", nil, nil, err)
+    }
+
+    if res, err := c.Publish("bazchan", "baz"); err != nil || res != 1 {
+        error(t, "publish", 1, res, err)
+    }
+
+    if m := <-sub.Messages; m.Elem.String() != "baz" || m.Channel != "bazchan" {
+        error(t, "psubscribe bazchan", "baz", m.Elem.String(), nil)
+    }
+
+    sub.Close()
+    time.Sleep(1e8)
+
+    if _, ok := <-sub.Messages; ok != false {
+        error(t, "closed chan", false, ok, nil)
+    }
+
 }
 
 func BenchmarkRpush(b *testing.B) {

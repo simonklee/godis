@@ -6,6 +6,7 @@ import (
     "os"
     "log"
     "strconv"
+    "strings"
 )
 
 const (
@@ -40,6 +41,11 @@ type pool struct {
 }
 
 type Elem []byte
+
+type Message struct {
+    Channel string
+    Elem    Elem
+}
 
 type Reply struct {
     conn  *conn
@@ -115,11 +121,32 @@ func (r *Reply) IntArray() []int64 {
     return buf
 }
 
+func (r *Reply) Message() *Message {
+    if len(r.Elems) < 3 {
+        return nil
+    }
+
+    typ := r.Elems[0].Elem.String()
+
+    switch typ {
+    case "message":
+        return &Message{r.Elems[1].Elem.String(), r.Elems[2].Elem}
+    case "pmessage":
+        return &Message{r.Elems[2].Elem.String(), r.Elems[3].Elem}
+    }
+
+    if strings.HasSuffix(typ, "subscribe") {
+        return nil
+    }
+
+    return nil
+}
+
 func (r *Reply) parseErr(res []byte) {
     r.Err = os.NewError(string(res))
 
     if LOG_CMD {
-        log.Println("GODIS: " + string(res))
+        log.Println("GODIS-ERR" + string(res))
     }
 }
 
@@ -127,7 +154,7 @@ func (r *Reply) parseStr(res []byte) {
     r.Elem = res
 
     if LOG_CMD {
-        log.Println("GODIS: " + string(res))
+        log.Println("GODIS-STR: " + string(res))
     }
 }
 
@@ -135,7 +162,7 @@ func (r *Reply) parseInt(res []byte) {
     r.Elem = res
 
     if LOG_CMD {
-        log.Println("GODIS: " + string(res))
+        log.Println("GODIS-INT: " + string(res))
     }
 }
 
@@ -144,7 +171,7 @@ func (r *Reply) parseBulk(res []byte) {
 
     if l == -1 {
         if LOG_CMD {
-            log.Println("GODIS: l was -1")
+            log.Println("GODIS-BULK: l was -1")
         }
         return
     }
@@ -175,7 +202,7 @@ func (r *Reply) parseBulk(res []byte) {
     r.Elem = data[:l]
 
     if LOG_CMD {
-        log.Printf("CONN: read %d byte, bulk-data %q\n", l, data)
+        //log.Printf("CONN: read %d byte, bulk-data %q\n", l, data)
     }
 }
 
@@ -231,7 +258,7 @@ func (c *conn) readReply() *Reply {
 
     if LOG_CMD {
         cmdCount[typ]++
-        log.Printf("CONN: alloc new Reply for `%c`\n", typ)
+        //log.Printf("CONN: alloc new Reply for `%c` %s\n", typ, string(line))
     }
 
     switch typ {
