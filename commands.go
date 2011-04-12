@@ -710,14 +710,14 @@ func (c *Client) Publish(channel string, message interface{}) (int64, os.Error) 
     return SendIface(c, "PUBLISH", channel, message).intOrErr()
 }
 
-// Listen for messages published to the given channels.
+// Listen for messages published to the given channels
 func (c *Client) Subscribe(channels ...string) (*Sub, os.Error) {
     s := &Sub{c: c}
     err := s.Subscribe(channels...)
     return s, err
 }
 
-// Listen for messages published to the given channels.
+// Listen for messages published to channels matching the given patterns
 func (c *Client) Psubscribe(patterns ...string) (*Sub, os.Error) {
     s := &Sub{c: c}
     err := s.Psubscribe(patterns...)
@@ -735,7 +735,7 @@ func (s *Sub) Punsubscribe(patterns ...string) os.Error {
     return err
 }
 
-// Listen for messages published to the given channels
+// Listen for messages published to channels matching the given patterns
 func (s *Sub) Psubscribe(patterns ...string) os.Error {
     if _, err := appendSendStr(s, "PSUBSCRIBE", patterns...); err != nil {
         return err
