@@ -246,7 +246,7 @@ func TestMemory(t *testing.T) {
     }
 
     stop := time.Nanoseconds() - start
-    if LOG_CMD {
+    if logCmd {
         log.Printf("time: %.2f\n", float32(stop/1.0e+9))
     }
     //time.Sleep(1.0e+9 * 10)

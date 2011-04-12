@@ -11,23 +11,23 @@ import (
 
 const (
     // protocol bytes
-    CR     byte = 13
-    LF     byte = 10
-    DOLLAR byte = 36
-    COLON  byte = 58
-    MINUS  byte = 45
-    PLUS   byte = 43
-    STAR   byte = 42
+    cr     byte = 13
+    lf     byte = 10
+    dollar byte = 36
+    colon  byte = 58
+    minus  byte = 45
+    plus   byte = 43
+    star   byte = 42
 
     // other
     MaxClientConn = 4
-    LOG_CMD       = false
+    logCmd        = false
 )
 
 var (
-    DELIM     = []byte{CR, LF}
+    delim     = []byte{cr, lf}
     connCount int
-    cmdCount  = map[byte]int{DOLLAR: 0, COLON: 0, MINUS: 0, PLUS: 0, STAR: 0}
+    cmdCount  = map[byte]int{dollar: 0, colon: 0, minus: 0, plus: 0, star: 0}
 )
 
 type conn struct {
@@ -145,7 +145,7 @@ func (r *Reply) Message() *Message {
 func (r *Reply) parseErr(res []byte) {
     r.Err = os.NewError(string(res))
 
-    if LOG_CMD {
+    if logCmd {
         log.Println("GODIS-ERR" + string(res))
     }
 }
@@ -153,7 +153,7 @@ func (r *Reply) parseErr(res []byte) {
 func (r *Reply) parseStr(res []byte) {
     r.Elem = res
 
-    if LOG_CMD {
+    if logCmd {
         log.Println("GODIS-STR: " + string(res))
     }
 }
@@ -161,7 +161,7 @@ func (r *Reply) parseStr(res []byte) {
 func (r *Reply) parseInt(res []byte) {
     r.Elem = res
 
-    if LOG_CMD {
+    if logCmd {
         log.Println("GODIS-INT: " + string(res))
     }
 }
@@ -170,7 +170,7 @@ func (r *Reply) parseBulk(res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        if LOG_CMD {
+        if logCmd {
             log.Println("GODIS-BULK: l was -1")
         }
         return
@@ -201,7 +201,7 @@ func (r *Reply) parseBulk(res []byte) {
     l -= 2
     r.Elem = data[:l]
 
-    if LOG_CMD {
+    if logCmd {
         //log.Printf("CONN: read %d byte, bulk-data %q\n", l, data)
     }
 }
@@ -237,7 +237,7 @@ func (r *Reply) parseMultiBulk(res []byte) {
     // buffer is reduced to account for `nil` value returns
     r.Elems = r.Elems[:l]
 
-    if LOG_CMD {
+    if logCmd {
         //log.Printf("GODIS: %d == %d %q\n", l, len(r.Elems), r.Elems)
     }
 }
@@ -245,7 +245,7 @@ func (r *Reply) parseMultiBulk(res []byte) {
 func (c *conn) readReply() *Reply {
     r := new(Reply)
     r.conn = c
-    res, err := c.r.ReadBytes(LF)
+    res, err := c.r.ReadBytes(lf)
 
     if err != nil {
         log.Println(err)
@@ -256,21 +256,21 @@ func (c *conn) readReply() *Reply {
     typ := res[0]
     line := res[1 : len(res)-2]
 
-    if LOG_CMD {
+    if logCmd {
         cmdCount[typ]++
         //log.Printf("CONN: alloc new Reply for `%c` %s\n", typ, string(line))
     }
 
     switch typ {
-    case MINUS:
+    case minus:
         r.parseErr(line)
-    case PLUS:
+    case plus:
         r.parseStr(line)
-    case COLON:
+    case colon:
         r.parseInt(line)
-    case DOLLAR:
+    case dollar:
         r.parseBulk(line)
-    case STAR:
+    case star:
         r.parseMultiBulk(line)
     default:
         r.Err = os.NewError("Unknown response " + string(typ))

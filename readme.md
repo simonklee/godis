@@ -4,7 +4,7 @@ A simple client for [Redis](http://redis.io).
 
 * Commands API exactly mimics the Redis commands. It is extremly consistent with
   the real deal.
-* Flexible design with support for pipelines, subpub etc.
+* Flexible design with support for pipelines, pubsub etc.
 
 ## Install
 

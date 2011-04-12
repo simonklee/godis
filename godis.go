@@ -85,19 +85,19 @@ func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
 func buildCmd(args ...[]byte) []byte {
     buf := bytes.NewBuffer(nil)
 
-    buf.WriteByte(STAR)
+    buf.WriteByte(star)
     buf.WriteString(strconv.Itoa(len(args)))
-    buf.Write(DELIM)
+    buf.Write(delim)
 
     for _, arg := range args {
-        buf.WriteByte(DOLLAR)
+        buf.WriteByte(dollar)
         buf.WriteString(strconv.Itoa(len(arg)))
-        buf.Write(DELIM)
+        buf.Write(delim)
         buf.Write(arg)
-        buf.Write(DELIM)
+        buf.Write(delim)
     }
 
-    if LOG_CMD {
+    if logCmd {
         log.Printf("GODIS: %q", string(buf.Bytes()))
     }
 
@@ -193,7 +193,7 @@ func (p *Pipe) read(conn *conn) *Reply {
     }
 
     if p.conn.w.Buffered() > 0 {
-        if LOG_CMD {
+        if logCmd {
             log.Printf("%d bytes were written to socket\n", p.conn.w.Buffered())
         }
         p.conn.w.Flush()
