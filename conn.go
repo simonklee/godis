@@ -19,7 +19,7 @@ const (
     plus   byte = 43
     star   byte = 42
 
-    // other
+    // Max connection pool size
     MaxClientConn = 4
     logCmd        = false
 )

@@ -1,6 +1,6 @@
 # godis
 
-A simple client for [Redis](http://redis.io).
+godis - a [Redis](http://redis.io) client for Go.
 
 * Commands API exactly mimics the Redis commands. It is extremly consistent with
   the real deal.
