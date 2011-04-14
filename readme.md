@@ -36,7 +36,7 @@ Simply use goinstall to get the client and dependencies.
 
 ### Docs
 
-[godis docs](http://simonz05.github.com/godis/) is available on the web.
+[godis docs](http://susr.org/godis/) is available on the web.
 
 ## todo
 

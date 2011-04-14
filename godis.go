@@ -1,3 +1,5 @@
+// godis package implements a client for Redis. It implements the redis commands
+// and common features such as pipelines.
 package godis
 
 import (
