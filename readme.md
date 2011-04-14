@@ -2,8 +2,7 @@
 
 godis - a [Redis](http://redis.io) client for Go.
 
-* Commands API exactly mimics the Redis commands. It is extremly consistent with
-  the real deal.
+* Commands API exactly mimics the Redis commands. 
 * Flexible design with support for pipelines, pubsub etc.
 
 ## Install
@@ -34,6 +33,10 @@ Simply use goinstall to get the client and dependencies.
         // convert return value back to string and print it
         fmt.Println("foo: ", foo.String())
     }
+
+### Docs
+
+[godis docs](http://simonz05.github.com/godis/) is available on the web.
 
 ## todo
 
