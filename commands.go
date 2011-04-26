@@ -506,22 +506,25 @@ func (c *Client) Zincrby(key string, increment float64, member interface{}) (flo
 // Intersect multiple sorted sets and store the resulting sorted set in a new key
 // `numkeys` is determined by the len of `keys` param
 func (c *Client) Zinterstore(destination string, keys []string, args ...string) (int64, os.Error) {
-    a := append([]string{destination, strconv.Itoa(len(keys))}, args...)
+    a := append([]string{destination, strconv.Itoa(len(keys))}, keys...)
+    a = append(a, args...)
     return SendStr(c, "ZINTERSTORE", a...).intOrErr()
 }
 
 // Return a range of members in a sorted set, by index
+// TODO: add WITHSCORES keyword
 func (c *Client) Zrange(key string, start int, stop int) (*Reply, os.Error) {
     return SendStr(c, "ZRANGE", key, strconv.Itoa(start), strconv.Itoa(stop)).replyOrErr()
 }
 
 // Return a range of members in a sorted set, by score
-func (c *Client) Zrangebyscore(key string, min float64, max float64, args ...string) (*Reply, os.Error) {
-    a := append([]string{key, strconv.Ftoa64(min, 'f', -1), strconv.Ftoa64(max, 'f', -1)}, args...)
+func (c *Client) Zrangebyscore(key string, min string, max string, args ...string) (*Reply, os.Error) {
+    a := append([]string{key, min, max}, args...)
     return SendStr(c, "ZRANGEBYSCORE", a...).replyOrErr()
 }
 
 // Determine the index of a member in a sorted set
+// TODO: should cast an error when member does not exist
 func (c *Client) Zrank(key string, member interface{}) (int64, os.Error) {
     return SendIface(c, "ZRANK", key, member).intOrErr()
 }
