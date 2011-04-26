@@ -121,7 +121,7 @@ func (c *Client) getConn() (*conn, os.Error) {
         return cc, nil
     }
 
-    addr, err := net.ResolveTCPAddr(c.Addr)
+    addr, err := net.ResolveTCPAddr("tcp", c.Addr)
 
     if err != nil {
         return nil, os.NewError("ResolveAddr error for " + c.Addr)

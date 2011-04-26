@@ -9,7 +9,7 @@ import (
 func getConn(t *testing.T) *conn {
     var defaultAddr string = "127.0.0.1:6379"
 
-    addr, err := net.ResolveTCPAddr(defaultAddr)
+    addr, err := net.ResolveTCPAddr("tcp", defaultAddr)
     if err != nil {
         t.Errorf("ResolveAddr error for " + defaultAddr)
     }
