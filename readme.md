@@ -9,6 +9,7 @@ redis commands and common features such
 as pipelines and pubsub.
 
   - [Package docs](http://susr.org/godis/pkg/)
+  - [Readme](http://susr.org/godis/)
 
 ## Install
 
