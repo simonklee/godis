@@ -2,51 +2,95 @@
 
 godis - a [Redis](http://redis.io) client for Go.
 
-* Commands API exactly mimics the Redis commands. 
-* Flexible design with support for pipelines, pubsub etc.
+## Description
+
+The godis package implements a client for Redis. It supports all redis
+commands and common features such as pipelines and pubsub.
 
 ## Install
 
-Simply use goinstall to get the client and dependencies.
+Use either goinstall or git and make to install the pkg.
+
+### goinstall
+
+[goinstall](http://golang.org/cmd/goinstall/) download and install the
+client with one command.
 
     $ goinstall github.com/simonz05/godis
 
-### Example
+goinstall puts godis in the $GOROOT/src/pkg/github.com/simonz05
+directory. You can now import godis with `import
+"github.com/simonz05/godis" 
+
+### git
+
+[godis source code](https://github.com/simonz05/godis) is available at
+github.com and can be checked out with git.
+
+    $ git clone git://github.com/simonz05/godis.git
+
+To compile we only need to run make in the godis directory.
+
+    $ make install
+
+You can now import godis with `import "godis"`.
+
+## Examples
+
+To get and run the examples use the git install method explained in
+the section above.
 
     package main
 
     import (
-        "github.com/simonz05/godis"
+        "godis"
         "fmt"
     )
 
     func main() {
-        // new client on default IP/port, redis db to 0 and no password
-        c := godis.New("127.0.0.1:6379", 0, "") 
+        // new client on default port 6379, select db 0 and use no password
+        c := godis.New("", 0, "") 
 
-        // set a "foo" to "bar" 
-        c.Set("foo", "bar")
+        // set the key "foo" to "Hello Redis"
+        c.Set("foo", "Hello Redis")
 
-        // retrieve the value of "foo"
-        foo, _ := c.Get("foo")
+        // retrieve the value of "foo". Returns an Elem obj
+        elem, _ := c.Get("foo")
 
-        // convert return value back to string and print it
-        fmt.Println("foo: ", foo.String())
+        // convert the obj to a string and print it 
+        fmt.Println("foo: ", elem.String())
     }
 
-### Docs
+To test this example go to the example/ directory.
 
-[godis docs](http://susr.org/godis/) is available on the web.
+    $ cd example/
+    $ make string
+
+By running make we got an executable called `string`.
+
+    $ ./string
+    foo: Hello Redis
+
+If your redis-server isn't running the output looks like this.
+
+    $ ./string 
+    Connection error 127.0.0.1:6379
+
+## Docs
+
+This readme file as well as all the [package
+docs](http://susr.org/godis/pkg/) for all the commands is available at
+is available on [susr.org/godis](http://susr.org/godis/)
 
 ## todo
 
-* Write documentation and add some examples.
+    * Write documentation and add some examples.
 
-* Add all tests for sorted set and some server stuff.
+    * Add all tests for sorted set and some server stuff.
 
-* Implement transactions.
+    * Implement transactions.
 
-* Pipeline need more testing.
+    * Pipeline need more testing.
 
 ## acknowledgment
 
