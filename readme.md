@@ -80,12 +80,6 @@ If your redis-server isn't running the output looks like this.
     $ ./string 
     Connection error 127.0.0.1:6379
 
-## Docs
-
-This readme file as well as all the [package
-docs](http://susr.org/godis/pkg/) for all the commands is available at
-is available on [susr.org/godis](http://susr.org/godis/)
-
 ## TODO
 
   * Add tests for sorted set and server commands.
