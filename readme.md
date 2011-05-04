@@ -13,7 +13,7 @@ as pipelines and pubsub.
 
 ## Install
 
-Use either goinstall or git to make to install the package.
+Use either goinstall or git to make and install the package.
 
 ### goinstall
 
