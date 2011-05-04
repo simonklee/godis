@@ -4,32 +4,35 @@ godis - a [Redis](http://redis.io) client for Go.
 
 ## Description
 
-The godis package implements a client for Redis. It supports all redis
-commands and common features such as pipelines and pubsub.
+The godis package implements a client for Redis. It supports all
+redis commands and common features such
+as pipelines and pubsub.
+
+  - [Package docs](http://susr.org/godis/pkg/)
 
 ## Install
 
-Use either goinstall or git and make to install the pkg.
+Use either goinstall or git to make to install the package.
 
 ### goinstall
 
-[goinstall](http://golang.org/cmd/goinstall/) download and install the
+Use [goinstall](http://golang.org/cmd/goinstall/) to download and install the
 client with one command.
 
     $ goinstall github.com/simonz05/godis
 
-goinstall puts godis in the $GOROOT/src/pkg/github.com/simonz05
+goinstall installs godis in the $GOROOT/src/pkg/github.com/simonz05
 directory. You can now import godis with `import
-"github.com/simonz05/godis" 
+"github.com/simonz05/godis"`
 
 ### git
 
-[godis source code](https://github.com/simonz05/godis) is available at
-github.com and can be checked out with git.
+The [godis source code](https://github.com/simonz05/godis) is available at
+github.com and can be checked out using git.
 
     $ git clone git://github.com/simonz05/godis.git
 
-To compile we only need to run make in the godis directory.
+To compile it we only need to run make. 
 
     $ make install
 
@@ -82,17 +85,14 @@ This readme file as well as all the [package
 docs](http://susr.org/godis/pkg/) for all the commands is available at
 is available on [susr.org/godis](http://susr.org/godis/)
 
-## todo
+## TODO
 
-    * Write documentation and add some examples.
+  * Add tests for sorted set and server commands.
+  * Implement transactions.
+  * Pipeline need more testing.
+  * Multi.
 
-    * Add all tests for sorted set and some server stuff.
-
-    * Implement transactions.
-
-    * Pipeline need more testing.
-
-## acknowledgment
+## Acknowledgment
 
 The work on this client started as I was hacking around on Michael Hoisie's
 original redis client for Go. Also the recent work done by Frank Müller on his
