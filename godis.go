@@ -171,6 +171,10 @@ func NewPipe(addr string, db int, password string) *Pipe {
     return &Pipe{New(addr, db, password), nil, true, 0}
 }
 
+func NewPipeFromClient(c *Client) *Pipe {
+    return &Pipe{c, nil, true, 0}
+}
+
 // read a reply from the socket if we are expecting it.
 func (p *Pipe) GetReply() *Reply {
     if p.Count() > 0 {
