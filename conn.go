@@ -121,6 +121,22 @@ func (r *Reply) IntArray() []int64 {
     return buf
 }
 
+func (r *Reply) StringMap() map[string]string {
+    arr := r.StringArray()
+    n := len(arr)
+	buf := make(map[string]string, n/2)
+
+    if n % 2 == 1 {
+        return buf
+    }
+
+    for i := 0; i < n; i += 2 {
+        buf[arr[i]] = arr[i + 1]
+    }
+
+    return buf
+}
+
 func (r *Reply) Message() *Message {
     if len(r.Elems) < 3 {
         return nil
