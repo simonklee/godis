@@ -86,6 +86,7 @@ If your redis-server isn't running the output looks like this.
   * Implement transactions.
   * Pipeline need more testing.
   * Multi.
+  * Add support for unix socket.
 
 ## Acknowledgment
 
