@@ -207,8 +207,8 @@ func (p *Pipe) read(conn *conn) *Reply {
 
     reply := conn.readReply()
 
-    if reply.Err != nil {
-        p.end()
+    if reply.Err != nil || p.Count() == 0 {
+        p.free()
     }
 
     return reply
@@ -226,7 +226,7 @@ func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
     }
 
     if _, err = p.conn.w.Write(cmd); err != nil {
-        p.end()
+        p.free()
         return nil, err
     }
 
@@ -235,7 +235,7 @@ func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
     return p.conn, nil
 }
 
-func (p *Pipe) end() {
+func (p *Pipe) free() {
     p.pool.push(p.conn)
     p.conn = nil
     p.appendMode = true

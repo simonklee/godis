@@ -190,7 +190,6 @@ func TestSimplePipe(t *testing.T) {
     for _, test := range simpleSendTests {
         r := c.GetReply()
         compareReply(t, test.cmd, &test.out, r)
-
     }
 }
 
