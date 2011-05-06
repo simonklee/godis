@@ -9,20 +9,20 @@ and common features such as pipelines and pubsub.
 
 ## Install godis
 
-It is available at github.com, simply run:
+godis is available at github.com. Get it by running.
 
     $ git clone git://github.com/simonz05/godis.git
 
-And now compile and install it with one command: 
+And now compile and install it with one command.
 
     $ make install
 
-Importing godis to your code is now done with `import "godis"`. Thats it!
+Importing godis to your code can be done with `import "godis"`. Thats it!
 
 ## Use godis
 
 Running git clone also checks out some examples into the `examples` directory.
-Here is a simple string SET/GET code.
+Here is the code for the SET/GET example.
 
     package main
 
@@ -45,11 +45,11 @@ Here is a simple string SET/GET code.
         fmt.Println("foo: ", elem.String())
     }
 
-Build it: 
+Build the examples. 
 
     $ make 
 
-To run it we only need to type:
+To run it we type.
 
     $ ./string
     foo: Hello Redis
