@@ -1,48 +1,28 @@
 # godis
 
-godis - a [Redis](http://redis.io) client for Go.
+godis - a [Redis](http://redis.io) client for Go. It supports all Redis commands
+and common features such as pipelines and pubsub.
 
-## Description
+1. [Readme](http://susr.org/godis/)
+2. [Package docs](http://susr.org/godis/pkg/)
+3. [Source code](https://github.com/simonz05/godis)
 
-The godis package implements a client for Redis. It supports all
-redis commands and common features such
-as pipelines and pubsub.
+## Install godis
 
-  - [Package docs](http://susr.org/godis/pkg/)
-  - [Readme](http://susr.org/godis/)
-
-## Install
-
-Use either goinstall or git to make and install the package.
-
-### goinstall
-
-Use [goinstall](http://golang.org/cmd/goinstall/) to download and install the
-client with one command.
-
-    $ goinstall github.com/simonz05/godis
-
-goinstall installs godis in the $GOROOT/src/pkg/github.com/simonz05
-directory. You can now import godis with `import
-"github.com/simonz05/godis"`
-
-### git
-
-The [godis source code](https://github.com/simonz05/godis) is available at
-github.com and can be checked out using git.
+It is available at github.com, simply run:
 
     $ git clone git://github.com/simonz05/godis.git
 
-To compile it we only need to run make. 
+And now compile and install it with one command: 
 
     $ make install
 
-You can now import godis with `import "godis"`.
+Importing godis to your code is now done with `import "godis"`. Thats it!
 
-## Examples
+## Use godis
 
-To get and run the examples use the git install method explained in
-the section above.
+Running git clone also checks out some examples into the `examples` directory.
+Here is a simple string SET/GET code.
 
     package main
 
@@ -65,17 +45,16 @@ the section above.
         fmt.Println("foo: ", elem.String())
     }
 
-To test this example go to the example/ directory.
+Build it: 
 
-    $ cd example/
-    $ make string
+    $ make 
 
-By running make we got an executable called `string`.
+To run it we only need to type:
 
     $ ./string
     foo: Hello Redis
 
-If your redis-server isn't running the output looks like this.
+In case your redis server isn't running the output looks like this.
 
     $ ./string 
     Connection error 127.0.0.1:6379
