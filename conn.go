@@ -1,10 +1,10 @@
 package godis
 
 import (
-    "net"
     "bufio"
-    "os"
     "log"
+    "net"
+    "os"
     "strconv"
     "strings"
 )
@@ -264,7 +264,6 @@ func (c *conn) readReply() *Reply {
     res, err := c.r.ReadBytes(lf)
 
     if err != nil {
-        log.Println(err)
         r.Err = err
         return r
     }
@@ -295,9 +294,10 @@ func (c *conn) readReply() *Reply {
     return r
 }
 
-func newConn(rwc *net.TCPConn) *conn {
+func newConn(rwc net.Conn) *conn {
     br := bufio.NewReader(rwc)
     bw := bufio.NewWriter(rwc)
+    connCount++
 
     return &conn{rwc: rwc, r: br, w: bw}
 }

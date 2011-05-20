@@ -9,6 +9,7 @@ import (
     "net"
     "os"
     "strconv"
+    "strings"
 )
 
 type ReaderWriter interface {
@@ -20,6 +21,7 @@ type Client struct {
     Addr     string
     Db       int
     Password string
+    net      string
     pool     *pool
 }
 
@@ -106,12 +108,18 @@ func buildCmd(args ...[]byte) []byte {
     return buf.Bytes()
 }
 
-func New(addr string, db int, password string) *Client {
-    if addr == "" {
-        addr = "127.0.0.1:6379"
+// New returns a new Client given a net address, redis db and password.
+// nettaddr should be formatted using "net:addr", where ":" is acting as a
+// separator. E.g. "unix:/path/to/redis.sock", "tcp:127.0.0.1:12345" or use an
+// empty string for redis default.
+func New(netaddr string, db int, password string) *Client {
+    if netaddr == "" {
+        netaddr = "tcp:127.0.0.1:6379"
     }
 
-    return &Client{Addr: addr, Db: db, Password: password, pool: newPool()}
+    na := strings.Split(netaddr, ":", 2)
+
+    return &Client{Addr: na[1], Db: db, Password: password, net: na[0], pool: newPool()}
 }
 
 func (c *Client) getConn() (*conn, os.Error) {
@@ -121,20 +129,14 @@ func (c *Client) getConn() (*conn, os.Error) {
         return cc, nil
     }
 
-    addr, err := net.ResolveTCPAddr("tcp", c.Addr)
+    tcpconn, err := net.Dial(c.net, c.Addr)
 
     if err != nil {
-        return nil, os.NewError("ResolveAddr error for " + c.Addr)
+        return nil, os.NewError("Connection error " + c.Addr)
     }
 
-    tcpc, err := net.DialTCP("tcp", nil, addr)
-    if err != nil {
-        return nil, os.NewError("Connection error " + addr.String())
-    }
-
-    cc = newConn(tcpc)
+    cc = newConn(tcpconn)
     err = cc.configConn(c)
-    connCount++
     return cc, err
 }
 

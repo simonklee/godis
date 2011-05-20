@@ -33,7 +33,7 @@ Here is the code for the SET/GET example.
 
     func main() {
         // new client on default port 6379, select db 0 and use no password
-        c := godis.New("", 0, "") 
+        c := godis.New("tcp:127.0.0.1:6379", 0, "") 
 
         // set the key "foo" to "Hello Redis"
         c.Set("foo", "Hello Redis")
