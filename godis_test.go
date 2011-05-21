@@ -252,6 +252,32 @@ func TestMemory(t *testing.T) {
     //printCmdCount()
 }
 
+// for this test to work redis.conf has to be set timeout to 1sec
+// the test return a nil pointer if failed
+func TestConnTimeout(t *testing.T) {
+    c := New("", 0, "")
+    Send(c, []byte("FLUSHDB"))
+
+    defer func() {
+		if x := recover(); x != nil {
+            t.Errorf("`conn timeout` expected got `%v`", x)
+		}
+	}()
+
+    c.Set("foo", 1)
+    c.Set("bar", 2)
+
+    time.Sleep(1e+9 * 8)
+
+    rep, err := c.Mget("foo", "bar")
+    // rep.IntArray will invoke a nil-pointer panic if there was an err
+    rep.IntArray()
+
+    if err != nil {
+        error(t, "connection timeout", nil, nil, err)
+    }
+}
+
 func TestReadingBulk(t *testing.T) {
     c := New("", 0, "")
 

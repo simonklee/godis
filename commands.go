@@ -729,18 +729,16 @@ func (c *Client) Psubscribe(patterns ...string) (*Sub, os.Error) {
 
 // Stop listening for messages posted to channels matching the given patterns
 func (s *Sub) Punsubscribe(patterns ...string) os.Error {
-
     if !s.subscribed {
         return os.NewError("Cannot PUNSUBSCRIBE before subscribing")
     }
 
-    _, err := appendSendStr(s, "PUNSUBSCRIBE", patterns...)
-    return err
+    return appendSendStr(s, "PUNSUBSCRIBE", patterns...).Err
 }
 
 // Listen for messages published to channels matching the given patterns
 func (s *Sub) Psubscribe(patterns ...string) os.Error {
-    if _, err := appendSendStr(s, "PSUBSCRIBE", patterns...); err != nil {
+    if err := appendSendStr(s, "PSUBSCRIBE", patterns...).Err; err != nil {
         return err
     }
 
@@ -753,18 +751,16 @@ func (s *Sub) Psubscribe(patterns ...string) os.Error {
 
 // Stop listening for messages posted to the given channels
 func (s *Sub) Unsubscribe(channels ...string) os.Error {
-
     if !s.subscribed {
         return os.NewError("Cannot UNSUBSCRIBE before subscribing")
     }
 
-    _, err := appendSendStr(s, "UNSUBSCRIBE", channels...)
-    return err
+    return appendSendStr(s, "UNSUBSCRIBE", channels...).Err
 }
 
 // Listen for messages published to the given channels
 func (s *Sub) Subscribe(channels ...string) os.Error {
-    if _, err := appendSendStr(s, "SUBSCRIBE", channels...); err != nil {
+    if err := appendSendStr(s, "SUBSCRIBE", channels...).Err; err != nil {
         return err
     }
 

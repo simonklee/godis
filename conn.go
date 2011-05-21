@@ -2,6 +2,7 @@ package godis
 
 import (
     "bufio"
+    "bytes"
     "log"
     "net"
     "os"
@@ -19,13 +20,17 @@ const (
     plus   byte = 43
     star   byte = 42
 
-    // Max connection pool size
-    MaxClientConn = 4
-    logCmd        = false
+    logCmd = false
 )
 
 var (
-    delim     = []byte{cr, lf}
+    // Max connection pool size
+    MaxClientConn = 2
+
+    // protocol bytes
+    delim = []byte{cr, lf}
+
+    // misc
     connCount int
     cmdCount  = map[byte]int{dollar: 0, colon: 0, minus: 0, plus: 0, star: 0}
 )
@@ -52,6 +57,30 @@ type Reply struct {
     Err   os.Error
     Elem  Elem
     Elems []*Reply
+}
+
+// takes a [][]byte and returns a redis command formatted using
+// the unified request protocol
+func buildCmd(args [][]byte) []byte {
+    buf := bytes.NewBuffer(nil)
+
+    buf.WriteByte(star)
+    buf.WriteString(strconv.Itoa(len(args)))
+    buf.Write(delim)
+
+    for _, arg := range args {
+        buf.WriteByte(dollar)
+        buf.WriteString(strconv.Itoa(len(arg)))
+        buf.Write(delim)
+        buf.Write(arg)
+        buf.Write(delim)
+    }
+
+    if logCmd {
+        log.Printf("GODIS: %q", string(buf.Bytes()))
+    }
+
+    return buf.Bytes()
 }
 
 func newPool() *pool {
@@ -124,14 +153,14 @@ func (r *Reply) IntArray() []int64 {
 func (r *Reply) StringMap() map[string]string {
     arr := r.StringArray()
     n := len(arr)
-	buf := make(map[string]string, n/2)
+    buf := make(map[string]string, n/2)
 
-    if n % 2 == 1 {
+    if n%2 == 1 {
         return buf
     }
 
     for i := 0; i < n; i += 2 {
-        buf[arr[i]] = arr[i + 1]
+        buf[arr[i]] = arr[i+1]
     }
 
     return buf
@@ -294,17 +323,28 @@ func (c *conn) readReply() *Reply {
     return r
 }
 
-func newConn(rwc net.Conn) *conn {
-    br := bufio.NewReader(rwc)
-    bw := bufio.NewWriter(rwc)
-    connCount++
+func newConn(netTyp, addr string, db int, password string) (*conn, os.Error) {
+    rwc, err := net.Dial(netTyp, addr)
 
-    return &conn{rwc: rwc, r: br, w: bw}
+    if err != nil {
+        return nil, os.NewError("Connection error " + addr)
+    }
+
+    connCount++
+    cc := &conn{
+        rwc: rwc,
+        r:   bufio.NewReader(rwc),
+        w:   bufio.NewWriter(rwc),
+    }
+
+    err = cc.configConn(db, password)
+    return cc, err
 }
 
-func (cc *conn) configConn(c *Client) os.Error {
-    if c.Db != 0 {
-        _, err := cc.rwc.Write(buildCmd([]byte("SELECT"), []byte(strconv.Itoa(c.Db))))
+func (cc *conn) configConn(db int, password string) os.Error {
+    if db != 0 {
+        buf := [][]byte{[]byte("SELECT"), []byte(strconv.Itoa(db))}
+        _, err := cc.rwc.Write(buildCmd(buf))
 
         if err != nil {
             return err
@@ -316,8 +356,9 @@ func (cc *conn) configConn(c *Client) os.Error {
         }
     }
 
-    if c.Password != "" {
-        _, err := cc.rwc.Write(buildCmd([]byte("AUTH"), []byte(c.Password)))
+    if password != "" {
+        buf := [][]byte{[]byte("AUTH"), []byte(password)}
+        _, err := cc.rwc.Write(buildCmd(buf))
 
         if err != nil {
             return err

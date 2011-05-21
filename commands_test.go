@@ -494,7 +494,7 @@ func TestSortedSet(t *testing.T) {
     if res, err := c.Zcount("foobar", 1, 2); err != nil || res != 2 {
         error(t, "Zcount", 2, res, err)
     }
-    
+
     if res, err := c.Zincrby("foobar", 0.5, "foo"); err != nil || res != 1.5 {
         error(t, "Zincrby", 1.5, res, err)
     }
@@ -505,15 +505,15 @@ func TestSortedSet(t *testing.T) {
 
     want := []string{"foo", "bar", "baz", "qux"}
 
-    if res, err := c.Zrange("foobar", 0, 4); err != nil || !reflect.DeepEqual(want, res.StringArray())  {
+    if res, err := c.Zrange("foobar", 0, 4); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "Zrange", want, res, err)
     }
 
-    if res, err := c.Zrangebyscore("foobar", "0", "+inf"); err != nil || !reflect.DeepEqual(want, res.StringArray())  {
+    if res, err := c.Zrangebyscore("foobar", "0", "+inf"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "Zrangebyscore", want, res, err)
     }
 
-    if res, err := c.Zrank("foobar", "baz"); err != nil || res != 2  {
+    if res, err := c.Zrank("foobar", "baz"); err != nil || res != 2 {
         error(t, "Zrank", 2, res, err)
     }
 

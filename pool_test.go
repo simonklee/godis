@@ -2,24 +2,17 @@ package godis
 
 import (
     "testing"
-    "net"
     "time"
 )
 
 func getConn(t *testing.T) *conn {
-    var defaultAddr string = "127.0.0.1:6379"
+    c, err := newConn("tcp", "127.0.0.1:6379", 0, "")
 
-    addr, err := net.ResolveTCPAddr("tcp", defaultAddr)
     if err != nil {
-        t.Errorf("ResolveAddr error for " + defaultAddr)
+        t.Errorf("err " + err.String())
     }
 
-    c, err := net.DialTCP("tcp", nil, addr)
-    if err != nil {
-        t.Errorf("Connection error " + addr.String())
-    }
-
-    return newConn(c)
+    return c
 }
 
 func TestPoolSimple(t *testing.T) {

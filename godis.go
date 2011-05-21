@@ -3,12 +3,9 @@
 package godis
 
 import (
-    "bytes"
     "fmt"
     "log"
-    "net"
     "os"
-    "strconv"
     "strings"
 )
 
@@ -25,20 +22,32 @@ type Client struct {
     pool     *pool
 }
 
-// writes a command a and returns single the Reply object
-func Send(rw ReaderWriter, args ...[]byte) *Reply {
-    c, err := rw.write(buildCmd(args...))
+func sendGen(rw ReaderWriter, readResp bool, retry int, args [][]byte) (r *Reply) {
+    c, err := rw.write(buildCmd(args))
+    r = &Reply{conn: c, Err: err}
 
-    if err != nil {
-        return &Reply{Err: err}
+    defer func() {
+        // if connection was closed by the remote host we try to re-run the cmd
+        if retry > 0 && r.Err == os.EOF {
+            retry--
+            r = sendGen(rw, readResp, retry, args)
+        }
+    }()
+
+    if r.Err != nil {
+        return
     }
 
-    return rw.read(c)
+    if readResp {
+        return rw.read(c)
+    }
+
+    return
 }
 
-// writes a command without calling read
-func appendSend(rw ReaderWriter, args ...[]byte) (*conn, os.Error) {
-    return rw.write(buildCmd(args...))
+// writes a command a and returns single the Reply object
+func Send(rw ReaderWriter, args ...[]byte) *Reply {
+    return sendGen(rw, true, MaxClientConn, args)
 }
 
 // uses reflection to create a bytestring of the name and args parameters, 
@@ -58,54 +67,28 @@ func SendIface(rw ReaderWriter, name string, args ...interface{}) *Reply {
         }
     }
 
-    return Send(rw, buf...)
+    return sendGen(rw, true, MaxClientConn, buf)
 }
 
-// writes a command without calling read
-func appendSendStr(rw ReaderWriter, name string, args ...string) (*conn, os.Error) {
+func strToBytes(name string, args []string) [][]byte {
     buf := make([][]byte, len(args)+1)
     buf[0] = []byte(name)
 
     for i, arg := range args {
         buf[i+1] = []byte(arg)
     }
+    return buf
+}
 
-    return appendSend(rw, buf...)
+func appendSendStr(rw ReaderWriter, name string, args ...string) *Reply {
+    buf := strToBytes(name, args)
+    return sendGen(rw, false, MaxClientConn, buf)
 }
 
 // creates a bytestring of the name and args parameters, then calls Send()
 func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
-    c, err := appendSendStr(rw, name, args...)
-
-    if err != nil {
-        return &Reply{Err: err}
-    }
-
-    return rw.read(c)
-}
-
-// takes a [][]byte and returns a redis command formatted using
-// the unified request protocol
-func buildCmd(args ...[]byte) []byte {
-    buf := bytes.NewBuffer(nil)
-
-    buf.WriteByte(star)
-    buf.WriteString(strconv.Itoa(len(args)))
-    buf.Write(delim)
-
-    for _, arg := range args {
-        buf.WriteByte(dollar)
-        buf.WriteString(strconv.Itoa(len(arg)))
-        buf.Write(delim)
-        buf.Write(arg)
-        buf.Write(delim)
-    }
-
-    if logCmd {
-        log.Printf("GODIS: %q", string(buf.Bytes()))
-    }
-
-    return buf.Bytes()
+    buf := strToBytes(name, args)
+    return sendGen(rw, true, MaxClientConn, buf)
 }
 
 // New returns a new Client given a net address, redis db and password.
@@ -129,21 +112,18 @@ func (c *Client) getConn() (*conn, os.Error) {
         return cc, nil
     }
 
-    tcpconn, err := net.Dial(c.net, c.Addr)
-
-    if err != nil {
-        return nil, os.NewError("Connection error " + c.Addr)
-    }
-
-    cc = newConn(tcpconn)
-    err = cc.configConn(c)
-    return cc, err
+    return newConn(c.net, c.Addr, c.Db, c.Password)
 }
 
 func (c *Client) read(conn *conn) *Reply {
-    reply := conn.readReply()
+    r := conn.readReply()
+
+    if r.Err == os.EOF {
+        conn = nil
+    }
+
     c.pool.push(conn)
-    return reply
+    return r
 }
 
 func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
