@@ -558,7 +558,7 @@ func TestSortedSet(t *testing.T) {
     }
 
     if res, err := c.Zunionstore("foobar", []string{"nil"}); err == nil || res != -1 {
-        error(t, "Zscore", -1, res, err)
+        error(t, "Zunionstore", -1, res, err)
     }
 }
 
@@ -586,16 +586,15 @@ func TestConnection(t *testing.T) {
         error(t, "get-select", nil, res, err)
     }
 
-    // know bug will return EOF, but connection will not be restared
-    //for i := 0; i < MaxClientConn; i++ {
-    //    if err := Quit(c); err != nil {
-    //        error(t, "quite", nil, nil, err)
-    //    }
-    //}
+    for i := 0; i < MaxClientConn; i++ {
+        if err := c.Quit(); err != nil {
+            error(t, "quite", nil, nil, err)
+        }
+    }
 
-    //if err := c.Set("foo", "foo"); err != nil {
-    //    error(t, "quit", nil, nil, err)
-    //}
+    if err := c.Set("foo", "foo"); err != nil {
+        error(t, "quit", nil, nil, err)
+    }
 }
 
 func TestPubSub(t *testing.T) {
