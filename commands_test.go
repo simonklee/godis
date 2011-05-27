@@ -517,10 +517,49 @@ func TestSortedSet(t *testing.T) {
         error(t, "Zrank", 2, res, err)
     }
 
-    // TODO: this test does currently fail
-    //if res, err := c.Zrank("foobar", "nil"); err == nil || res != 0  {
+    // if res, err := c.Zrank("foobar", "nil"); err == nil || res != 0  {
     //    error(t, "Zrank", 0, res, err)
-    //}
+    // }
+
+    if res, err := c.Zrem("foobar", "bar"); err != nil || res != true {
+        error(t, "Zrem", true, res, err)
+    }
+ 
+    if res, err := c.Zrem("foobar", "bar"); err != nil || res != false {
+        error(t, "Zrem", false, res, err)
+    }
+
+    if res, err := c.Zremrangebyrank("foobar", 0, 0); err != nil || res != 1 {
+        error(t, "Zremrangebyrank", 1, res, err)
+    }
+
+    if res, err := c.Zremrangebyscore("foobar", 0, 3); err != nil || res != 1 {
+        error(t, "zremrangebyscore", 1, res, err)
+    }
+
+    c.Zinterstore("foobar", []string{"barbaz"})
+    want = []string{"qux", "baz", "bar", "foo"}
+    
+    if res, err := c.Zrevrange("foobar", 0, 4); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
+        error(t, "Zrevrange", want, res.StringArray(), err)
+    }
+
+    want2 := map[string]string{"qux": "4", "baz": "3", "bar": "2", "foo": "1.5"}
+    if res, err := c.Zrevrangebyscore("foobar", 4, 0, "WITHSCORES"); err != nil || !reflect.DeepEqual(want2, res.StringMap()) {
+        error(t, "Zrevrangebyscore", want, res.StringMap(), err)
+    }
+ 
+    if res, err := c.Zrevrank("foobar", "baz"); err != nil || res != 1 {
+        error(t, "Zrevrank", 1, res, err)
+    }
+
+    if res, err := c.Zscore("foobar", "foo"); err != nil || res != 1.5 {
+        error(t, "Zscore", 1.5, res, err)
+    }
+
+    if res, err := c.Zunionstore("foobar", []string{"nil"}); err == nil || res != -1 {
+        error(t, "Zscore", -1, res, err)
+    }
 }
 
 func TestConnection(t *testing.T) {

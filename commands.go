@@ -530,8 +530,8 @@ func (c *Client) Zrank(key string, member interface{}) (int64, os.Error) {
 }
 
 // Remove a member from a sorted set
-func (c *Client) Zrem(key string, member interface{}) (int64, os.Error) {
-    return SendIface(c, "ZREM", key, member).intOrErr()
+func (c *Client) Zrem(key string, member interface{}) (bool, os.Error) {
+    return SendIface(c, "ZREM", key, member).boolOrErr()
 }
 
 // Remove all members in a sorted set within the given indexes
