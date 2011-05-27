@@ -61,10 +61,10 @@ In case your redis server isn't running the output looks like this.
 
 ## TODO
 
-  * Add tests for sorted set and server commands.
+  * Add tests server commands.
   * Implement transactions.
   * Pipeline need more testing.
-  * Multi.
+  * MULTI/EXEC.
   * Add support for unix socket.
 
 ## Acknowledgment
