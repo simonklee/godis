@@ -259,10 +259,10 @@ func TestConnTimeout(t *testing.T) {
     Send(c, []byte("FLUSHDB"))
 
     defer func() {
-		if x := recover(); x != nil {
+        if x := recover(); x != nil {
             t.Errorf("`conn timeout` expected got `%v`", x)
-		}
-	}()
+        }
+    }()
 
     c.Set("foo", 1)
     c.Set("bar", 2)

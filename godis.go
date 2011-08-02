@@ -100,7 +100,7 @@ func New(netaddr string, db int, password string) *Client {
         netaddr = "tcp:127.0.0.1:6379"
     }
 
-    na := strings.Split(netaddr, ":", 2)
+    na := strings.SplitN(netaddr, ":", 2)
 
     return &Client{Addr: na[1], Db: db, Password: password, net: na[0], pool: newPool()}
 }

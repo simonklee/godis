@@ -524,7 +524,7 @@ func TestSortedSet(t *testing.T) {
     if res, err := c.Zrem("foobar", "bar"); err != nil || res != true {
         error(t, "Zrem", true, res, err)
     }
- 
+
     if res, err := c.Zrem("foobar", "bar"); err != nil || res != false {
         error(t, "Zrem", false, res, err)
     }
@@ -539,7 +539,7 @@ func TestSortedSet(t *testing.T) {
 
     c.Zinterstore("foobar", []string{"barbaz"})
     want = []string{"qux", "baz", "bar", "foo"}
-    
+
     if res, err := c.Zrevrange("foobar", 0, 4); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error(t, "Zrevrange", want, res.StringArray(), err)
     }
@@ -548,7 +548,7 @@ func TestSortedSet(t *testing.T) {
     if res, err := c.Zrevrangebyscore("foobar", 4, 0, "WITHSCORES"); err != nil || !reflect.DeepEqual(want2, res.StringMap()) {
         error(t, "Zrevrangebyscore", want, res.StringMap(), err)
     }
- 
+
     if res, err := c.Zrevrank("foobar", "baz"); err != nil || res != 1 {
         error(t, "Zrevrank", 1, res, err)
     }
@@ -588,12 +588,20 @@ func TestConnection(t *testing.T) {
 
     for i := 0; i < MaxClientConn; i++ {
         if err := c.Quit(); err != nil {
-            error(t, "quite", nil, nil, err)
+            error(t, "quit", nil, nil, err)
         }
     }
 
     if err := c.Set("foo", "foo"); err != nil {
         error(t, "quit", nil, nil, err)
+    }
+}
+
+func TestServer(t *testing.T) {
+    c := New("", 0, "")
+
+    if res, err := c.Monitor(); err != nil {
+        error(t, "monitor", nil, res, err)
     }
 }
 
