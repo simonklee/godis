@@ -3,9 +3,10 @@ package godis
 import (
     "bufio"
     "bytes"
+    "errors"
     "log"
     "net"
-    "os"
+
     "strconv"
     "strings"
 )
@@ -54,7 +55,7 @@ type Message struct {
 
 type Reply struct {
     conn  *conn
-    Err   os.Error
+    Err   error
     Elem  Elem
     Elems []*Reply
 }
@@ -110,12 +111,12 @@ func (e Elem) String() string {
 }
 
 func (e Elem) Int64() int64 {
-    v, _ := strconv.Atoi64(string([]byte(e)))
+    v, _ := strconv.ParseInt(string([]byte(e)), 10, 64)
     return v
 }
 
 func (e Elem) Float64() float64 {
-    v, _ := strconv.Atof64(string([]byte(e)))
+    v, _ := strconv.ParseFloat(string([]byte(e)), 64)
     return v
 }
 
@@ -143,7 +144,7 @@ func (r *Reply) IntArray() []int64 {
     buf := make([]int64, len(r.Elems))
 
     for i, v := range r.Elems {
-        v, _ := strconv.Atoi64(v.Elem.String())
+        v, _ := strconv.ParseInt(v.Elem.String(), 10, 64)
         buf[i] = v
     }
 
@@ -188,7 +189,7 @@ func (r *Reply) Message() *Message {
 }
 
 func (r *Reply) parseErr(res []byte) {
-    r.Err = os.NewError(string(res))
+    r.Err = errors.New(string(res))
 
     if logCmd {
         log.Println("GODIS-ERR" + string(res))
@@ -317,17 +318,17 @@ func (c *conn) readReply() *Reply {
     case star:
         r.parseMultiBulk(line)
     default:
-        r.Err = os.NewError("Unknown response " + string(typ))
+        r.Err = errors.New("Unknown response " + string(typ))
     }
 
     return r
 }
 
-func newConn(netTyp, addr string, db int, password string) (*conn, os.Error) {
+func newConn(netTyp, addr string, db int, password string) (*conn, error) {
     rwc, err := net.Dial(netTyp, addr)
 
     if err != nil {
-        return nil, os.NewError("Connection error " + addr)
+        return nil, errors.New("Connection error " + addr)
     }
 
     connCount++
@@ -341,7 +342,7 @@ func newConn(netTyp, addr string, db int, password string) (*conn, os.Error) {
     return cc, err
 }
 
-func (cc *conn) configConn(db int, password string) os.Error {
+func (cc *conn) configConn(db int, password string) error {
     if db != 0 {
         buf := [][]byte{[]byte("SELECT"), []byte(strconv.Itoa(db))}
         _, err := cc.rwc.Write(buildCmd(buf))

@@ -3,14 +3,16 @@
 package godis
 
 import (
+    "errors"
     "fmt"
+    "io"
     "log"
-    "os"
+
     "strings"
 )
 
 type ReaderWriter interface {
-    write(b []byte) (*conn, os.Error)
+    write(b []byte) (*conn, error)
     read(c *conn) *Reply
 }
 
@@ -28,7 +30,7 @@ func sendGen(rw ReaderWriter, readResp bool, retry int, args [][]byte) (r *Reply
 
     defer func() {
         // if connection was closed by the remote host we try to re-run the cmd
-        if retry > 0 && r.Err == os.EOF {
+        if retry > 0 && r.Err == io.EOF {
             retry--
             r = sendGen(rw, readResp, retry, args)
         }
@@ -105,7 +107,7 @@ func New(netaddr string, db int, password string) *Client {
     return &Client{Addr: na[1], Db: db, Password: password, net: na[0], pool: newPool()}
 }
 
-func (c *Client) getConn() (*conn, os.Error) {
+func (c *Client) getConn() (*conn, error) {
     cc := c.pool.pop()
 
     if cc != nil {
@@ -118,7 +120,7 @@ func (c *Client) getConn() (*conn, os.Error) {
 func (c *Client) read(conn *conn) *Reply {
     r := conn.readReply()
 
-    if r.Err == os.EOF {
+    if r.Err == io.EOF {
         conn = nil
     }
 
@@ -126,7 +128,7 @@ func (c *Client) read(conn *conn) *Reply {
     return r
 }
 
-func (c *Client) write(cmd []byte) (conn *conn, err os.Error) {
+func (c *Client) write(cmd []byte) (conn *conn, err error) {
     if conn, err = c.getConn(); err != nil {
         return nil, err
     }
@@ -164,7 +166,7 @@ func (p *Pipe) GetReply() *Reply {
         p.appendMode = false
     } else {
         p.appendMode = true
-        return &Reply{Err: os.NewError("No replies expected from conn")}
+        return &Reply{Err: errors.New("No replies expected from conn")}
     }
 
     return p.read(p.conn)
@@ -196,8 +198,8 @@ func (p *Pipe) read(conn *conn) *Reply {
     return reply
 }
 
-func (p *Pipe) write(cmd []byte) (*conn, os.Error) {
-    var err os.Error
+func (p *Pipe) write(cmd []byte) (*conn, error) {
+    var err error
 
     if p.conn == nil {
         if c, err := p.getConn(); err != nil {
@@ -238,8 +240,8 @@ func (s *Sub) read(conn *conn) *Reply {
     return s.conn.readReply()
 }
 
-func (s *Sub) write(cmd []byte) (*conn, os.Error) {
-    var err os.Error
+func (s *Sub) write(cmd []byte) (*conn, error) {
+    var err error
 
     if s.conn == nil {
         if c, err := s.c.getConn(); err != nil {

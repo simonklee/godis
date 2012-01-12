@@ -9,7 +9,7 @@ func getConn(t *testing.T) *conn {
     c, err := newConn("tcp", "127.0.0.1:6379", 0, "")
 
     if err != nil {
-        t.Errorf("err " + err.String())
+        t.Errorf("err " + err.Error())
     }
 
     return c
@@ -41,7 +41,7 @@ func TestPoolSize(t *testing.T) {
 
     SendStr(c2, "SET", "bar", "bar")
 
-    start := time.Nanoseconds()
+    start := time.Now()
 
     for i := 0; i < 1000; i++ {
         r1 := SendStr(c1, "GET", "foo")
@@ -53,7 +53,7 @@ func TestPoolSize(t *testing.T) {
         }
     }
 
-    stop := time.Nanoseconds() - start
+    stop := time.Now().Sub(start)
     t.Logf("time: %.3f\n", float32(stop/1.0e+6)/1000.0)
 
     if expected != connCount {

@@ -1,8 +1,8 @@
 package main
 
 import (
-    "godis"
     "fmt"
+    "godis"
     "os"
 )
 
