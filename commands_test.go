@@ -9,11 +9,11 @@ import (
 
 func TestGeneric(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Randomkey(); res != "" {
+    if res, err := c.Randomkey(); res != "" || err == nil {
         error_(t, "randomkey", "", res, err)
     }
 
@@ -80,10 +80,12 @@ func TestGeneric(t *testing.T) {
 
 func TestKeys(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
-    SendStr(c, "MSET", "foo", "one", "bar", "two", "baz", "three")
+
+    SendStr(c.rw, "MSET", "foo", "one", "bar", "two", "baz", "three")
 
     res, err := c.Keys("foo")
 
@@ -106,12 +108,12 @@ func TestKeys(t *testing.T) {
 
 func TestSort(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
-    SendStr(c, "RPUSH", "foo", "2")
-    SendStr(c, "RPUSH", "foo", "3")
-    SendStr(c, "RPUSH", "foo", "1")
+    SendStr(c.rw, "RPUSH", "foo", "2")
+    SendStr(c.rw, "RPUSH", "foo", "3")
+    SendStr(c.rw, "RPUSH", "foo", "1")
 
     res, err := c.Sort("foo")
 
@@ -134,7 +136,7 @@ func TestSort(t *testing.T) {
 
 func TestString(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -213,7 +215,7 @@ func TestString(t *testing.T) {
         error_(t, "msetnx", false, res, err)
     }
 
-    res, err := c.Mget(append([]string{"il"}, out...)...)
+    res, err := c.Mget(out...)
 
     if err != nil || len(res.Elems) != 3 {
         error_(t, "mget", 3, len(res.Elems), err)
@@ -225,11 +227,17 @@ func TestString(t *testing.T) {
             error_(t, "mget", out[i], v, nil)
         }
     }
+
+    out = append(out, "il")
+    if res, err = c.Mget(out...); err == nil || res != nil {
+        error_(t, "mget", nil, "expected error", err)
+        t.FailNow()
+    }
 }
 
 func TestList(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -312,7 +320,7 @@ func TestList(t *testing.T) {
 
 func TestHash(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -389,7 +397,7 @@ func TestHash(t *testing.T) {
 
 func TestSet(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -454,7 +462,7 @@ func TestSet(t *testing.T) {
         error_(t, "spop", "foo", res, err)
     }
 
-    if res, err := c.Srandmember("foobaz"); err != nil || res != nil {
+    if res, err := c.Srandmember("foobaz"); err == nil || res != nil {
         error_(t, "srandmember", nil, res, err)
     }
 
@@ -469,7 +477,7 @@ func TestSet(t *testing.T) {
 
 func TestSortedSet(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -563,7 +571,7 @@ func TestSortedSet(t *testing.T) {
 
 func TestConnection(t *testing.T) {
     c := New("", 0, "")
-    if r := SendStr(c, "flushall"); r.Err != nil {
+    if r := SendStr(c.rw, "flushall"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -607,7 +615,7 @@ func TestServer(t *testing.T) {
 func TestPubSub(t *testing.T) {
     c := New("", 0, "")
 
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -673,7 +681,6 @@ func TestPubSub(t *testing.T) {
     if _, ok := <-sub.Messages; ok != false {
         error_(t, "closed chan", false, ok, nil)
     }
-
 }
 
 func BenchmarkRpush(b *testing.B) {

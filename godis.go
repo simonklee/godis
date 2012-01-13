@@ -14,9 +14,14 @@ import (
 type ReaderWriter interface {
     write(b []byte) (*conn, error)
     read(c *conn) *Reply
+    sync() *Sync
 }
 
 type Client struct {
+    rw ReaderWriter
+}
+
+type Sync struct {
     Addr     string
     Db       int
     Password string
@@ -24,6 +29,233 @@ type Client struct {
     pool     *pool
 }
 
+type Pipe struct {
+    *Sync
+    conn       *conn
+    appendMode bool
+    transaction bool
+    replyCount int
+}
+
+type Sub struct {
+    c          *Sync
+    conn       *conn
+    subscribed bool
+    Messages   chan *Message
+}
+
+func New(netaddr string, db int, password string) *Client {
+    return &Client{newSync(netaddr, db, password)} 
+}
+
+// New returns a new Sync given a net address, redis db and password.
+// nettaddr should be formatted using "net:addr", where ":" is acting as a
+// separator. E.g. "unix:/path/to/redis.sock", "tcp:127.0.0.1:12345" or use an
+// empty string for redis default.
+func newSync(netaddr string, db int, password string) *Sync {
+    if netaddr == "" {
+        netaddr = "tcp:127.0.0.1:6379"
+    }
+
+    na := strings.SplitN(netaddr, ":", 2)
+
+    return &Sync{Addr: na[1], Db: db, Password: password, net: na[0], pool: newPool()}
+}
+
+// Pipe implements the ReaderWriter interface, can be used with all commands.
+// Currently its not possible to use a Pipe object in a concurrent context.
+func (c *Client) Pipeline(transaction bool) *Pipe {
+    p := &Pipe{c.rw.sync(), nil, true, transaction, 0}
+    c.rw = p
+
+    if transaction {
+        p.Multi()
+    }
+
+    return p
+}
+
+func NewSub(addr string, db int, password string) *Sub {
+    return &Sub{c: newSync(addr, db, password)}
+}
+
+// rw interface 
+
+func (c *Sync) read(conn *conn) *Reply {
+    r := conn.readReply()
+
+    if r.Err == io.EOF {
+        conn = nil
+    }
+
+    c.pool.push(conn)
+    return r
+}
+
+func (c *Sync) write(cmd []byte) (conn *conn, err error) {
+    if conn, err = c.getConn(); err != nil {
+        return nil, err
+    }
+
+    if _, err = conn.w.Write(cmd); err != nil {
+        c.pool.push(conn)
+        return nil, err
+    }
+
+    conn.w.Flush()
+    return conn, err
+}
+
+func (c *Sync) sync() *Sync {
+    return c
+}
+
+// extra methods on sync 
+func (c *Sync) getConn() (*conn, error) {
+    cc := c.pool.pop()
+
+    if cc != nil {
+        return cc, nil
+    }
+
+    return newConn(c.net, c.Addr, c.Db, c.Password)
+}
+
+// pipe interface implementation
+func (p *Pipe) read(conn *conn) *Reply {
+    if p.appendMode {
+        return &Reply{}
+    }
+
+    if p.conn.w.Buffered() > 0 {
+        if logCmd {
+            log.Printf("%d bytes were written to socket\n", p.conn.w.Buffered())
+        }
+        p.conn.w.Flush()
+    }
+
+    reply := conn.readReply()
+
+    if p.Count() == 0 {
+        log.Println("freeing")
+        p.free()
+    }
+
+    return reply
+}
+
+func (p *Pipe) write(cmd []byte) (*conn, error) {
+    var err error
+
+    if p.conn == nil {
+        if c, err := p.getConn(); err != nil {
+            return nil, err
+        } else {
+            p.conn = c
+        }
+    }
+
+    if _, err = p.conn.w.Write(cmd); err != nil {
+        p.free()
+        return nil, err
+    }
+
+    p.appendMode = true
+    p.replyCount++
+    return p.conn, nil
+}
+
+// read a reply from the socket if we are expecting it.
+func (p *Pipe) getReply() *Reply {
+    if p.Count() == 0 {
+        p.appendMode = true
+        p.transaction = false
+        return &Reply{Err: errors.New("No replies expected from conn")}
+    }
+
+    p.replyCount--
+    p.appendMode = false
+    return p.read(p.conn)
+}
+
+// retrieve the number of replies available
+func (p *Pipe) Count() int {
+    return p.replyCount
+}
+
+func (p *Pipe) free() {
+    p.pool.push(p.conn)
+    p.conn = nil
+    p.appendMode = true
+}
+
+func (s *Sub) read(conn *conn) *Reply {
+    return s.conn.readReply()
+}
+
+func (s *Sub) write(cmd []byte) (*conn, error) {
+    var err error
+
+    if s.conn == nil {
+        if c, err := s.c.getConn(); err != nil {
+            return nil, err
+        } else {
+            s.conn = c
+        }
+    }
+
+    if _, err = s.conn.w.Write(cmd); err != nil {
+        s.Close()
+        return nil, err
+    }
+
+    s.conn.w.Flush()
+    return s.conn, nil
+}
+
+func (s *Sub) sync() *Sync {
+    return s.c
+}
+
+func (s *Sub) listen() {
+    if s.conn == nil {
+        return
+    }
+
+    for {
+        r := s.read(s.conn)
+
+        if r.Err != nil {
+            go s.free()
+            return
+        }
+
+        if m := r.Message(); m != nil {
+            s.Messages <- m
+        }
+    }
+}
+
+func (s *Sub) subscribe() {
+    s.subscribed = true
+    s.Messages = make(chan *Message, 64)
+    go s.listen()
+}
+
+// Free the connection and close the chan
+func (s *Sub) Close() {
+    s.conn.rwc.Close()
+}
+
+func (s *Sub) free() {
+    s.conn = nil
+    s.c.pool.push(nil)
+    s.subscribed = false
+
+    close(s.Messages)
+}
+
+// Methods which take ReaderWriter interface
 func sendGen(rw ReaderWriter, readResp bool, retry int, args [][]byte) (r *Reply) {
     c, err := rw.write(buildCmd(args))
     r = &Reply{conn: c, Err: err}
@@ -91,209 +323,4 @@ func appendSendStr(rw ReaderWriter, name string, args ...string) *Reply {
 func SendStr(rw ReaderWriter, name string, args ...string) *Reply {
     buf := strToBytes(name, args)
     return sendGen(rw, true, MaxClientConn, buf)
-}
-
-// New returns a new Client given a net address, redis db and password.
-// nettaddr should be formatted using "net:addr", where ":" is acting as a
-// separator. E.g. "unix:/path/to/redis.sock", "tcp:127.0.0.1:12345" or use an
-// empty string for redis default.
-func New(netaddr string, db int, password string) *Client {
-    if netaddr == "" {
-        netaddr = "tcp:127.0.0.1:6379"
-    }
-
-    na := strings.SplitN(netaddr, ":", 2)
-
-    return &Client{Addr: na[1], Db: db, Password: password, net: na[0], pool: newPool()}
-}
-
-func (c *Client) getConn() (*conn, error) {
-    cc := c.pool.pop()
-
-    if cc != nil {
-        return cc, nil
-    }
-
-    return newConn(c.net, c.Addr, c.Db, c.Password)
-}
-
-func (c *Client) read(conn *conn) *Reply {
-    r := conn.readReply()
-
-    if r.Err == io.EOF {
-        conn = nil
-    }
-
-    c.pool.push(conn)
-    return r
-}
-
-func (c *Client) write(cmd []byte) (conn *conn, err error) {
-    if conn, err = c.getConn(); err != nil {
-        return nil, err
-    }
-
-    if _, err = conn.w.Write(cmd); err != nil {
-        c.pool.push(conn)
-        return nil, err
-    }
-
-    conn.w.Flush()
-    return conn, err
-}
-
-type Pipe struct {
-    *Client
-    conn       *conn
-    appendMode bool
-    replyCount int
-}
-
-// Pipe implements the ReaderWriter interface, can be used with all commands.
-// Currently its not possible to use a Pipe object in a concurrent context.
-func NewPipe(addr string, db int, password string) *Pipe {
-    return &Pipe{New(addr, db, password), nil, true, 0}
-}
-
-func NewPipeFromClient(c *Client) *Pipe {
-    return &Pipe{c, nil, true, 0}
-}
-
-// read a reply from the socket if we are expecting it.
-func (p *Pipe) GetReply() *Reply {
-    if p.Count() > 0 {
-        p.replyCount--
-        p.appendMode = false
-    } else {
-        p.appendMode = true
-        return &Reply{Err: errors.New("No replies expected from conn")}
-    }
-
-    return p.read(p.conn)
-}
-
-// retrieve the number of replies available
-func (p *Pipe) Count() int {
-    return p.replyCount
-}
-
-func (p *Pipe) read(conn *conn) *Reply {
-    if p.appendMode {
-        return &Reply{}
-    }
-
-    if p.conn.w.Buffered() > 0 {
-        if logCmd {
-            log.Printf("%d bytes were written to socket\n", p.conn.w.Buffered())
-        }
-        p.conn.w.Flush()
-    }
-
-    reply := conn.readReply()
-
-    if reply.Err != nil || p.Count() == 0 {
-        p.free()
-    }
-
-    return reply
-}
-
-func (p *Pipe) write(cmd []byte) (*conn, error) {
-    var err error
-
-    if p.conn == nil {
-        if c, err := p.getConn(); err != nil {
-            return nil, err
-        } else {
-            p.conn = c
-        }
-    }
-
-    if _, err = p.conn.w.Write(cmd); err != nil {
-        p.free()
-        return nil, err
-    }
-
-    p.appendMode = true
-    p.replyCount++
-    return p.conn, nil
-}
-
-func (p *Pipe) free() {
-    p.pool.push(p.conn)
-    p.conn = nil
-    p.appendMode = true
-}
-
-type Sub struct {
-    c          *Client
-    conn       *conn
-    subscribed bool
-    Messages   chan *Message
-}
-
-func NewSub(addr string, db int, password string) *Sub {
-    return &Sub{c: New(addr, db, password)}
-}
-
-func (s *Sub) read(conn *conn) *Reply {
-    return s.conn.readReply()
-}
-
-func (s *Sub) write(cmd []byte) (*conn, error) {
-    var err error
-
-    if s.conn == nil {
-        if c, err := s.c.getConn(); err != nil {
-            return nil, err
-        } else {
-            s.conn = c
-        }
-    }
-
-    if _, err = s.conn.w.Write(cmd); err != nil {
-        s.Close()
-        return nil, err
-    }
-
-    s.conn.w.Flush()
-    return s.conn, nil
-}
-
-func (s *Sub) listen() {
-    if s.conn == nil {
-        return
-    }
-
-    for {
-        r := s.read(s.conn)
-
-        if r.Err != nil {
-            go s.free()
-            return
-        }
-
-        if m := r.Message(); m != nil {
-            s.Messages <- m
-        }
-    }
-}
-
-func (s *Sub) subscribe() {
-    s.subscribed = true
-    s.Messages = make(chan *Message, 64)
-    go s.listen()
-}
-
-// Free the connection and close the chan
-func (s *Sub) Close() {
-    s.conn.rwc.Close()
-}
-
-func (s *Sub) free() {
-    s.conn = nil
-    s.c.pool.push(nil)
-    s.subscribed = false
-
-    close(s.Messages)
 }

@@ -78,7 +78,7 @@ var simpleParserTests = []simpleParserTest{
     {"-ERR\r\n", Reply{Err: errors.New("ERR")}, "err"},
     {":1\r\n", Reply{Elem: []byte("1")}, "num"},
     {"$3\r\nfoo\r\n", Reply{Elem: []byte("foo")}, "bulk"},
-    {"$-1\r\n", Reply{}, "bulk-nil"},
+    {"$-1\r\n", Reply{Err: errors.New("Nonexisting Key")}, "bulk-nil"},
     {"*-1\r\n", Reply{}, "multi-bulk-nil"},
 }
 
@@ -110,17 +110,17 @@ var simpleSendTests = []SimpleSendTest{
     {"SET", []string{"key", "foo"}, Reply{Elem: []byte("OK")}},
     {"EXISTS", []string{"key"}, Reply{Elem: []byte("1")}},
     {"GET", []string{"key"}, Reply{Elem: []byte("foo")}},
+    {"GET", []string{"/dev/null"}, Reply{}},
     {"RPUSH", []string{"list", "foo"}, Reply{Elem: []byte("1")}},
     {"RPUSH", []string{"list", "bar"}, Reply{Elem: []byte("2")}},
     {"LRANGE", []string{"list", "0", "2"}, Reply{Elems: s2MultiReply("foo", "bar")}},
     {"KEYS", []string{"list"}, Reply{Elems: s2MultiReply("list")}},
-    {"GET", []string{"/dev/null"}, Reply{}},
 }
 
 func TestSimpleSend(t *testing.T) {
     c := New("", 0, "")
     for _, test := range simpleSendTests {
-        r := SendStr(c, test.cmd, test.args...)
+        r := SendStr(c.rw, test.cmd, test.args...)
         compareReply(t, test.cmd, &test.out, r)
         t.Log(test.cmd, test.args)
         t.Logf("%q == %q\n", test.out, r)
@@ -143,34 +143,34 @@ func TestBinarySafe(t *testing.T) {
         want1[i] = byte(i)
     }
 
-    Send(c, []byte("SET"), []byte("foo"), want1)
+    Send(c.rw, []byte("SET"), []byte("foo"), want1)
 
-    if res := Send(c, []byte("GET"), []byte("foo")); !equals(res.Elem.Bytes(), want1) {
+    if res := Send(c.rw, []byte("GET"), []byte("foo")); !equals(res.Elem.Bytes(), want1) {
         error_(t, "ascii-table-Send", want1, res.Elem.Bytes(), res.Err)
     }
 
-    SendIface(c, "SET", "bar", string(want1))
+    SendIface(c.rw, "SET", "bar", string(want1))
 
-    if res := SendIface(c, "GET", "bar"); !equals(res.Elem.Bytes(), want1) {
+    if res := SendIface(c.rw, "GET", "bar"); !equals(res.Elem.Bytes(), want1) {
         error_(t, "ascii-table-SendIface", want1, res.Elem.Bytes(), res.Err)
     }
 
     want2 := []byte("♥\r\nµs\r\n")
-    Send(c, []byte("SET"), []byte("foo"), want2)
+    Send(c.rw, []byte("SET"), []byte("foo"), want2)
 
-    if res := Send(c, []byte("GET"), []byte("foo")); !equals(res.Elem.Bytes(), want2) {
+    if res := Send(c.rw, []byte("GET"), []byte("foo")); !equals(res.Elem.Bytes(), want2) {
         error_(t, "unicode-Send", want2, res.Elem.Bytes(), res.Err)
     }
 
-    SendIface(c, "SET", "bar", want2)
+    SendIface(c.rw, "SET", "bar", want2)
 
-    if res := SendIface(c, "GET", "bar"); !equals(res.Elem.Bytes(), want2) {
+    if res := SendIface(c.rw, "GET", "bar"); !equals(res.Elem.Bytes(), want2) {
         error_(t, "unicode-SendIface", want2, res.Elem.Bytes(), res.Err)
     }
 
     for _, b := range want2 {
-        SendIface(c, "SET", "bar", b)
-        res := SendIface(c, "GET", "bar")
+        SendIface(c.rw, "SET", "bar", b)
+        res := SendIface(c.rw, "GET", "bar")
         if uint8(res.Elem.Int64()) != b {
             error_(t, "unicode-SendIface", b, res.Elem, res.Err)
         }
@@ -178,62 +178,88 @@ func TestBinarySafe(t *testing.T) {
 }
 
 func TestSimplePipe(t *testing.T) {
-    c := NewPipe("", 0, "")
+    c := New("", 0, "")
+    p := c.Pipeline(false)
 
     for _, test := range simpleSendTests {
-        r := SendStr(c, test.cmd, test.args...)
+        r := SendStr(c.rw, test.cmd, test.args...)
+
         if r.Err != nil {
             t.Error(test.cmd, r.Err, test.args)
         }
     }
 
-    for _, test := range simpleSendTests {
-        r := c.GetReply()
-        compareReply(t, test.cmd, &test.out, r)
+    replies := p.Exec()
+
+    if len(replies) != len(simpleSendTests) {
+        error_(t, "pipe replies len", len(simpleSendTests), len(replies), nil)
+    }
+
+    for i, test := range simpleSendTests {
+        compareReply(t, test.cmd, &test.out, replies[i])
     }
 }
 
-func TestPipeConn(t *testing.T) {
-    c := NewPipe("", 0, "")
 
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+func TestTransaction(t *testing.T) {
+    c := New("", 0, "")
+
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if r := SendStr(c, "SET", "foo", "foo"); r.Elem != nil {
-        error_(t, "PIPE-SET", nil, r.Elem, r.Err)
-    }
+    p := c.Pipeline(true)
+    c.Set("foo", "bar")
+    c.Set("bar", "bar")
+    c.Lpush("bar", "bar")
+    c.Get("bar")
+    replies := p.Exec()
 
-    want := []byte("OK")
-
-    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
-        error_(t, "PIPE-GET-FLUSHDB", want, r.Elem, r.Err)
-    }
-
-    if r := SendStr(c, "SET", "bar", "bar"); r.Elem != nil {
-        error_(t, "PIPE-SET", nil, r.Elem, r.Err)
-    }
-
-    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
-        error_(t, "PIPE-GET-SET", want, r.Elem, r.Err)
-    }
-
-    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
-        error_(t, "PIPE-GET-SET", want, r.Elem, r.Err)
-    }
-
-    if r := c.GetReply(); r.Err == nil {
-        error_(t, "PIPE-GET-SET", nil, r.Elem, nil)
-    }
+    log.Println(replies)
+    log.Println(replies[2].Err)
 }
+
+//func TestPipeConn(t *testing.T) {
+//    c := NewPipe("", 0, "")
+//
+//    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
+//        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+//    }
+//
+//    if r := SendStr(c.rw, "SET", "foo", "foo"); r.Elem != nil {
+//        error_(t, "PIPE-SET", nil, r.Elem, r.Err)
+//    }
+//
+//    want := []byte("OK")
+//
+//    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
+//        error_(t, "PIPE-GET-FLUSHDB", want, r.Elem, r.Err)
+//    }
+//
+//    if r := SendStr(c.rw, "SET", "bar", "bar"); r.Elem != nil {
+//        error_(t, "PIPE-SET", nil, r.Elem, r.Err)
+//    }
+//
+//    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
+//        error_(t, "PIPE-GET-SET", want, r.Elem, r.Err)
+//    }
+//
+//    if r := c.GetReply(); !reflect.DeepEqual(r.Elem.Bytes(), want) {
+//        error_(t, "PIPE-GET-SET", want, r.Elem, r.Err)
+//    }
+//
+//    if r := c.GetReply(); r.Err == nil {
+//        error_(t, "PIPE-GET-SET", nil, r.Elem, nil)
+//    }
+//}
 
 func TestMemory(t *testing.T) {
     c := New("", 0, "")
     n := 2
-    Send(c, []byte("FLUSHDB"))
+    Send(c.rw, []byte("FLUSHDB"))
 
     for i := 0; i < 5; i++ {
-        SendIface(c, "RPUSH", "list", i)
+        SendIface(c.rw, "RPUSH", "list", i)
     }
 
     //time.Sleep(1.0e+9 * 10)
@@ -256,7 +282,7 @@ func TestMemory(t *testing.T) {
 // the test return a nil pointer if failed
 func TestConnTimeout(t *testing.T) {
     c := New("", 0, "")
-    Send(c, []byte("FLUSHDB"))
+    Send(c.rw, []byte("FLUSHDB"))
 
     defer func() {
         if x := recover(); x != nil {
@@ -281,7 +307,7 @@ func TestConnTimeout(t *testing.T) {
 func TestReadingBulk(t *testing.T) {
     c := New("", 0, "")
 
-    if r := SendStr(c, "FLUSHDB"); r.Err != nil {
+    if r := SendStr(c.rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
@@ -302,19 +328,19 @@ func BenchmarkParsing(b *testing.B) {
     c := New("", 0, "")
 
     for i := 0; i < 1000; i++ {
-        SendStr(c, "RPUSH", "list", "foo")
+        SendStr(c.rw, "RPUSH", "list", "foo")
     }
 
     start := time.Now()
 
     for i := 0; i < b.N; i++ {
-        SendStr(c, "LRANGE", "list", "0", "50")
+        SendStr(c.rw, "LRANGE", "list", "0", "50")
     }
 
     stop := time.Now().Sub(start)
 
     log.Printf("time: %.2f\n", float32(stop/1.0e+9))
-    Send(c, []byte("FLUSHDB"))
+    Send(c.rw, []byte("FLUSHDB"))
 }
 
 //func TestBenchmark(t *testing.T) {

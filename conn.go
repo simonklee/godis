@@ -192,7 +192,7 @@ func (r *Reply) parseErr(res []byte) {
     r.Err = errors.New(string(res))
 
     if logCmd {
-        log.Println("GODIS-ERR" + string(res))
+        log.Println("GODIS-ERR: " + string(res))
     }
 }
 
@@ -217,8 +217,10 @@ func (r *Reply) parseBulk(res []byte) {
 
     if l == -1 {
         if logCmd {
-            log.Println("GODIS-BULK: l was -1")
+            log.Println("GODIS-BULK: Key does not exist")
         }
+
+        r.Err = errors.New("Nonexisting key")
         return
     }
 
@@ -248,7 +250,7 @@ func (r *Reply) parseBulk(res []byte) {
     r.Elem = data[:l]
 
     if logCmd {
-        //log.Printf("CONN: read %d byte, bulk-data %q\n", l, data)
+        log.Printf("GODIS-BULK: read %d byte, bulk-data %q\n", l, data)
     }
 }
 
@@ -267,15 +269,19 @@ func (r *Reply) parseMultiBulk(res []byte) {
 
         if rr.Err != nil {
             r.Err = rr.Err
-            return
         }
 
         // key not found, ignore `nil` value
-        if rr.Elem == nil {
-            i -= 1
-            l -= 1
-            continue
-        }
+        //if rr.Elem == nil {
+        //    i -= 1
+        //    l -= 1
+
+        //    if logCmd {
+        //        log.Printf("KEY NOT FOUND")
+        //    }
+
+        //    continue
+        //}
 
         r.Elems[i] = rr
     }
