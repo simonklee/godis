@@ -49,7 +49,7 @@ func TestGeneric(t *testing.T) {
     if res, err := c.Ttl("foo"); res == 0 {
         error_(t, "ttl", 0, res, err)
     }
-    if res, err := c.Expireat("foo", time.Now().Unix() + 10); !res {
+    if res, err := c.Expireat("foo", time.Now().Unix()+10); !res {
         error_(t, "expireat", true, res, err)
     }
     if res, err := c.Ttl("foo"); res <= 0 {

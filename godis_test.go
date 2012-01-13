@@ -200,7 +200,6 @@ func TestSimplePipe(t *testing.T) {
     }
 }
 
-
 func TestTransaction(t *testing.T) {
     c := New("", 0, "")
 

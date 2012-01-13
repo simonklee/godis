@@ -31,10 +31,10 @@ type Sync struct {
 
 type Pipe struct {
     *Sync
-    conn       *conn
-    appendMode bool
+    conn        *conn
+    appendMode  bool
     transaction bool
-    replyCount int
+    replyCount  int
 }
 
 type Sub struct {
@@ -45,7 +45,7 @@ type Sub struct {
 }
 
 func New(netaddr string, db int, password string) *Client {
-    return &Client{newSync(netaddr, db, password)} 
+    return &Client{newSync(netaddr, db, password)}
 }
 
 // New returns a new Sync given a net address, redis db and password.

@@ -725,7 +725,7 @@ func (p *Pipe) Exec() []*Reply {
 
     replies := make([]*Reply, 0, p.Count())
 
-    for ; p.Count() > 0; {
+    for p.Count() > 0 {
         replies = append(replies, p.getReply())
     }
 
