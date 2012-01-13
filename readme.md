@@ -63,23 +63,23 @@ In case your redis server isn't running the output looks like this.
 
 Pipelines include support for MULTI/EXEC operations.
 
-   c := godis.New("tcp:127.0.0.1:6379", 0, "")
+    c := godis.New("tcp:127.0.0.1:6379", 0, "")
 
 Mark a client as a pipeline with c.Pipeline. Subsequent commands will
 be buffered.
 
-   p := c.Pipeline(true)
+    p := c.Pipeline(true)
 
 `Pipe struct` is returned. It implements `Multi`, `Exec`, `Unwatch`*,
 `Watch`*, `Discard`*. The latter three are still not implemented.
 Passing `true` to the Pipeline will mark this as a transaction.
 
-   c.Set("foo", "bar")
-   c.Get("foo")
+    c.Set("foo", "bar")
+    c.Get("foo")
 
 Commands are still called as usual on the Client object.
 
-   replies := p.Exec()
+    replies := p.Exec()
 
 To execute the buffered commands we call p.Exec(). Exec handles both
 MULTI/EXEC pipelines and simply buffered piplines. It return a slice
