@@ -88,7 +88,6 @@ of all the *Reply objects for every command we executed.
 ## TODO
 
   * Add tests server commands.
-  * Implement transactions.
   * Pipeline need more testing.
 
 ## Acknowledgment
