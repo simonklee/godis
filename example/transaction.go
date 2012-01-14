@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "godis"
+    "time"
 )
 
 func main() {
@@ -22,5 +23,13 @@ func main() {
     //    "GET" "foo"
     //    "EXEC"
 
-    fmt.Println("GET foo:", replies[1].Elem.String())
+    fmt.Println("GET foo:", replies[1].Elem.Int64())
+
+    c.Sync()
+    // calling c.Sync() will change the state of the client to 
+    // regular non-buffered client again.
+
+    c.Set("foo", 2)
+    res, _ := c.Get("foo")
+    fmt.Println("GET foo:", res.Int64())
 }

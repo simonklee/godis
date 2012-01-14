@@ -62,6 +62,12 @@ func newSync(netaddr string, db int, password string) *Sync {
     return &Sync{Addr: na[1], Db: db, Password: password, net: na[0], pool: newPool()}
 }
 
+// Sets client to regluar state. Can be used after the client was
+// used as buffered pipeline client to return to normal mode.
+func (c *Client) Sync() {
+    c.Rw = c.Rw.sync()
+}
+
 // Pipelines include support for MULTI/EXEC operations. Pipe struct
 // is returned. It implements Exec() which executes all buffered
 // commands. Set transaction to true to wrap buffered commands inside
@@ -69,11 +75,6 @@ func newSync(netaddr string, db int, password string) *Sync {
 func (c *Client) Pipeline(transaction bool) *Pipe {
     p := &Pipe{c.Rw.sync(), nil, true, transaction, 0}
     c.Rw = p
-
-    if transaction {
-        p.Multi()
-    }
-
     return p
 }
 
@@ -154,6 +155,11 @@ func (p *Pipe) write(cmd []byte) (*conn, error) {
         } else {
             p.conn = c
         }
+    }
+
+    if p.transaction && p.replyCount == 0 {
+        p.replyCount++
+        p.conn.w.Write(buildCmd([][]byte{[]byte("MULTI")}))
     }
 
     if _, err = p.conn.w.Write(cmd); err != nil {
