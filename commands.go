@@ -663,6 +663,11 @@ func (c *Client) Save() error {
     return Send(c.rw, []byte("SAVE")).nilOrErr()
 }
 
+// Set a configuration parameter to the given value
+func (c *Client) Slaveof(host string, port int) error {
+    return SendStr(c.rw, "SLAVEOF", host, strconv.Itoa(port)).nilOrErr()
+}
+
 // TODO
 // Manages the Redis slow queries log
 //func (c *Client) Slowlog(subcommand string) os.Error {

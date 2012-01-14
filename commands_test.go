@@ -610,6 +610,12 @@ func TestServer(t *testing.T) {
     if res, err := c.Monitor(); err != nil {
         error_(t, "monitor", nil, res, err)
     }
+
+    // Running this command don't bother to test each time
+    // since it changes the state of server.
+    //if err := c.Slaveof("localhost", 6378); err != nil {
+    //    error_(t, "slavof", nil, nil, err)
+    //}
 }
 
 func TestPubSub(t *testing.T) {
