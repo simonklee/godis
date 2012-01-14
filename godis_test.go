@@ -214,8 +214,8 @@ func TestTransaction(t *testing.T) {
     c.Get("bar")
     replies := p.Exec()
 
-    log.Println(replies)
-    log.Println(replies[2].Err)
+    t.Log(replies)
+    t.Log(replies[2].Err)
 }
 
 //func TestPipeConn(t *testing.T) {

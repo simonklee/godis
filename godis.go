@@ -137,7 +137,6 @@ func (p *Pipe) read(conn *conn) *Reply {
     reply := conn.readReply()
 
     if p.Count() == 0 {
-        log.Println("freeing")
         p.free()
     }
 

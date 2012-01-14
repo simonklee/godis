@@ -663,7 +663,7 @@ func (c *Client) Save() error {
     return Send(c.rw, []byte("SAVE")).nilOrErr()
 }
 
-// Set a configuration parameter to the given value
+// Change the replication settings of a slave on the fly
 func (c *Client) Slaveof(host string, port int) error {
     return SendStr(c.rw, "SLAVEOF", host, strconv.Itoa(port)).nilOrErr()
 }
