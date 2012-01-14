@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-ALL=string list
+ALL=string list transaction
 
 all: $(ALL)
 
