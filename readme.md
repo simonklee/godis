@@ -3,9 +3,8 @@
 godis - a [Redis](http://redis.io) client for Go. It supports all Redis commands
 and common features such as pipelines and pubsub.
 
-1. [Readme](http://susr.org/godis/)
-2. [Package docs](http://susr.org/godis/pkg/)
-3. [Source code](https://github.com/simonz05/godis)
+1. [Package docs](http://simonklee.org/pkg/godis/)
+2. [Source code](https://github.com/simonz05/godis)
 
 ## Install godis
 
