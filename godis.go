@@ -62,8 +62,10 @@ func newSync(netaddr string, db int, password string) *Sync {
     return &Sync{Addr: na[1], Db: db, Password: password, net: na[0], pool: newPool()}
 }
 
-// Pipe implements the ReaderWriter interface, can be used with all commands.
-// Currently its not possible to use a Pipe object in a concurrent context.
+// Pipelines include support for MULTI/EXEC operations. Pipe struct
+// is returned. It implements Exec() which executes all buffered
+// commands. Set transaction to true to wrap buffered commands inside
+// MULTI .. EXEC.
 func (c *Client) Pipeline(transaction bool) *Pipe {
     p := &Pipe{c.Rw.sync(), nil, true, transaction, 0}
     c.Rw = p
