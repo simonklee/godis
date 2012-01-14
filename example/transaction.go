@@ -22,6 +22,9 @@ func main() {
     //    "SET" "foo" "1"
     //    "GET" "foo"
     //    "EXEC"
+    // 
+    // Only the result of the EXEC command is returned
+    // in the form of a []*Reply 
 
     fmt.Println("GET foo:", replies[1].Elem.Int64())
 
