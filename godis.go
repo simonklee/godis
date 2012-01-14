@@ -18,7 +18,7 @@ type ReaderWriter interface {
 }
 
 type Client struct {
-    rw ReaderWriter
+    Rw ReaderWriter
 }
 
 type Sync struct {
@@ -65,8 +65,8 @@ func newSync(netaddr string, db int, password string) *Sync {
 // Pipe implements the ReaderWriter interface, can be used with all commands.
 // Currently its not possible to use a Pipe object in a concurrent context.
 func (c *Client) Pipeline(transaction bool) *Pipe {
-    p := &Pipe{c.rw.sync(), nil, true, transaction, 0}
-    c.rw = p
+    p := &Pipe{c.Rw.sync(), nil, true, transaction, 0}
+    c.Rw = p
 
     if transaction {
         p.Multi()
