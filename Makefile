@@ -6,8 +6,9 @@ GOFILES=\
 	commands.go\
 	conn.go\
 
+include $(GOROOT)/src/Make.pkg
+
 format:
 	gofmt -s=true -tabs=false -tabwidth=4 -w .
 
 .PHONY: format 
-include $(GOROOT)/src/Make.pkg
