@@ -150,7 +150,7 @@ func (p *Pipe) read(conn *conn) *Reply {
 
     reply := conn.readReply()
 
-    if p.Count() == 0 {
+    if p.count() == 0 {
         p.free()
     }
 
@@ -185,7 +185,7 @@ func (p *Pipe) write(cmd []byte) (*conn, error) {
 
 // read a reply from the socket if we are expecting it.
 func (p *Pipe) getReply() *Reply {
-    if p.Count() == 0 {
+    if p.count() == 0 {
         p.appendMode = true
         p.transaction = false
         return &Reply{Err: errors.New("No replies expected from conn")}
@@ -197,7 +197,7 @@ func (p *Pipe) getReply() *Reply {
 }
 
 // retrieve the number of replies available
-func (p *Pipe) Count() int {
+func (p *Pipe) count() int {
     return p.replyCount
 }
 

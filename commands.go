@@ -730,9 +730,9 @@ func (pc *PipeClient) Exec() []*Reply {
         Send(p, []byte("EXEC"))
     }
 
-    replies := make([]*Reply, 0, p.Count())
+    replies := make([]*Reply, 0, p.count())
 
-    for p.Count() > 0 {
+    for p.count() > 0 {
         replies = append(replies, p.getReply())
     }
 
@@ -750,7 +750,7 @@ func (pc *PipeClient) Exec() []*Reply {
 func (pc *PipeClient) Multi() error {
     p := pc.pipe()
 
-    if p.Count() > 0 {
+    if p.count() > 0 {
         return errors.New("Cannot issue MULTI on a buffered pipe")
     }
 
