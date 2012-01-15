@@ -376,7 +376,7 @@ func TestHash(t *testing.T) {
     want = []string{"2"}
 
     if res, err := c.Hmget("foobar", "bar"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
-        error_(t, "Hgetall", want, res, err)
+        error_(t, "Hmget", want, res, err)
     }
 
     m := map[string]interface{}{
