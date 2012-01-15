@@ -20,8 +20,8 @@ Importing godis to your code can be done with `import "godis"`. Thats it!
 
 ## Use godis
 
-Running git clone also checks out some examples into the `examples` directory.
-Here is the code for the SET/GET example.
+Checking out the code include a few examples. Here is the code for
+the `example/strings.go`.
 
     package main
 
@@ -62,27 +62,26 @@ In case your redis server isn't running the output looks like this.
 
 Pipelines include support for MULTI/EXEC operations.
 
-    c := godis.New("tcp:127.0.0.1:6379", 0, "")
+    c := godis.NewPipeClient("tcp:127.0.0.1:6379", 0, "", true)
 
-Mark a client as a pipeline with c.Pipeline. Subsequent commands will
-be buffered.
-
-    p := c.Pipeline(true)
-
-`Pipe struct` is returned. It implements `Multi`, `Exec`, `Unwatch`*,
-`Watch`*, `Discard`*. The latter three are still not implemented.
-Passing `true` to the Pipeline will mark this as a transaction.
+Create a PipeClient. Subsequent commands will be buffered. PipeClient
+acts as a regular client, but implements a few extra commands;
+`Multi`, `Exec`, `Unwatch`*, `Watch`*, `Discard`*. The latter three
+are still not implemented. Setting transaction to `true` wraps 
+commands inside MULTI .. EXEC.
 
     c.Set("foo", "bar")
     c.Get("foo")
 
-Commands are still called as usual on the Client object.
+Commands are still called as usual, but will return an empty Reply.
 
-    replies := p.Exec()
+    replies := c.Exec()
 
-To execute the buffered commands we call p.Exec(). Exec handles both
-MULTI/EXEC pipelines and simply buffered piplines. It return a slice
+To execute the buffered commands we call c.Exec(). Exec handles both
+MULTI/EXEC pipelines and simply buffered piplines. It returns a slice
 of all the *Reply objects for every command we executed.
+
+See `example/transaction.go` for a full example.
 
 ## TODO
 

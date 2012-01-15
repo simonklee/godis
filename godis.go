@@ -21,6 +21,10 @@ type Client struct {
     Rw ReaderWriter
 }
 
+type PipeClient struct {
+    *Client
+}
+
 type Sync struct {
     Addr     string
     Db       int
@@ -62,20 +66,27 @@ func newSync(netaddr string, db int, password string) *Sync {
     return &Sync{Addr: na[1], Db: db, Password: password, net: na[0], pool: newPool()}
 }
 
-// Sets client to regluar state. Can be used after the client was
-// used as buffered pipeline client to return to normal mode.
-func (c *Client) Sync() {
-    c.Rw = c.Rw.sync()
+// PipeClient include support for MULTI/EXEC operations. 
+// It implements Exec() which executes all buffered
+// commands. Set transaction to true to wrap buffered commands inside
+// MULTI .. EXEC block.
+func NewPipeClient(netaddr string, db int, password string, transaction bool) *PipeClient {
+    s := newSync(netaddr, db, password)
+    p := &Pipe{s, nil, true, transaction, 0}
+    c := &Client{p}
+    return &PipeClient{c}
 }
 
-// Pipelines include support for MULTI/EXEC operations. Pipe struct
-// is returned. It implements Exec() which executes all buffered
-// commands. Set transaction to true to wrap buffered commands inside
-// MULTI .. EXEC.
-func (c *Client) Pipeline(transaction bool) *Pipe {
-    p := &Pipe{c.Rw.sync(), nil, true, transaction, 0}
-    c.Rw = p
-    return p
+// Uses the connection settings from a existing client to create a new PipeClient
+func NewPipeClientFromClient(c *Client, transaction bool) *PipeClient {
+    s := c.Rw.sync()
+    netaddr := s.net + ":" + s.Addr
+    return NewPipeClient(netaddr, s.Db, s.Password, transaction)
+}
+
+func (p *PipeClient) pipe() *Pipe {
+    v, _ := p.Rw.(*Pipe)
+    return v
 }
 
 func NewSub(addr string, db int, password string) *Sub {

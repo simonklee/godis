@@ -717,13 +717,15 @@ func (c *Client) Select(index int) error {
 // transactions
 //
 //// Discard all commands issued after MULTI
-//func (p *Pipe) Discard() (bool, os.Error) {
+//func (pc *PipeClient) Discard() (bool, os.Error) {
 //    return Send(p.rw, "DISCARD").boolOrErr()
 //}
 
 // Execute all commands issued after EXEC or buffered in 
 // the current pipe. Returns a slice of Replies.
-func (p *Pipe) Exec() []*Reply {
+func (pc *PipeClient) Exec() []*Reply {
+    p := pc.pipe()
+
     if p.transaction {
         Send(p, []byte("EXEC"))
     }
@@ -745,7 +747,9 @@ func (p *Pipe) Exec() []*Reply {
 }
 
 // Mark the start of a transaction block
-func (p *Pipe) Multi() error {
+func (pc *PipeClient) Multi() error {
+    p := pc.pipe()
+
     if p.Count() > 0 {
         return errors.New("Cannot issue MULTI on a buffered pipe")
     }
@@ -755,12 +759,12 @@ func (p *Pipe) Multi() error {
 }
 
 // Forget about all watched keys
-//func (p *Pipe) Unwatch() (bool, os.Error) {
+//func (pc *PipeClient) Unwatch() (bool, os.Error) {
 //    return Send(p.rw, "UNWATCH").boolOrErr()
 //}
 
 // Forget about all watched keys
-//func (p *Pipe) Watch() (bool, os.Error) {
+//func (pc *PipeClient) Watch() (bool, os.Error) {
 //    return Send(p.rw, "WATCH").boolOrErr()
 //}
 
