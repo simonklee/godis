@@ -761,7 +761,6 @@ func TestTransaction(t *testing.T) {
     }
 }
 
-
 func BenchmarkRpush(b *testing.B) {
     c := New("", 0, "")
     start := time.Now()

@@ -4,11 +4,11 @@
 package godis
 
 import (
+    "bytes"
     "errors"
     "fmt"
     "io"
     "log"
-    "bytes"
 
     "strings"
 )

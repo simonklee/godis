@@ -755,7 +755,7 @@ func (pc *PipeClient) Multi() error {
     }
 
     p.transaction = true
-    return  Send(p, []byte("MULTI")).nilOrErr()
+    return Send(p, []byte("MULTI")).nilOrErr()
 }
 
 func (pc *PipeClient) watchUnwatch(name string, keys ...string) error {
