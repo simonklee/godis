@@ -8,6 +8,7 @@ import (
     "fmt"
     "io"
     "log"
+    "bytes"
 
     "strings"
 )
@@ -37,6 +38,7 @@ type Sync struct {
 type Pipe struct {
     *Sync
     conn        *conn
+    b           *bytes.Buffer
     appendMode  bool
     transaction bool
     replyCount  int
@@ -70,19 +72,19 @@ func newSync(netaddr string, db int, password string) *Sync {
 // PipeClient include support for MULTI/EXEC operations. 
 // It implements Exec() which executes all buffered
 // commands. Set transaction to true to wrap buffered commands inside
-// MULTI .. EXEC block.
-func NewPipeClient(netaddr string, db int, password string, transaction bool) *PipeClient {
+// MULTI .. EXEC block. PipeClient is not thread-safe.
+func NewPipeClient(netaddr string, db int, password string) *PipeClient {
     s := newSync(netaddr, db, password)
-    p := &Pipe{s, nil, true, transaction, 0}
+    p := &Pipe{s, nil, new(bytes.Buffer), true, false, 0}
     c := &Client{p}
     return &PipeClient{c}
 }
 
 // Uses the connection settings from a existing client to create a new PipeClient
-func NewPipeClientFromClient(c *Client, transaction bool) *PipeClient {
+func NewPipeClientFromClient(c *Client) *PipeClient {
     s := c.Rw.sync()
     netaddr := s.net + ":" + s.Addr
-    return NewPipeClient(netaddr, s.Db, s.Password, transaction)
+    return NewPipeClient(netaddr, s.Db, s.Password)
 }
 
 func (p *PipeClient) pipe() *Pipe {
@@ -142,11 +144,14 @@ func (p *Pipe) read(conn *conn) *Reply {
         return &Reply{}
     }
 
-    if p.conn.w.Buffered() > 0 {
+    if p.b.Len() > 0 {
         if logCmd {
-            log.Printf("%d bytes were written to socket\n", p.conn.w.Buffered())
+            log.Printf("%d bytes were written to socket\n", p.b.Len())
         }
+
+        p.conn.w.Write(p.b.Bytes())
         p.conn.w.Flush()
+        p.b.Reset()
     }
 
     reply := conn.readReply()
@@ -159,8 +164,6 @@ func (p *Pipe) read(conn *conn) *Reply {
 }
 
 func (p *Pipe) write(cmd []byte) (*conn, error) {
-    var err error
-
     if p.conn == nil {
         if c, err := p.getConn(); err != nil {
             return nil, err
@@ -169,18 +172,13 @@ func (p *Pipe) write(cmd []byte) (*conn, error) {
         }
     }
 
-    if p.transaction && p.replyCount == 0 {
-        p.replyCount++
-        p.conn.w.Write(buildCmd([][]byte{[]byte("MULTI")}))
-    }
-
-    if _, err = p.conn.w.Write(cmd); err != nil {
+    if n, _ := p.b.Write(cmd); n != len(cmd) {
         p.free()
-        return nil, err
+        return nil, errors.New("Writing to command buffer failed")
     }
 
-    p.appendMode = true
     p.replyCount++
+    p.appendMode = true
     return p.conn, nil
 }
 

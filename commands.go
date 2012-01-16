@@ -755,18 +755,33 @@ func (pc *PipeClient) Multi() error {
     }
 
     p.transaction = true
-    return Send(p, []byte("MULTI")).nilOrErr()
+    return  Send(p, []byte("MULTI")).nilOrErr()
+}
+
+func (pc *PipeClient) watchUnwatch(name string, keys ...string) error {
+    p := pc.pipe()
+
+    if p.count() > 0 {
+        return errors.New(name + " inside MULTI is not allowed")
+    }
+
+    SendStr(p, name, keys...)
+
+    p.replyCount++
+    r := p.getReply().nilOrErr()
+    p.replyCount--
+    return r
 }
 
 // Forget about all watched keys
-//func (pc *PipeClient) Unwatch() (bool, os.Error) {
-//    return Send(p.rw, "UNWATCH").boolOrErr()
-//}
+func (pc *PipeClient) Unwatch() error {
+    return pc.watchUnwatch("UNWATCH")
+}
 
-// Forget about all watched keys
-//func (pc *PipeClient) Watch() (bool, os.Error) {
-//    return Send(p.rw, "WATCH").boolOrErr()
-//}
+// Watch the given keys to determine execution of the MULTI/EXEC block
+func (pc *PipeClient) Watch(keys ...string) error {
+    return pc.watchUnwatch("WATCH", keys...)
+}
 
 // pubsub
 

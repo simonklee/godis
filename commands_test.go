@@ -689,6 +689,79 @@ func TestPubSub(t *testing.T) {
     }
 }
 
+func TestTransaction(t *testing.T) {
+    c := New("", 0, "")
+
+    if r := SendStr(c.Rw, "FLUSHDB"); r.Err != nil {
+        t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
+    }
+
+    c.Set("foo", "bar")
+
+    p := NewPipeClientFromClient(c)
+
+    if err := p.Watch("foo"); err != nil {
+        error_(t, "watch", nil, nil, err)
+    }
+
+    // A different client modifies "foo" after watch was called
+    c.Set("foo", "qux")
+
+    if err := p.Multi(); err != nil {
+        error_(t, "multi", nil, nil, err)
+    }
+
+    if err := p.Set("foo", "foo"); err != nil {
+        error_(t, "set", nil, nil, err)
+    }
+
+    if replies := p.Exec(); len(replies) > 0 {
+        error_(t, "exec watched", 0, replies[0].Elem, nil)
+    }
+
+    if err := p.Watch("foo"); err != nil {
+        error_(t, "watch", nil, nil, err)
+    }
+
+    if err := p.Multi(); err != nil {
+        error_(t, "multi", nil, nil, err)
+    }
+
+    if err := p.Set("foo", "foo"); err != nil {
+        error_(t, "set", nil, nil, err)
+    }
+
+    // "foo" was not modified after watch was called
+    if replies := p.Exec(); len(replies) != 1 {
+        error_(t, "exec watched", 0, replies[0].Elem, nil)
+    }
+
+    if err := p.Watch("foo"); err != nil {
+        error_(t, "watch", nil, nil, err)
+    }
+
+    if err := p.Unwatch(); err != nil {
+        error_(t, "watch", nil, nil, err)
+    }
+
+    // A different client modifies "foo" after Unwatch was called
+    c.Set("foo", "qux")
+
+    if err := p.Multi(); err != nil {
+        error_(t, "multi", nil, nil, err)
+    }
+
+    if err := p.Set("foo", "foo"); err != nil {
+        error_(t, "set", nil, nil, err)
+    }
+
+    // "foo" was not modified after watch was called
+    if replies := p.Exec(); len(replies) != 1 {
+        error_(t, "exec watched", 0, replies[0].Elem, nil)
+    }
+}
+
+
 func BenchmarkRpush(b *testing.B) {
     c := New("", 0, "")
     start := time.Now()

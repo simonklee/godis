@@ -6,8 +6,9 @@ import (
 )
 
 func main() {
-    c := godis.NewPipeClient("", 0, "", true)
+    c := godis.NewPipeClient("", 0, "")
 
+    c.Multi()
     c.Set("foo", 1)
     c.Get("foo")
 

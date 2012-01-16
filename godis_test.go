@@ -178,7 +178,7 @@ func TestBinarySafe(t *testing.T) {
 }
 
 func TestSimplePipe(t *testing.T) {
-    c := NewPipeClient("", 0, "", false)
+    c := NewPipeClient("", 0, "")
 
     for _, test := range simpleSendTests {
         r := SendStr(c.Rw, test.cmd, test.args...)
@@ -199,14 +199,15 @@ func TestSimplePipe(t *testing.T) {
     }
 }
 
-func TestTransaction(t *testing.T) {
+func TestSimpleTransaction(t *testing.T) {
     c := New("", 0, "")
 
     if r := SendStr(c.Rw, "FLUSHDB"); r.Err != nil {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    p := NewPipeClientFromClient(c, true)
+    p := NewPipeClientFromClient(c)
+    p.Multi()
     p.Set("foo", "bar")
     p.Set("bar", "bar")
     p.Lpush("bar", "bar")
@@ -216,7 +217,7 @@ func TestTransaction(t *testing.T) {
     t.Log(replies)
     t.Log(replies[2].Err)
 
-    pc := NewPipeClient("", 0, "", false)
+    pc := NewPipeClient("", 0, "")
     pc.Set("baz", "baz")
     pc.Exec()
 }

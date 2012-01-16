@@ -62,18 +62,20 @@ In case your redis server isn't running the output looks like this.
 
 Pipelines include support for MULTI/EXEC operations.
 
-    c := godis.NewPipeClient("tcp:127.0.0.1:6379", 0, "", true)
+    c := godis.NewPipeClient("tcp:127.0.0.1:6379", 0, "")
 
 Create a PipeClient. Subsequent commands will be buffered. PipeClient
 acts as a regular client, but implements a few extra commands;
-`Multi`, `Exec`, `Unwatch`*, `Watch`*, `Discard`*. The latter three
-are still not implemented. Setting transaction to `true` wraps 
-commands inside MULTI .. EXEC.
+`Multi`, `Exec`, `Unwatch`, `Watch`.
+
+    c.Multi()
+
+Calling Multi() wraps subsequent commands inside MULTI .. EXEC.
 
     c.Set("foo", "bar")
     c.Get("foo")
 
-Commands are still called as usual, but will return an empty Reply.
+Commands are still issued as usual, but will return an empty Reply.
 
     replies := c.Exec()
 
@@ -86,7 +88,6 @@ See `example/transaction.go` for a full example.
 ## TODO
 
   * Add tests server commands.
-  * Pipeline need more testing.
 
 ## Acknowledgment
 
