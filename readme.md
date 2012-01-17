@@ -88,6 +88,8 @@ See `example/transaction.go` for a full example.
 ## TODO
 
   * Add tests server commands.
+  * Allow one or more keys to be manipulated with SADD, ZADD, SET, HDEL, 
+    LPUSH, RPUSH, SREM, ZREM and ZADD.
 
 ## Acknowledgment
 
