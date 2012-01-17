@@ -664,8 +664,8 @@ func (c *Client) Save() error {
 }
 
 // Change the replication settings of a slave on the fly
-func (c *Client) Slaveof(host string, port int) error {
-    return SendStr(c.Rw, "SLAVEOF", host, strconv.Itoa(port)).nilOrErr()
+func (c *Client) Slaveof(host string, port string) error {
+    return SendStr(c.Rw, "SLAVEOF", host, port).nilOrErr()
 }
 
 // TODO

@@ -611,9 +611,13 @@ func TestServer(t *testing.T) {
         error_(t, "monitor", nil, res, err)
     }
 
-    // Running this command don't bother to test each time
+    // Don't bother to test each time
     // since it changes the state of server.
-    //if err := c.Slaveof("localhost", 6378); err != nil {
+    //if err := c.Slaveof("localhost", "6379"); err != nil {
+    //    error_(t, "slavof", nil, nil, err)
+    //}
+    //
+    //if err := c.Slaveof("localhost", "NO ONE"); err != nil {
     //    error_(t, "slavof", nil, nil, err)
     //}
 }
