@@ -599,17 +599,17 @@ func (c *Client) Bgsave() error {
 
 // Get the value of a configuration parameter
 func (c *Client) ConfigGet(parameter string) (Elem, error) {
-    return SendStr(c.Rw, "CONFIG GET", parameter).elemOrErr()
+    return SendStr(c.Rw, "CONFIG", "GET", parameter).elemOrErr()
 }
 
 // Reset the stats returned by INFO
 func (c *Client) ConfigResetstat() error {
-    return Send(c.Rw, []byte("CONFIG RESETSTAT")).nilOrErr()
+    return SendStr(c.Rw, "CONFIG", "RESETSTAT").nilOrErr()
 }
 
 // Set a configuration parameter to the given value
 func (c *Client) ConfigSet(parameter string, value string) error {
-    return SendStr(c.Rw, "CONFIG SET", parameter, value).nilOrErr()
+    return SendStr(c.Rw, "CONFIG", "SET", parameter, value).nilOrErr()
 }
 
 // Return the number of keys in the selected database
@@ -619,12 +619,12 @@ func (c *Client) Dbsize() (int64, error) {
 
 // Get debugging information about a key
 func (c *Client) DebugObject(key string) (Elem, error) {
-    return SendStr(c.Rw, "DEBUG OBJECT", key).elemOrErr()
+    return SendStr(c.Rw, "DEBUG", "OBJECT", key).elemOrErr()
 }
 
 // Make the server crash
 func (c *Client) DebugSegfault() error {
-    return Send(c.Rw, []byte("DEBUG SEGFAULT")).nilOrErr()
+    return SendStr(c.Rw, "DEBUG", "SEGFAULT").nilOrErr()
 }
 
 // Remove all keys from all databases

@@ -611,6 +611,28 @@ func TestServer(t *testing.T) {
         error_(t, "monitor", nil, res, err)
     }
 
+    if err := c.ConfigSet("requirepass", "foobared"); err != nil {
+        error_(t, "requirepass foobared", nil, nil, err)
+    }
+
+    c = New("", 1, "foobared")
+
+    if _, err := c.Ping(); err != nil {
+        error_(t, "ping authenticated", nil, nil, err)
+    }
+
+    if elem, err := c.ConfigGet("requirepass"); elem.String() != "foobard" && err != nil {
+        error_(t, "config get", elem.String(), "foobared", err)
+    }
+
+    if err := c.ConfigSet("requirepass", ""); err != nil {
+        error_(t, "requirepass reset", nil, nil, err)
+    }
+
+    if err := c.ConfigResetstat(); err != nil {
+        error_(t, "config resetstat", nil, nil, err)
+    }
+
     // Don't bother to test each time
     // since it changes the state of server.
     //if err := c.Slaveof("localhost", "6379"); err != nil {

@@ -349,8 +349,8 @@ func newConn(netTyp, addr string, db int, password string) (*conn, error) {
 }
 
 func (cc *conn) configConn(db int, password string) error {
-    if db != 0 {
-        buf := [][]byte{[]byte("SELECT"), []byte(strconv.Itoa(db))}
+    if password != "" {
+        buf := [][]byte{[]byte("AUTH"), []byte(password)}
         _, err := cc.rwc.Write(buildCmd(buf))
 
         if err != nil {
@@ -363,8 +363,8 @@ func (cc *conn) configConn(db int, password string) error {
         }
     }
 
-    if password != "" {
-        buf := [][]byte{[]byte("AUTH"), []byte(password)}
+    if db != 0 {
+        buf := [][]byte{[]byte("SELECT"), []byte(strconv.Itoa(db))}
         _, err := cc.rwc.Write(buildCmd(buf))
 
         if err != nil {
