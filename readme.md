@@ -63,26 +63,26 @@ In case your redis server isn't running the output looks like this.
 PipeClient supports MULTI/EXEC operations as well as
 buffered command execution.
 
-    c := godis.NewPipeClient("tcp:127.0.0.1:6379", 0, "")
-
 Create a PipeClient. Subsequent commands will be buffered. PipeClient
 acts as a regular client, but implements a few extra commands;
 `Multi`, `Exec`, `Unwatch`, `Watch`.
 
-    c.Multi()
+    c := godis.NewPipeClient("tcp:127.0.0.1:6379", 0, "")
 
 Calling Multi() wraps subsequent commands inside MULTI .. EXEC.
+
+    c.Multi()
+
+Commands are still issued as usual, but will return an empty *Reply.
 
     c.Set("foo", "bar")
     c.Get("foo")
 
-Commands are still issued as usual, but will return an empty Reply.
-
-    replies := c.Exec()
-
 To execute the buffered commands we call c.Exec(). Exec handles both
 MULTI/EXEC pipelines and simply buffered piplines. It returns a slice
 of all the *Reply objects for every command we executed.
+
+    replies := c.Exec()
 
 See `example/transaction.go` for a full example.
 
