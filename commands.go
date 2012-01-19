@@ -598,8 +598,8 @@ func (c *Client) Bgsave() error {
 }
 
 // Get the value of a configuration parameter
-func (c *Client) ConfigGet(parameter string) (Elem, error) {
-    return SendStr(c.Rw, "CONFIG", "GET", parameter).elemOrErr()
+func (c *Client) ConfigGet(parameter string) (*Reply, error) {
+    return SendStr(c.Rw, "CONFIG", "GET", parameter).replyOrErr()
 }
 
 // Reset the stats returned by INFO

@@ -621,8 +621,8 @@ func TestServer(t *testing.T) {
         error_(t, "ping authenticated", nil, nil, err)
     }
 
-    if elem, err := c.ConfigGet("requirepass"); elem.String() != "foobard" && err != nil {
-        error_(t, "config get", elem.String(), "foobared", err)
+    if r, err := c.ConfigGet("requirepass"); r.StringMap()["requirepass"] != "foobared" || err != nil {
+        error_(t, "config get", "foobared", r.StringMap(), err)
     }
 
     if err := c.ConfigSet("requirepass", ""); err != nil {
