@@ -60,7 +60,8 @@ In case your redis server isn't running the output looks like this.
 
 ## Transactions
 
-Pipelines include support for MULTI/EXEC operations.
+PipeClient supports MULTI/EXEC operations as well as
+buffered command execution.
 
     c := godis.NewPipeClient("tcp:127.0.0.1:6379", 0, "")
 
