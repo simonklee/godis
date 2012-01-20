@@ -818,5 +818,22 @@ func BenchmarkRpush(b *testing.B) {
     }
     c.Del("qux")
     stop := time.Now().Sub(start)
-    log.Printf("time: %.2f\n", float32(stop/1.0e+6)/1000.0)
+    log.Printf("time: %.4f\n", float32(stop/1.0e+6)/1000.0)
+}
+
+func BenchmarkRpushPiped(b *testing.B) {
+    c := NewPipeClient("", 0, "")
+    start := time.Now()
+
+    for i := 0; i < b.N; i++ {
+        if _, err := c.Rpush("qux", "qux"); err != nil {
+            log.Println("RPUSH", err)
+            return
+        }
+    }
+
+    c.Del("qux")
+    c.Exec()
+    stop := time.Now().Sub(start)
+    log.Printf("time: %.4f\n", float32(stop/1.0e+6)/1000.0)
 }
