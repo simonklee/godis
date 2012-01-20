@@ -314,7 +314,27 @@ func TestList(t *testing.T) {
     }
 
     if res, err := c.Rpoplpush("foobar", "foobaz"); err != nil || res.String() != "qux" {
-        error_(t, "Rpop", "qux", res, err)
+        error_(t, "Rpoplpush", "qux", res, err)
+    }
+
+    if res, err := c.Blpop([]string{"foobar", "foobaz"}, 1); err != nil || res.StringMap()["foobar"] != "foo" {
+        error_(t, "Blpop", "foo", res.StringMap()["foobar"], err)
+    }
+
+    if res, err := c.Brpop([]string{"foobar"}, 1); err != nil || res.StringMap()["foobar"] != "bar" {
+        error_(t, "Brpop", "bar", res, err)
+    }
+
+    if res, err := c.Blpop([]string{"foobar", "foobaz"}, 1); err != nil || res.StringMap()["foobaz"] != "qux" {
+        error_(t, "Blpop", "bar", res, err)
+    }
+
+    if res, err := c.Blpop([]string{"foobar", "foobaz"}, 1); err == nil {
+        error_(t, "Blpop timeout err", nil, res, err)
+    }
+
+    if res, err := c.Brpoplpush("foobar", "foobaz", 1); err == nil {
+        error_(t, "brpoplpush timeout err", nil, res, err)
     }
 }
 

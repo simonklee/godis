@@ -51,14 +51,14 @@ type Sub struct {
     Messages   chan *Message
 }
 
+// Returns a new Client given a net address, db and password.
+// nettaddr should be formatted using "net:addr", where ":" is acting as a
+// separator. E.g. "unix:/path/to/redis.sock", "tcp:127.0.0.1:12345". Use an
+// empty string for redis defaults.
 func New(netaddr string, db int, password string) *Client {
     return &Client{newSync(netaddr, db, password)}
 }
 
-// New returns a new Sync given a net address, redis db and password.
-// nettaddr should be formatted using "net:addr", where ":" is acting as a
-// separator. E.g. "unix:/path/to/redis.sock", "tcp:127.0.0.1:12345" or use an
-// empty string for redis default.
 func newSync(netaddr string, db int, password string) *Sync {
     if netaddr == "" {
         netaddr = "tcp:127.0.0.1:6379"

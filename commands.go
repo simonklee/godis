@@ -259,20 +259,44 @@ func (c *Client) Strlen(key string) (int64, error) {
 
 // list
 
+// blocking pop ops return a nil reply if timeout expires.
+func (r *Reply) replyOrErrOnTimeout() (*Reply, error) {
+    res, err := r.replyOrErr()
+
+    if err == nil && res.Elems == nil {
+        return nil, errors.New("timeout expired")
+    }
+
+    return res, err
+}
+
 // Remove and get the first element in a list, or block until one is available
-//func (c *Client) Blpop(key []string, timeout int64) [][]byte {
-//
-//}
+// If timeout expires an error is returned errors.New("timeout expired")
+func (c *Client) Blpop(keys []string, timeout int64) (*Reply, error) {
+    t := strconv.FormatInt(timeout, 10)
+    args := append(keys, t)
+    return SendStr(c.Rw, "BLPOP", args...).replyOrErrOnTimeout()
+}
 
 // Remove and get the last element in a list, or block until one is available
-//func (c *Client) Brpop(key []string, timeout int64) [][]byte {
-//
-//}
+// If timeout expires an error is returned errors.New("timeout expired")
+func (c *Client) Brpop(keys []string, timeout int64) (*Reply, error) {
+    t := strconv.FormatInt(timeout, 10)
+    args := append(keys, t)
+    return SendStr(c.Rw, "BRPOP", args...).replyOrErrOnTimeout()
+}
 
 // Pop a value from a list, push it to another list and return it; or block until one is available
-//func (c *Client) Brpoplpush(source string, destination string, timeout int64) []byte {
-//
-//}
+// If timeout expires an error is returned errors.New("timeout expired")
+func (c *Client) Brpoplpush(source string, destination string, timeout int64) (Elem, error) {
+    e, err := SendStr(c.Rw, "BRPOPLPUSH", source, destination, strconv.FormatInt(timeout, 10)).elemOrErr()
+
+    if err == nil && e == nil {
+        return nil, errors.New("timeout expired")
+    }
+
+    return e, err
+}
 
 // Get an element from a list by its index
 func (c *Client) Lindex(key string, index int) (Elem, error) {
