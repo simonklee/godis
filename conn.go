@@ -21,7 +21,7 @@ const (
     plus   byte = 43
     star   byte = 42
 
-    logCmd = false
+    debug = false
 )
 
 var (
@@ -77,7 +77,7 @@ func buildCmd(args [][]byte) []byte {
         buf.Write(delim)
     }
 
-    if logCmd {
+    if debug {
         log.Printf("GODIS: %q", string(buf.Bytes()))
     }
 
@@ -191,7 +191,7 @@ func (r *Reply) Message() *Message {
 func (r *Reply) parseErr(res []byte) {
     r.Err = errors.New(string(res))
 
-    if logCmd {
+    if debug {
         log.Println("GODIS-ERR: " + string(res))
     }
 }
@@ -199,7 +199,7 @@ func (r *Reply) parseErr(res []byte) {
 func (r *Reply) parseStr(res []byte) {
     r.Elem = res
 
-    if logCmd {
+    if debug {
         log.Println("GODIS-STR: " + string(res))
     }
 }
@@ -207,7 +207,7 @@ func (r *Reply) parseStr(res []byte) {
 func (r *Reply) parseInt(res []byte) {
     r.Elem = res
 
-    if logCmd {
+    if debug {
         log.Println("GODIS-INT: " + string(res))
     }
 }
@@ -216,7 +216,7 @@ func (r *Reply) parseBulk(res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        if logCmd {
+        if debug {
             log.Println("GODIS-BULK: Key does not exist")
         }
 
@@ -249,7 +249,7 @@ func (r *Reply) parseBulk(res []byte) {
     l -= 2
     r.Elem = data[:l]
 
-    if logCmd {
+    if debug {
         log.Printf("GODIS-BULK: read %d byte, bulk-data %q\n", l, data)
     }
 }
@@ -276,7 +276,7 @@ func (r *Reply) parseMultiBulk(res []byte) {
         //    i -= 1
         //    l -= 1
 
-        //    if logCmd {
+        //    if debug {
         //        log.Printf("KEY NOT FOUND")
         //    }
 
@@ -289,7 +289,7 @@ func (r *Reply) parseMultiBulk(res []byte) {
     // buffer is reduced to account for `nil` value returns
     r.Elems = r.Elems[:l]
 
-    if logCmd {
+    if debug {
         //log.Printf("GODIS: %d == %d %q\n", l, len(r.Elems), r.Elems)
     }
 }
@@ -307,7 +307,7 @@ func (c *conn) readReply() *Reply {
     typ := res[0]
     line := res[1 : len(res)-2]
 
-    if logCmd {
+    if debug {
         cmdCount[typ]++
         //log.Printf("CONN: alloc new Reply for `%c` %s\n", typ, string(line))
     }

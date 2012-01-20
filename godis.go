@@ -145,7 +145,7 @@ func (p *Pipe) read(conn *conn) *Reply {
     }
 
     if p.b.Len() > 0 {
-        if logCmd {
+        if debug {
             log.Printf("%d bytes were written to socket\n", p.b.Len())
         }
 

@@ -274,7 +274,7 @@ func TestMemory(t *testing.T) {
     }
 
     stop := time.Now().Sub(start)
-    if logCmd {
+    if debug {
         log.Printf("time: %.2f\n", float32(stop/1.0e+9))
     }
     //time.Sleep(1.0e+9 * 10)
