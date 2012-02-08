@@ -674,7 +674,7 @@ func TestPubSub(t *testing.T) {
     sub, err := c.Subscribe("foochan", "barchan")
 
     if err != nil {
-        t.Fatalf("subscribe", nil, nil, err)
+        t.Fatal("subscribe", nil, nil, err)
     }
 
     if res, err := c.Publish("foochan", "foo"); err != nil || res != 1 {
