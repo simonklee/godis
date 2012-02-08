@@ -10,13 +10,9 @@ commands and features such as transactions and pubsub.
 
 godis is available at github.com. Get it by running.
 
-    $ git clone git://github.com/simonz05/godis.git
+    $ go install github.com/simonz05/godis
 
-And now compile and install it with one command.
-
-    $ make install
-
-Importing godis to your code can be done with `import "godis"`. Thats it!
+Importing godis to your code can be done with `import "github.com/simonz05/godis"`. Thats it!
 
 ## Use godis
 
@@ -26,22 +22,26 @@ the `example/strings.go`.
     package main
 
     import (
-        "godis"
         "fmt"
+        "github.com/simonz05/godis"
+        "os"
     )
 
     func main() {
         // new client on default port 6379, select db 0 and use no password
-        c := godis.New("tcp:127.0.0.1:6379", 0, "") 
+        c := godis.New("", 0, "")
 
         // set the key "foo" to "Hello Redis"
-        c.Set("foo", "Hello Redis")
+        if err := c.Set("foo", "Hello Redis"); err != nil {
+            fmt.Fprintln(os.Stderr, err)
+            os.Exit(1)
+        }
 
         // retrieve the value of "foo". Returns an Elem obj
         elem, _ := c.Get("foo")
 
         // convert the obj to a string and print it 
-        fmt.Println("foo: ", elem.String())
+        fmt.Println("foo:", elem.String())
     }
 
 Build the examples. 

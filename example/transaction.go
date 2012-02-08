@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "godis"
+    "github.com/simonz05/godis"
 )
 
 func main() {

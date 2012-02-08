@@ -436,7 +436,7 @@ func TestSet(t *testing.T) {
     c.Sadd("foobar", "bar")
     c.Sadd("foobaz", "foo")
 
-    want := []string{"foo", "bar"}
+    want := []string{"bar", "foo"}
 
     if res, err := c.Sunion("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
         error_(t, "Sunion", want, res, err)
