@@ -10,7 +10,7 @@ commands and features such as transactions and pubsub.
 
 godis is available at github.com. Get it by running.
 
-    $ go install github.com/simonz05/godis
+    $ go get github.com/simonz05/godis
 
 Importing godis to your code can be done with `import "github.com/simonz05/godis"`. Thats it!
 
