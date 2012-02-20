@@ -436,10 +436,13 @@ func TestSet(t *testing.T) {
     c.Sadd("foobar", "bar")
     c.Sadd("foobaz", "foo")
 
-    want := []string{"bar", "foo"}
+    want := []string{"bar", "foo", "bar"}
 
-    if res, err := c.Sunion("foobar", "foobaz"); err != nil || !reflect.DeepEqual(want, res.StringArray()) {
-        error_(t, "Sunion", want, res, err)
+    switch res, err := c.Sunion("foobar", "foobaz"); {
+		case err != nil:
+		case !reflect.DeepEqual(want[:2], res.StringArray()):
+		case !reflect.DeepEqual(want[1:], res.StringArray()):
+			error_(t, "Sunion", want[:2], res, err)
     }
 
     if res, err := c.Sunionstore("fooqux", "foobar", "foobaz"); err != nil || res != 2 {
