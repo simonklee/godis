@@ -3,7 +3,7 @@
 godis - a [Redis](http://redis.io) client for Go. It supports all
 commands and features such as transactions and pubsub.
 
-1. [Package docs](http://simonklee.org/pkg/godis/)
+1. [Package docs](http://gopkgdoc.appspot.com/pkg/github.com/simonz05/godis)
 2. [Source code](https://github.com/simonz05/godis)
 
 ## Install godis
