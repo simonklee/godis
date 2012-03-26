@@ -6,14 +6,14 @@ import (
 )
 
 func TestPool(t *testing.T) {
-    p := NewConnPool()
+    p := newConnPool()
 
     for i := int(MaxConnections) + 1; i >= 0; i-- {
-        c := p.Pop()
+        c := p.pop()
 
         go func() {
             time.Sleep(1e+4)
-            p.Push(c)
+            p.push(c)
         }()
     }
 }

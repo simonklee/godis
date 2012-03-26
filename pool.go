@@ -6,12 +6,12 @@ import (
 
 var MaxConnections = 10
 
-type ConnPool struct {
+type connPool struct {
     free chan net.Conn
 }
 
-func NewConnPool() *ConnPool {
-    p := ConnPool{make(chan net.Conn, MaxConnections)}
+func newConnPool() *connPool {
+    p := connPool{make(chan net.Conn, MaxConnections)}
 
     for i := 0; i < MaxConnections; i++ {
         p.free <- nil
@@ -20,10 +20,10 @@ func NewConnPool() *ConnPool {
     return &p
 }
 
-func (p *ConnPool) Pop() net.Conn {
+func (p *connPool) pop() net.Conn {
     return <-p.free
 }
 
-func (p *ConnPool) Push(c net.Conn) {
+func (p *connPool) push(c net.Conn) {
     p.free <- c
 }

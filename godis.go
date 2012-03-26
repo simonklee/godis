@@ -10,7 +10,7 @@ import (
 type Client struct {
     Addr  string
     Proto string
-    Pool  *ConnPool
+    pool  *connPool
 }
 
 func NewClient(addr string) *Client {
@@ -19,18 +19,18 @@ func NewClient(addr string) *Client {
     }
 
     na := strings.SplitN(addr, ":", 2)
-    return &Client{Addr: na[1], Proto: na[0], Pool: NewConnPool()}
+    return &Client{Addr: na[1], Proto: na[0], pool: newConnPool()}
 }
 
 func (c *Client) Call(args ...string) (*Reply, error) {
-    conn, err := c.Connect()
-    defer c.Pool.Push(conn)
+    conn, err := c.connect()
+    defer c.pool.push(conn)
 
     if err != nil {
         return nil, err
     }
 
-    req := NewRequest(conn)
+    req := newRequest(conn)
 
     _, err = req.wbuf.Write(format(args...))
 
@@ -53,11 +53,11 @@ func (c *Client) Call(args ...string) (*Reply, error) {
     return res, nil
 }
 
-func (c *Client) Connect() (conn net.Conn, err error) {
-    conn = c.Pool.Pop()
+func (c *Client) connect() (conn net.Conn, err error) {
+    conn = c.pool.pop()
 
     if conn == nil {
-        conn, err = NewConn(c.Addr, c.Proto)
+        conn, err = newConn(c.Addr, c.Proto)
 
         if err != nil {
             return nil, err
@@ -68,13 +68,13 @@ func (c *Client) Connect() (conn net.Conn, err error) {
 }
 
 func (c *Client) Pipeline() (*Pipeline, error) {
-    conn, err := c.Connect()
+    conn, err := c.connect()
 
     if err != nil {
         return nil, err
     }
 
-    return &Pipeline{c, NewRequest(conn)}, nil
+    return &Pipeline{c, newRequest(conn)}, nil
 }
 
 type Pipeline struct {
@@ -92,7 +92,7 @@ type Request struct {
     conn net.Conn
 }
 
-func NewRequest(c net.Conn) *Request {
+func newRequest(c net.Conn) *Request {
     return &Request{bufio.NewReader(c), bufio.NewWriter(c), c}
 }
 

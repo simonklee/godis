@@ -6,7 +6,7 @@ import (
 )
 
 // New connection
-func NewConn(addr, proto string) (net.Conn, error) {
+func newConn(addr, proto string) (net.Conn, error) {
     conn, err := net.Dial(proto, addr)
 
     if err != nil {
