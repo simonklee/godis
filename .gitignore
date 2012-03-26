@@ -1,7 +1,7 @@
 *.6
 *.out
 misc/
-bench/
+bench/bench
 redis/
 godis
 _test*
