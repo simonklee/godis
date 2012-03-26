@@ -47,7 +47,7 @@ func (c *Client) Call(args ...string) (*Reply, error) {
     res := req.Read()
 
     if res.Err != nil {
-        return nil, err
+        return nil, res.Err
     }
 
     return res, nil
@@ -68,13 +68,14 @@ func (c *Client) connect() (conn net.Conn, err error) {
 }
 
 func (c *Client) Pipeline() (*Pipeline, error) {
+    //TODO: connect at a later stage
     conn, err := c.connect()
 
     if err != nil {
         return nil, err
     }
 
-    return &Pipeline{c, newRequest(conn)}, nil
+    return &Pipeline{c}, nil
 }
 
 type Pipeline struct {
@@ -82,8 +83,19 @@ type Pipeline struct {
     req *Request
 }
 
-func (p *Pipeline) Call(args ...string) {
-    p.req.wbuf.Write(format(args...))
+func (p *Pipeline) Call(args ...string) (error) {
+    _, err := p.req.wbuf.Write(format(args...))
+    return err
+}
+
+func (p *Pipeline) Read() (*Reply, error) {
+    res := p.req.Read()
+
+    if res.Err != nil {
+        return nil, res.Err
+    }
+
+    return res, nil
 }
 
 type Request struct {

@@ -6,6 +6,14 @@ import (
     "testing"
 )
 
+func error_(t *testing.T, name string, expected, got interface{}, err error) {
+    if err != nil {
+        t.Errorf("`%s` expected `%v` got `%v`, err(%v)", name, expected, got, err.Error())
+    } else {
+        t.Errorf("`%s` expected `%v` got `%v`, err(%v)", name, expected, got, err)
+    }
+}
+
 func formatTest(t *testing.T, exp string, a ...string) {
     got := format(a...)
 
@@ -22,7 +30,32 @@ func TestFormat(t *testing.T) {
 
 func TestClient(t *testing.T) {
     c := NewClient("")
+
     c.Call("SET", "foo", "foo")
+    p, err := c.Pipeline()
+    p.Call("MULTI")
+    p.Call("GET", "foo")
+    p.Call("EXEC")
+
+    res, err := p.Read()
+
+    if err != nil || string(res.Elem) != "OK" {
+        t.Fatal(err.Error())
+    } 
+
+    res, err = p.Read()
+
+    if err != nil || string(res.Elem) != "QUEUED" {
+        error_(t, "pipe", "foo", string(res.Elem), err)
+    } 
+
+    res, err = p.Read()
+
+    if err != nil || len(res.Elems) != 1 {
+        error_(t, "exec", 1, len(res.Elems), err)
+    } else {
+        println(string(res.Elems[0].Elem))
+    }
 }
 
 func BenchmarkItoa(b *testing.B) {
