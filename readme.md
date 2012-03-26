@@ -13,12 +13,13 @@ godis is available at github.com. Get it by running.
 
     $ go get github.com/simonz05/godis
 
-Importing godis to your code can be done with `import "github.com/simonz05/godis"`. Thats it!
+Importing godis to your code can be done with `import
+"github.com/simonz05/godis"`. Thats it!
 
 ## Use godis
 
-Checking out the code include a few examples. Here is the code for
-the `example/strings.go`.
+A few examples are included. The following demonstrates SET
+and GET. See `example/` for more.
 
     package main
 
@@ -49,7 +50,8 @@ To run it we type.
     $ ./string
     GET foo: bar 
 
-In case your redis server isn't running the output looks like this.
+In case your redis server isn't running the output looks
+like this.
 
     $ ./string 
     Connection error 127.0.0.1:6379
