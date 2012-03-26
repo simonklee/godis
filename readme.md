@@ -45,13 +45,15 @@ Build the examples.
 
     $ make 
 
-To run it we type.
+Run the program with.
 
     $ ./string
+
+Output should look something like this.
+
     GET foo: bar 
 
 In case your redis server isn't running the output looks
 like this.
 
-    $ ./string 
     Connection error 127.0.0.1:6379
