@@ -45,11 +45,8 @@ Build the examples.
 
     $ make 
 
-Run the program with.
-
-    $ ./string
-
-Output should look something like this.
+Run the program with `$ ./string`. Output should look
+something like this.
 
     GET foo: bar 
 
