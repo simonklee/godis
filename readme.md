@@ -41,16 +41,15 @@ and GET. See `example/` for more.
         println("GET foo:", res.Elem.String())
     }
 
-Build the examples. 
+Build and run the example. 
 
-    $ make 
+    $ make string; ./string
 
-Run the program with `$ ./string`. Output should look
-something like this.
+You should see the following printed in the terminal.
 
     GET foo: bar 
 
-In case your redis server isn't running the output looks
-like this.
+In case your redis server isn't running, you'll get an
+error.
 
     Connection error 127.0.0.1:6379
