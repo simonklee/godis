@@ -22,27 +22,59 @@ func NewClient(addr string) *Client {
     return &Client{Addr: na[1], Proto: na[0], Pool: NewConnPool()}
 }
 
-func (c *Client) Call(args ...string) *Reply {
-    req := NewRequest(c.Connect())
-    req.wbuf.Write(format(args...))
-    req.wbuf.Flush()
-    res := req.Read()
-    c.Pool.Push(req.conn)
-    return res
-}
+func (c *Client) Call(args ...string) (*Reply, error) {
+    conn, err := c.Connect()
+    defer c.Pool.Push(conn)
 
-func (c *Client) Connect() net.Conn {
-    conn := c.Pool.Pop()
-
-    if conn == nil {
-        conn, _ = NewConn(c.Addr, c.Proto)
+    if err != nil {
+        return nil, err
     }
 
-    return conn
+    req := NewRequest(conn)
+
+    _, err = req.wbuf.Write(format(args...))
+
+    if err != nil {
+        return nil, err
+    }
+
+    err = req.wbuf.Flush()
+
+    if err != nil {
+        return nil, err
+    }
+
+    res := req.Read()
+
+    if res.Err != nil {
+        return nil, err
+    }
+
+    return res, nil
 }
 
-func (c *Client) Pipeline() *Pipeline {
-    return &Pipeline{c, NewRequest(c.Connect())}
+func (c *Client) Connect() (conn net.Conn, err error) {
+    conn = c.Pool.Pop()
+
+    if conn == nil {
+        conn, err = NewConn(c.Addr, c.Proto)
+
+        if err != nil {
+            return nil, err
+        }
+    }
+
+    return conn, nil
+}
+
+func (c *Client) Pipeline() (*Pipeline, error) {
+    conn, err := c.Connect()
+
+    if err != nil {
+        return nil, err
+    }
+
+    return &Pipeline{c, NewRequest(conn)}, nil
 }
 
 type Pipeline struct {
