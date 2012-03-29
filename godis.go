@@ -201,7 +201,8 @@ func (p *Pipe) count() int {
 }
 
 func (p *Pipe) free() {
-    p.pool.push(p.conn)
+    p.conn.rwc.Close()
+    p.pool.push(nil)
     p.conn = nil
     p.appendMode = true
 }
