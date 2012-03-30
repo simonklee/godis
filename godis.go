@@ -75,7 +75,7 @@ func (c *Client) Pipeline() (*Pipeline, error) {
         return nil, err
     }
 
-    return &Pipeline{c}, nil
+    return &Pipeline{c, newRequest(conn)}, nil
 }
 
 type Pipeline struct {
