@@ -43,7 +43,6 @@ func (r *Reply) parseBulk(buf *bufio.Reader, res []byte) {
             log.Println("-BULK: Key does not exist")
         }
 
-        r.Err = errors.New("Nonexisting key")
         return
     }
 
