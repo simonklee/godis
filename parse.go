@@ -93,18 +93,6 @@ func (r *Reply) parseMultiBulk(buf *bufio.Reader, res []byte) {
             r.Err = rr.Err
         }
 
-        // key not found, ignore `nil` value
-        //if rr.Elem == nil {
-        //    i -= 1
-        //    l -= 1
-
-        //    if debug {
-        //        log.Printf("KEY NOT FOUND")
-        //    }
-
-        //    continue
-        //}
-
         r.Elems[i] = rr
     }
 
