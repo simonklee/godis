@@ -1,14 +1,14 @@
 package main
 
 import (
-    "time"
-    "fmt"
-    "os"
-    "github.com/simonz05/exp-godis"
-    "strings"
     "flag"
+    "fmt"
+    "github.com/simonz05/exp-godis"
+    "os"
     "runtime"
     "runtime/pprof"
+    "strings"
+    "time"
 )
 
 var tests = make(map[string]func(*godis.Client, chan bool))
@@ -67,7 +67,7 @@ func BenchmarkRedis(handle func(*godis.Client, chan bool)) time.Duration {
     }
 
     for i := 0; i < *N; i++ {
-        ch<-true 
+        ch <- true
     }
 
     return time.Now().Sub(start)
@@ -82,7 +82,7 @@ func run(name string) {
         os.Exit(1)
     }
 
-    fmt.Printf("%s:\n",strings.ToUpper(name))
+    fmt.Printf("%s:\n", strings.ToUpper(name))
 
     for i := 0; i < *R; i++ {
         t = BenchmarkRedis(test)

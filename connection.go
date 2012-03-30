@@ -1,8 +1,8 @@
 package godis
 
 import (
-    "net"
     "bufio"
+    "net"
 )
 
 type Conn struct {
@@ -12,13 +12,12 @@ type Conn struct {
 }
 
 // reads a reply for a Conn
-func (r *Conn) Read() *Reply {
-    if r.wbuf.Buffered() > 0 {
-        r.wbuf.Flush()
+func (c *Conn) Read() *Reply {
+    if c.wbuf.Buffered() > 0 {
+        c.wbuf.Flush()
     }
 
-    res := Parse(r.rbuf)
-    return res
+    return Parse(c.rbuf)
 }
 
 // New connection
@@ -26,7 +25,7 @@ func newConn(addr, proto string) (*Conn, error) {
     c, err := net.Dial(proto, addr)
 
     if err != nil {
-        return nil, err 
+        return nil, err
     }
 
     return &Conn{bufio.NewReader(c), bufio.NewWriter(c), c}, nil
