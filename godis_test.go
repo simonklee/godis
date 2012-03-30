@@ -32,7 +32,7 @@ func TestClient(t *testing.T) {
     c := NewClient("")
 
     c.Call("SET", "foo", "foo")
-    p, err := c.Pipeline()
+    p := c.Pipeline()
     p.Call("MULTI")
     p.Call("GET", "foo")
     p.Call("EXEC")

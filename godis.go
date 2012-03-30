@@ -3,6 +3,7 @@ package godis
 
 import (
     "bufio"
+    "bytes"
     "net"
     "strings"
 )
@@ -67,28 +68,44 @@ func (c *Client) connect() (conn net.Conn, err error) {
     return conn, nil
 }
 
-func (c *Client) Pipeline() (*Pipeline, error) {
-    //TODO: connect at a later stage
-    conn, err := c.connect()
-
-    if err != nil {
-        return nil, err
-    }
-
-    return &Pipeline{c, newRequest(conn)}, nil
+func (c *Client) Pipeline() *Pipeline {
+    return &Pipeline{c, new(bytes.Buffer), nil}
 }
 
 type Pipeline struct {
     *Client
+    buf *bytes.Buffer
     req *Request
 }
 
-func (p *Pipeline) Call(args ...string) (error) {
-    _, err := p.req.wbuf.Write(format(args...))
+func (p *Pipeline) Call(args ...string) (err error) {
+    if p.req == nil {
+        _, err = p.buf.Write(format(args...))
+    } else {
+        _, err = p.req.wbuf.Write(format(args...))
+    }
+
     return err
 }
 
 func (p *Pipeline) Read() (*Reply, error) {
+    if p.req == nil {
+        conn, err := p.connect()
+
+        if err != nil {
+            return nil, err
+        }
+
+        req := newRequest(conn)
+        _, err = p.buf.WriteTo(req.conn)
+
+        if err != nil {
+            return nil, err
+        }
+
+        p.req = req
+    }
+
     res := p.req.Read()
 
     if res.Err != nil {
