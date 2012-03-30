@@ -178,13 +178,7 @@ func (c *Client) Decrby(key string, decrement int64) (int64, error) {
 
 // Get the value of a key
 func (c *Client) Get(key string) (Elem, error) {
-    r := SendStr(c.Rw, "GET", key)
-
-    if r.Err == nil && r.Elem == nil {
-        r.Err = errors.New("key `" + key + "`does not exist")
-    }
-
-    return r.elemOrErr()
+    return SendStr(c.Rw, "GET", key).elemOrErr()
 }
 
 // Returns the bit value at offset in the string value stored at key

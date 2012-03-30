@@ -13,7 +13,7 @@ func TestGeneric(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Randomkey(); res != "" || err == nil {
+    if res, err := c.Randomkey(); res != "" || err != nil {
         error_(t, "randomkey", "", res, err)
     }
 
@@ -176,7 +176,7 @@ func TestString(t *testing.T) {
         error_(t, "get", "foobar", res, err)
     }
 
-    if _, err := c.Get("foobar"); err == nil {
+    if v, err := c.Get("nil"); err != nil && v != nil {
         error_(t, "get", "error", nil, err)
     }
 
@@ -229,7 +229,7 @@ func TestString(t *testing.T) {
     }
 
     out = append(out, "il")
-    if res, err = c.Mget(out...); err == nil || res != nil {
+    if res, err = c.Mget(out...); err != nil && res != nil {
         error_(t, "mget", nil, "expected error", err)
         t.FailNow()
     }
@@ -439,10 +439,10 @@ func TestSet(t *testing.T) {
     want := []string{"bar", "foo", "bar"}
 
     switch res, err := c.Sunion("foobar", "foobaz"); {
-		case err != nil:
-		case !reflect.DeepEqual(want[:2], res.StringArray()):
-		case !reflect.DeepEqual(want[1:], res.StringArray()):
-			error_(t, "Sunion", want[:2], res, err)
+    case err != nil:
+    case !reflect.DeepEqual(want[:2], res.StringArray()):
+    case !reflect.DeepEqual(want[1:], res.StringArray()):
+        error_(t, "Sunion", want[:2], res, err)
     }
 
     if res, err := c.Sunionstore("fooqux", "foobar", "foobaz"); err != nil || res != 2 {
@@ -485,7 +485,7 @@ func TestSet(t *testing.T) {
         error_(t, "spop", "foo", res, err)
     }
 
-    if res, err := c.Srandmember("foobaz"); err == nil || res != nil {
+    if res, err := c.Srandmember("foobaz"); err != nil && res != nil {
         error_(t, "srandmember", nil, res, err)
     }
 
@@ -612,7 +612,7 @@ func TestConnection(t *testing.T) {
         error_(t, "select", nil, nil, err)
     }
 
-    if res, err := c.Get("foo"); err == nil || res != nil {
+    if res, err := c.Get("foo"); err != nil && res != nil {
         error_(t, "get-select", nil, res, err)
     }
 

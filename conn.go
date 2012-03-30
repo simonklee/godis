@@ -220,7 +220,7 @@ func (r *Reply) parseBulk(res []byte) {
             log.Println("GODIS-BULK: Key does not exist")
         }
 
-        r.Err = errors.New("Nonexisting key")
+        r.Err = nil
         return
     }
 
