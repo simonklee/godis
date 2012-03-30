@@ -24,7 +24,7 @@ func NewClient(addr string) *Client {
 func (c *Client) Call(args ...string) (*Reply, error) {
     conn, err := c.connect()
     defer c.pool.push(conn)
- 
+
     _, err = conn.wbuf.Write(format(args...))
 
     if err != nil {
@@ -66,7 +66,7 @@ func (c *Client) Pipeline() *Pipeline {
 
 type Pipeline struct {
     *Client
-    buf *bytes.Buffer
+    buf  *bytes.Buffer
     conn *Conn
 }
 
@@ -100,5 +100,3 @@ func (p *Pipeline) Read() (*Reply, error) {
 
     return res, nil
 }
-
-

@@ -41,13 +41,13 @@ func TestClient(t *testing.T) {
 
     if err != nil || string(res.Elem) != "OK" {
         t.Fatal(err.Error())
-    } 
+    }
 
     res, err = p.Read()
 
     if err != nil || string(res.Elem) != "QUEUED" {
         error_(t, "pipe", "foo", string(res.Elem), err)
-    } 
+    }
 
     res, err = p.Read()
 
@@ -70,7 +70,6 @@ func BenchmarkSet(b *testing.B) {
         c.Call("SET", "foo", "foo")
     }
 }
-
 
 func BenchmarkAppendUint(b *testing.B) {
     var buf []byte
