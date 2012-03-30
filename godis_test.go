@@ -14,25 +14,10 @@ func error_(t *testing.T, name string, expected, got interface{}, err error) {
     }
 }
 
-func formatTest(t *testing.T, exp string, a ...string) {
-    got := format(a...)
-
-    if exp != string(got) {
-        t.Errorf("format: expected %s got %s", exp, string(got))
-    }
-}
-
-func TestFormat(t *testing.T) {
-    formatTest(t, "*2\r\n$4\r\nPING\r\n$4\r\nPONG\r\n", "PING", "PONG")
-    formatTest(t, "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\nbar\r\n", "SET", "foo", "bar")
-    formatTest(t, "*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n", "GET", "foo")
-}
-
 func TestClient(t *testing.T) {
     c := NewClient("")
 
     if _, err := c.Call("SET", "foo", "foo"); err != nil {
-        println("errror call")
         t.Fatal(err.Error())
     }
 
