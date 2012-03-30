@@ -17,7 +17,7 @@ func (c *Conn) Read() *Reply {
         c.wbuf.Flush()
     }
 
-    return Parse(r.rbuf)
+    return Parse(c.rbuf)
 }
 
 // New connection
