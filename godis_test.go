@@ -31,7 +31,11 @@ func TestFormat(t *testing.T) {
 func TestClient(t *testing.T) {
     c := NewClient("")
 
-    c.Call("SET", "foo", "foo")
+    if _, err := c.Call("SET", "foo", "foo"); err != nil {
+        println("errror call")
+        t.Fatal(err.Error())
+    }
+
     p := c.Pipeline()
     p.Call("MULTI")
     p.Call("GET", "foo")
@@ -66,6 +70,7 @@ func BenchmarkItoa(b *testing.B) {
 
 func BenchmarkSet(b *testing.B) {
     c := NewClient("")
+
     for i := 0; i < b.N; i++ {
         c.Call("SET", "foo", "foo")
     }

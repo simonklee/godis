@@ -25,6 +25,9 @@ func (c *Client) Call(args ...string) (*Reply, error) {
     conn, err := c.connect()
     defer c.pool.push(conn)
 
+    if err != nil {
+        return nil, err
+    }
     _, err = conn.wbuf.Write(format(args...))
 
     if err != nil {
