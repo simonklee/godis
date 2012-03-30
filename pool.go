@@ -1,17 +1,13 @@
 package godis
 
-import (
-    "net"
-)
-
 var MaxConnections = 10
 
 type connPool struct {
-    free chan net.Conn
+    free chan *Conn
 }
 
 func newConnPool() *connPool {
-    p := connPool{make(chan net.Conn, MaxConnections)}
+    p := connPool{make(chan *Conn, MaxConnections)}
 
     for i := 0; i < MaxConnections; i++ {
         p.free <- nil
@@ -20,10 +16,10 @@ func newConnPool() *connPool {
     return &p
 }
 
-func (p *connPool) pop() net.Conn {
+func (p *connPool) pop() *Conn {
     return <-p.free
 }
 
-func (p *connPool) push(c net.Conn) {
+func (p *connPool) push(c *Conn) {
     p.free <- c
 }

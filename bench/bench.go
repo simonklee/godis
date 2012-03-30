@@ -15,6 +15,7 @@ var tests = make(map[string]func(*godis.Client, chan bool))
 var C *int = flag.Int("c", 50, "concurrent requests")
 var R *int = flag.Int("r", 4, "sample size")
 var N *int = flag.Int("n", 10000, "number of request")
+var cpuprof *string = flag.String("cpuprof", "pprof.out", "filename for cpuprof")
 
 func init() {
     runtime.GOMAXPROCS(8)
@@ -53,10 +54,10 @@ func getHandle(c *godis.Client, ch chan bool) {
 func BenchmarkRedis(handle func(*godis.Client, chan bool)) time.Duration {
     c := godis.NewClient("")
 
-    if _, err := c.Call("FLUSHDB"); err != nil {
-        fmt.Fprintln(os.Stderr, err.Error())
-        os.Exit(1)
-    }
+    //if _, err := c.Call("FLUSHDB"); err != nil {
+    //    fmt.Fprintln(os.Stderr, err.Error())
+    //    os.Exit(1)
+    //}
 
     ch := make(chan bool)
     start := time.Now()
@@ -100,11 +101,22 @@ func main() {
     flag.Parse()
     fmt.Printf("CONCURRENT: %d SAMPLES: %d REQUESTS: %d\n\n", *C, *R, *N)
 
+    file, err := os.OpenFile(*cpuprof, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err.Error())
+        os.Exit(1)
+    }
+
+    defer file.Close()
+
+    pprof.StartCPUProfile(file)
+    defer pprof.StopCPUProfile()
+
     for _, name := range flag.Args() {
         run(name)
     }
 
     stats := new(runtime.MemStats)
     runtime.ReadMemStats(stats)
-    pprof.StopCPUProfile()
 }

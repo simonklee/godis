@@ -2,9 +2,7 @@
 package godis
 
 import (
-    "bufio"
     "bytes"
-    "net"
     "strings"
 )
 
@@ -26,26 +24,20 @@ func NewClient(addr string) *Client {
 func (c *Client) Call(args ...string) (*Reply, error) {
     conn, err := c.connect()
     defer c.pool.push(conn)
+ 
+    _, err = conn.wbuf.Write(format(args...))
 
     if err != nil {
         return nil, err
     }
 
-    req := newRequest(conn)
-
-    _, err = req.wbuf.Write(format(args...))
+    err = conn.wbuf.Flush()
 
     if err != nil {
         return nil, err
     }
 
-    err = req.wbuf.Flush()
-
-    if err != nil {
-        return nil, err
-    }
-
-    res := req.Read()
+    res := conn.Read()
 
     if res.Err != nil {
         return nil, res.Err
@@ -54,7 +46,7 @@ func (c *Client) Call(args ...string) (*Reply, error) {
     return res, nil
 }
 
-func (c *Client) connect() (conn net.Conn, err error) {
+func (c *Client) connect() (conn *Conn, err error) {
     conn = c.pool.pop()
 
     if conn == nil {
@@ -75,38 +67,32 @@ func (c *Client) Pipeline() *Pipeline {
 type Pipeline struct {
     *Client
     buf *bytes.Buffer
-    req *Request
+    conn *Conn
 }
 
 func (p *Pipeline) Call(args ...string) (err error) {
-    if p.req == nil {
+    if p.conn == nil {
         _, err = p.buf.Write(format(args...))
     } else {
-        _, err = p.req.wbuf.Write(format(args...))
+        _, err = p.conn.wbuf.Write(format(args...))
     }
 
     return err
 }
 
 func (p *Pipeline) Read() (*Reply, error) {
-    if p.req == nil {
+    if p.conn == nil {
         conn, err := p.connect()
+        _, err = p.buf.WriteTo(conn.conn)
 
         if err != nil {
             return nil, err
         }
 
-        req := newRequest(conn)
-        _, err = p.buf.WriteTo(req.conn)
-
-        if err != nil {
-            return nil, err
-        }
-
-        p.req = req
+        p.conn = conn
     }
 
-    res := p.req.Read()
+    res := p.conn.Read()
 
     if res.Err != nil {
         return nil, res.Err
@@ -115,22 +101,4 @@ func (p *Pipeline) Read() (*Reply, error) {
     return res, nil
 }
 
-type Request struct {
-    rbuf *bufio.Reader
-    wbuf *bufio.Writer
-    conn net.Conn
-}
 
-func newRequest(c net.Conn) *Request {
-    return &Request{bufio.NewReader(c), bufio.NewWriter(c), c}
-}
-
-// reads a reply for a Request
-func (r *Request) Read() *Reply {
-    if r.wbuf.Buffered() > 0 {
-        r.wbuf.Flush()
-    }
-
-    res := Parse(r.rbuf)
-    return res
-}
