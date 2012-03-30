@@ -13,7 +13,7 @@ func TestGeneric(t *testing.T) {
         t.Fatalf("'%s': %s", "FLUSHDB", r.Err)
     }
 
-    if res, err := c.Randomkey(); res != "" || err != nil {
+    if res, err := c.Randomkey(); res != "" && err != nil {
         error_(t, "randomkey", "", res, err)
     }
 
