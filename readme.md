@@ -1,20 +1,20 @@
 # godis
 
-godis - a [Redis](http://redis.io) client for Go. It
-supports commands and features through a simple API which is
-easy to use.
+exp-godis - an experimental [Redis](http://redis.io) client
+for Go. It supports commands and features through a simple
+API which aims to be is easy to use.
 
-1. [Package docs](http://gopkgdoc.appspot.com/pkg/github.com/simonz05/godis)
-2. [Source code](https://github.com/simonz05/godis)
+1. [Package docs](http://gopkgdoc.appspot.com/pkg/github.com/simonz05/exp-godis)
+2. [Source code](https://github.com/simonz05/exp-godis)
 
 ## Install godis
 
 godis is available at github.com. Get it by running.
 
-    $ go get github.com/simonz05/godis
+    $ go get github.com/simonz05/exp-godis
 
 Importing godis to your code can be done with `import
-"github.com/simonz05/godis"`. Thats it!
+"github.com/simonz05/exp-godis"`. Thats it!
 
 ## Use godis
 
@@ -24,7 +24,7 @@ and GET. See `example/` for more.
     package main
 
     import (
-        "github.com/simonz05/godis"
+        "github.com/simonz05/exp-godis"
     )
 
     func main() {
@@ -52,4 +52,4 @@ You should see the following printed in the terminal.
 In case your redis server isn't running, you'll get an
 error.
 
-    Connection error 127.0.0.1:6379
+    ERR 127.0.0.1:6379

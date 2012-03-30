@@ -1,7 +1,7 @@
 package main
 
 import (
-    "github.com/simonz05/godis"
+    "github.com/simonz05/exp-godis"
 )
 
 func main() {
