@@ -1,6 +1,6 @@
 package godis
 
-var MaxConnections = 10
+var MaxConnections = 50
 
 type connPool struct {
     free chan *Conn
