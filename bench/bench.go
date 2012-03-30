@@ -4,14 +4,14 @@ import (
     "time"
     "fmt"
     "os"
-    "github.com/simonz05/redis"
+    "github.com/simonz05/exp-godis"
     "strings"
     "flag"
     "runtime"
     "runtime/pprof"
 )
 
-var tests = make(map[string]func(*redis.Client, chan bool))
+var tests = make(map[string]func(*godis.Client, chan bool))
 var C *int = flag.Int("c", 50, "concurrent requests")
 var R *int = flag.Int("r", 4, "sample size")
 var N *int = flag.Int("n", 10000, "number of request")
@@ -21,6 +21,7 @@ func init() {
 
     tests["set"] = setHandle
     tests["get"] = getHandle
+    tests["rpush"] = rpushHandle
 }
 
 func prints(t time.Duration) {
@@ -31,20 +32,32 @@ func printsA(avg, tot time.Duration) {
     fmt.Fprintf(os.Stdout, "%.2f op/sec  real %.4fs  tot %.4fs\n", float64(*N)/avg.Seconds(), avg.Seconds(), tot.Seconds())
 }
 
-func setHandle(c *redis.Client, ch chan bool) {
+func rpushHandle(c *godis.Client, ch chan bool) {
+    for _ = range ch {
+        c.Call("RPUSH", "foo", "bar")
+    }
+}
+
+func setHandle(c *godis.Client, ch chan bool) {
     for _ = range ch {
         c.Call("SET", "foo", "bar")
     }
 }
 
-func getHandle(c *redis.Client, ch chan bool) {
+func getHandle(c *godis.Client, ch chan bool) {
     for _ = range ch {
         c.Call("GET", "foo")
     }
 }
 
-func BenchmarkRedis(handle func(*redis.Client, chan bool)) time.Duration {
-    c := redis.NewClient("")
+func BenchmarkRedis(handle func(*godis.Client, chan bool)) time.Duration {
+    c := godis.NewClient("")
+
+    if _, err := c.Call("FLUSHDB"); err != nil {
+        fmt.Fprintln(os.Stderr, err.Error())
+        os.Exit(1)
+    }
+
     ch := make(chan bool)
     start := time.Now()
 
