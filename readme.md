@@ -1,4 +1,4 @@
-# godis
+# exp-godis
 
 exp-godis - an experimental [Redis](http://redis.io) client
 for Go. It supports commands and features through a simple
@@ -7,16 +7,16 @@ API which aims to be is easy to use.
 1. [Package docs](http://gopkgdoc.appspot.com/pkg/github.com/simonz05/exp-godis)
 2. [Source code](https://github.com/simonz05/exp-godis)
 
-## Install godis
+## Install exp-godis
 
-godis is available at github.com. Get it by running.
+exp-godis is available at github.com. Get it by running.
 
     $ go get github.com/simonz05/exp-godis
 
-Importing godis to your code can be done with `import
+Importing exp-godis to your code can be done with `import
 "github.com/simonz05/exp-godis"`. Thats it!
 
-## Use godis
+## Use exp-godis
 
 A few examples are included. The following demonstrates SET
 and GET. See `example/` for more.
