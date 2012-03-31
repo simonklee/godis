@@ -28,13 +28,8 @@ func (c *Client) Call(args ...string) (*Reply, error) {
     if err != nil {
         return nil, err
     }
-    _, err = conn.wbuf.Write(format(args...))
 
-    if err != nil {
-        return nil, err
-    }
-
-    err = conn.wbuf.Flush()
+    _, err = conn.Conn.Write(format(args...))
 
     if err != nil {
         return nil, err
@@ -63,8 +58,28 @@ func (c *Client) connect() (conn *Conn, err error) {
     return conn, nil
 }
 
+func (c *Client) CallA(args ...string) (*Conn, error) {
+    conn, err := c.connect()
+
+    if err != nil {
+        return nil, err
+    }
+
+    _, err = conn.Conn.Write(format(args...))
+
+    if err != nil {
+        return nil, err
+    }
+
+    return conn, nil
+}
+
+func (c *Client) CallADone(conn *Conn) {
+    c.pool.push(conn)
+}
+
 func (c *Client) Pipeline() *Pipeline {
-    return &Pipeline{c, new(bytes.Buffer), nil}
+    return &Pipeline{c, bytes.NewBuffer(make([]byte, 0, 1024*16)), nil}
 }
 
 type Pipeline struct {
@@ -74,25 +89,27 @@ type Pipeline struct {
 }
 
 func (p *Pipeline) Call(args ...string) (err error) {
-    if p.conn == nil {
-        _, err = p.buf.Write(format(args...))
-    } else {
-        _, err = p.conn.wbuf.Write(format(args...))
-    }
-
+    _, err = p.buf.Write(format(args...))
     return err
 }
 
 func (p *Pipeline) Read() (*Reply, error) {
     if p.conn == nil {
         conn, err := p.connect()
-        _, err = p.buf.WriteTo(conn.conn)
 
         if err != nil {
             return nil, err
         }
 
         p.conn = conn
+    } 
+
+    if p.buf.Len() > 0 {
+        _, err := p.buf.WriteTo(p.conn.Conn)
+
+        if err != nil {
+            return nil, err
+        }
     }
 
     res := p.conn.Read()

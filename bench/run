@@ -8,5 +8,5 @@ go install
 cd bench/
 rm -f $CPUPROF
 go build .
-./bench "${@}" -cpuprof $CPUPROF set
-pprof bench $CPUPROF web
+./bench -cpuprof $CPUPROF "${@}" 
+pprof bench $CPUPROF
