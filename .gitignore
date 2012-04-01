@@ -2,6 +2,7 @@
 *.out
 misc/
 bench/bench
+net/net
 redis/
 godis
 _test*

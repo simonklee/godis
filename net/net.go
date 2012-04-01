@@ -10,22 +10,22 @@ import (
     "math/rand"
     "runtime/pprof"
     "runtime"
-    _"strconv"
+    "strconv"
 )
 
 var C *int = flag.Int("c", 1, "concurrent connections")
 var R *int = flag.Int("r", 4, "sample size")
 var N *int = flag.Int("n", 10000, "number of request")
+var D *int = flag.Int("d", 512, "max data size")
 var scale *bool = flag.Bool("scale", false, "scale read byffer dynamically")
 var redis *bool = flag.Bool("redis", false, "use redis as server backend")
 var cpuprof *string = flag.String("cpuprof", "", "filename for cpuprof")
 
 var (
     maxIOBuf = uint16(1024)
-    minIOBuf = uint16(32)
+    minIOBuf = uint16(8)
+    data [][]byte
 )
-
-const maxDataSize = 256
 
 func init() {
     runtime.GOMAXPROCS(8)
@@ -39,10 +39,9 @@ func printsA(avg, tot time.Duration) {
     fmt.Fprintf(os.Stdout, "%.2f op/sec  real %.4fs  tot %.4fs\n", float64(*N)/avg.Seconds(), avg.Seconds(), tot.Seconds())
 }
 
-var data [maxDataSize][]byte
-
-func serve(ln net.Listener, open chan net.Conn) {
-    for i := 0; i < maxDataSize; i++ {
+func createDataTable() {
+    data = make([][]byte, *D)
+    for i := 0; i < *D; i++ {
         s := make([]byte, i)
 
         for j := range s {
@@ -55,7 +54,9 @@ func serve(ln net.Listener, open chan net.Conn) {
 
         data[i] = s
     }
+}
 
+func serve(ln net.Listener, open chan net.Conn) {
     cnt := 0
     defer ln.Close()
 
@@ -83,7 +84,7 @@ func handle(c net.Conn, nr int) {
             break
         }
 
-        _, err = c.Write(data[rand.Int31n(maxDataSize)])
+        _, err = c.Write(data[rand.Int31n(int32(*D))])
 
         if err != nil {
             break
@@ -133,7 +134,7 @@ func client(done chan bool, netaddr string) {
 
     defer conn.Close()
 
-    cmd := []byte("*2\r\n$3\r\nGET\r\n$3\r\n255\r\n")
+    //cmd := []byte("*2\r\n$3\r\nGET\r\n$3\r\n255\r\n")
 
     avg := uint16(maxIOBuf/2)
     lastavg := avg
@@ -141,11 +142,11 @@ func client(done chan bool, netaddr string) {
     l := *N / *C
 
     for i := 0; i < l ; i++ {
-        //n := strconv.Itoa(int(rand.Int31n(maxDataSize)))
-        //s := fmt.Sprintf("*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(n), n)
+        n := strconv.Itoa(int(rand.Int31n(int32(*D))))
+        s := fmt.Sprintf("*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(n), n)
         //println(s)
 
-        if _, err := conn.Write([]byte(cmd)); err != nil {
+        if _, err := conn.Write([]byte(s)); err != nil {
             log.Println(err.Error())
             return
         }
@@ -231,6 +232,8 @@ func runRedis() time.Duration {
 func main() {
     flag.Parse()
     log.Printf("REQUESTS: %d\n\n", *N)
+
+    createDataTable()
 
     if *cpuprof != "" {
         file, err := os.OpenFile(*cpuprof, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
