@@ -3,6 +3,8 @@ package main
 import (
     "github.com/simonz05/exp-godis"
     "net"
+    "os"
+    "fmt"
 )
 
 func init() {
@@ -12,6 +14,7 @@ func init() {
     tests["rpush"] = rpushHandle
     tests["calla"] = callaHandle
     tests["callb"] = callbHandle
+    tests["mock"] = mockHandle
 }
 
 func rpushHandle(c *godis.Client, ch chan bool) {
@@ -49,6 +52,28 @@ func setPipelineHandle(c *godis.Client, ch chan bool) {
     }
 }
 
+func mockHandle(c *godis.Client, ch chan bool) {
+    conn, err := net.Dial("tcp", "127.0.0.1:6381")
+
+    if err != nil {
+        fmt.Fprintln(os.Stderr, "dial error", err.Error())
+        os.Exit(1)
+    }
+
+    cmd := []byte("*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n")
+    buf := make([]byte, 16)//len([]byte("$3\r\nbar\r\n")))
+
+    for _ = range ch {
+        if _, err := conn.Write(cmd); err != nil {
+            fmt.Fprintln(os.Stderr, err.Error())
+        }
+
+        if _, err := conn.Read(buf); err != nil {
+            fmt.Fprintln(os.Stderr, err.Error())
+        }
+    }
+}
+
 func callaHandle(c *godis.Client, ch chan bool) {
     buf := make([]byte, 1024*16)
     var conn *godis.Conn 
@@ -68,8 +93,8 @@ func callbHandle(c *godis.Client, ch chan bool) {
     conn, _ = c.CallA("GET", "foo")
 
     if tcp, ok := conn.Conn.(*net.IPConn); ok {
-        tcp.SetWriteBuffer(1024*4)
-        tcp.SetReadBuffer(1024*4)
+        tcp.SetWriteBuffer(16)
+        tcp.SetReadBuffer(16)
     }
 
     for _ = range ch {

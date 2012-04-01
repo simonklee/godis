@@ -4,6 +4,7 @@ import (
     "flag"
     "fmt"
     "github.com/simonz05/exp-godis"
+    "net"
     "os"
     "runtime"
     "runtime/pprof"
@@ -16,10 +17,11 @@ var C *int = flag.Int("c", 50, "concurrent requests")
 var R *int = flag.Int("r", 4, "sample size")
 var N *int = flag.Int("n", 10000, "number of request")
 var P *int = flag.Int("p", 1, "pipeline requests")
+var mock *bool = flag.Bool("mock", false, "run mock redis server")
 var cpuprof *string = flag.String("cpuprof", "", "filename for cpuprof")
 
 func init() {
-    runtime.GOMAXPROCS(8)
+    runtime.GOMAXPROCS(1)
 }
 
 func prints(t time.Duration) {
@@ -28,6 +30,32 @@ func prints(t time.Duration) {
 
 func printsA(avg, tot time.Duration) {
     fmt.Fprintf(os.Stdout, "%.2f op/sec  real %.4fs  tot %.4fs\n", float64(*N)/avg.Seconds(), avg.Seconds(), tot.Seconds())
+}
+
+func BenchmarkMock(handle func(*godis.Client, chan bool)) time.Duration {
+    ln, err := net.Listen("tcp", "127.0.0.1:6381")
+
+    if err != nil {
+        fmt.Fprintln(os.Stderr, err.Error())
+        os.Exit(1)
+    }
+
+    go MockRedis(ln)
+
+    ch := make(chan bool)
+    start := time.Now()
+
+    for i := 0; i < *C; i++ {
+        go handle(nil, ch)
+    }
+
+    for i := 0; i < *N; i++ {
+        ch <- true
+    }
+
+    stop := time.Now().Sub(start)
+    ln.Close()
+    return stop
 }
 
 func BenchmarkRedis(handle func(*godis.Client, chan bool)) time.Duration {
@@ -64,7 +92,12 @@ func run(name string) {
     fmt.Printf("%s:\n", strings.ToUpper(name))
 
     for i := 0; i < *R; i++ {
-        t = BenchmarkRedis(test)
+        if *mock {
+            t = BenchmarkMock(test)
+        } else {
+            t = BenchmarkRedis(test)
+        }
+
         total += t
         prints(t)
     }
