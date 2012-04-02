@@ -11,6 +11,7 @@ import (
     "runtime/pprof"
     "runtime"
     "strconv"
+    "github.com/simonz05/exp-godis"
 )
 
 var C *int = flag.Int("c", 1, "concurrent connections")
@@ -23,7 +24,7 @@ var cpuprof *string = flag.String("cpuprof", "", "filename for cpuprof")
 
 var (
     maxIOBuf = uint16(1024)
-    minIOBuf = uint16(8)
+    minIOBuf = uint16(16)
     data [][]byte
 )
 
@@ -40,8 +41,8 @@ func printsA(avg, tot time.Duration) {
 }
 
 func createDataTable() {
-    data = make([][]byte, *D)
-    for i := 0; i < *D; i++ {
+    data = make([][]byte, *D+2)
+    for i := 0; i < *D+2; i++ {
         s := make([]byte, i)
 
         for j := range s {
@@ -89,36 +90,9 @@ func handle(c net.Conn, nr int) {
         if err != nil {
             break
         }
-
         //s := string(buf)
         //log.Printf("#%d, nwrite: %d\n", nr, n)
     }
-}
-
-func round(v uint16) uint16 {
-    v--
-    v |= v >> 1
-    v |= v >> 2
-    v |= v >> 4
-    v |= v >> 8
-    v++
-    return v
-}
-
-func max(v uint16) uint16 {
-    if v > maxIOBuf {
-        return maxIOBuf
-    } 
-
-    return v
-}
-
-func min(v uint16) uint16 {
-    if v < minIOBuf {
-        return minIOBuf
-    } 
-
-    return v
 }
 
 func client(done chan bool, netaddr string) {
@@ -133,62 +107,45 @@ func client(done chan bool, netaddr string) {
     }
 
     defer conn.Close()
-
-    //cmd := []byte("*2\r\n$3\r\nGET\r\n$3\r\n255\r\n")
-
-    avg := uint16(maxIOBuf/2)
-    lastavg := avg
-    buf := make([]byte, maxIOBuf)
+    
     l := *N / *C
+    iobuf := godis.NewReader(conn)
 
     for i := 0; i < l ; i++ {
-        n := strconv.Itoa(int(rand.Int31n(int32(*D))))
+        size := int(rand.Int31n(int32(*D)))
+        n := strconv.Itoa(size)
         s := fmt.Sprintf("*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(n), n)
-        //println(s)
 
         if _, err := conn.Write([]byte(s)); err != nil {
             log.Println(err.Error())
             return
         }
 
-        ok := false
+        d, err := iobuf.ReadSlice('\n')
 
-        for !ok {
-            nread, err := conn.Read(buf)
+        if err != nil {
+            println("not found")
+            continue
+        } 
+        iobuf.Reset()
 
-            if err != nil {
-                log.Println(err.Error())
-                return
-            } 
+        switch d[0] {
+        case '$':
+            arg := d[1:len(d)-2]
+            datalen, _ := strconv.Atoi(string(arg))
+            datalen += 2
 
-            avg += uint16(nread)
-
-            for j := 0; j < nread; j++ {
-                if buf[j] == '\n' {
-                    //println(string(buf[:j]))
-                    ok = true
-                    break
-                }
+            buf := make([]byte, datalen)
+            if v, err := iobuf.ReadFull(buf); err != nil || v < datalen {
+                println(err, v)
+            } else {
+                //println(string(buf[:datalen-2]))
             }
-        }
-
-
-        if i%100 == 0 {
-            avg /= 100
-            avg = round(avg)
-            avg = max(avg)
-
-            if avg != lastavg {
-                //println(avg, avg, lastavg)
-
-                if *scale {
-                    buf = make([]byte, avg) 
-                }
-
-                lastavg = avg
-            }
+        default:
+            log.Fatalln("Expected reply type")
         }
     }
+    //println(iobuf.String())
 }
 
 func run() time.Duration {

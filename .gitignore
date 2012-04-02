@@ -1,8 +1,9 @@
 *.6
 *.out
-misc/
 bench/bench
-net/net
+misc/array/array
+misc/net/net
+misc/net2/net2
 redis/
 godis
 _test*
