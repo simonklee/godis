@@ -133,6 +133,9 @@ func client(done chan bool, netaddr string) {
         case '$':
             arg := d[1:len(d)-2]
             datalen, _ := strconv.Atoi(string(arg))
+            if datalen == -1 {
+                continue
+            }
             datalen += 2
 
             buf := make([]byte, datalen)
