@@ -29,7 +29,7 @@ func (c *Client) Call(args ...string) (*Reply, error) {
         return nil, err
     }
 
-    _, err = conn.Conn.Write(format(args...))
+    _, err = conn.c.Write(format(args...))
 
     if err != nil {
         return nil, err
@@ -85,7 +85,7 @@ func (p *Pipeline) Read() (*Reply, error) {
     }
 
     if p.buf.Len() > 0 {
-        _, err := p.buf.WriteTo(p.conn.Conn)
+        _, err := p.buf.WriteTo(p.conn.c)
 
         if err != nil {
             return nil, err
