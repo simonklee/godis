@@ -18,11 +18,41 @@ var (
     delim = []byte{cr, lf}
 )
 
+func intlen(n int) int {
+    l := 1
+
+    if (n < 0) {
+        n = -n
+        l++
+    }
+
+    n /= 10
+
+    for n > 9 {
+        l++
+        n /= 10
+    } 
+
+    return l
+}
+
+func arglen(arg []byte) int {
+    //     $   datalen   \r\n data \r\n
+    return 1 + intlen(len(arg)) + 2 + len(arg) + 2
+}
+
 /* Build a new command by concencate an array 
  * of bytes which create a redis command.
  * Returns a byte array */
 func formatArgs(args [][]byte) []byte {
-    buf := make([]byte, 0, 16)
+    //   *   args count         \r\n
+    n := 1 + intlen(len(args)) + 2
+
+    for i := 0; i < len(args); i++ {
+        n += arglen(args[i])
+    }
+
+    buf := make([]byte, 0, n)
     buf = append(buf, star)
     buf = strconv.AppendUint(buf, uint64(len(args)), 10)
     buf = append(buf, delim...)
@@ -37,6 +67,7 @@ func formatArgs(args [][]byte) []byte {
 
     return buf
 }
+
 
 /* Build a new command by concencate an array 
  * of strings which create a redis command.
