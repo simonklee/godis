@@ -1,5 +1,3 @@
-// A fixed size buffer implenation of the bufio library
-// not all methods are ported
 package godis
 
 import (
