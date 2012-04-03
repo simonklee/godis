@@ -58,26 +58,6 @@ func (c *Client) connect() (conn *Conn, err error) {
     return conn, nil
 }
 
-func (c *Client) CallA(args ...string) (*Conn, error) {
-    conn, err := c.connect()
-
-    if err != nil {
-        return nil, err
-    }
-
-    _, err = conn.Conn.Write(format(args...))
-
-    if err != nil {
-        return nil, err
-    }
-
-    return conn, nil
-}
-
-func (c *Client) CallADone(conn *Conn) {
-    c.pool.push(conn)
-}
-
 func (c *Client) Pipeline() *Pipeline {
     return &Pipeline{c, bytes.NewBuffer(make([]byte, 0, 1024*16)), nil}
 }
