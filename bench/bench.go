@@ -21,7 +21,7 @@ var mock *bool = flag.Bool("mock", false, "run mock redis server")
 var cpuprof *string = flag.String("cpuprof", "", "filename for cpuprof")
 
 func init() {
-    runtime.GOMAXPROCS(1)
+    runtime.GOMAXPROCS(8)
 }
 
 func prints(t time.Duration) {
@@ -61,10 +61,10 @@ func BenchmarkMock(handle func(*godis.Client, chan bool)) time.Duration {
 func BenchmarkRedis(handle func(*godis.Client, chan bool)) time.Duration {
     c := godis.NewClient("")
 
-    if _, err := c.Call("FLUSHDB"); err != nil {
-        fmt.Fprintln(os.Stderr, err.Error())
-        os.Exit(1)
-    }
+    //if _, err := c.Call("FLUSHDB"); err != nil {
+    //    fmt.Fprintln(os.Stderr, err.Error())
+    //    os.Exit(1)
+    //}
 
     ch := make(chan bool)
     start := time.Now()

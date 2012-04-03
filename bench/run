@@ -9,4 +9,4 @@ cd bench/
 rm -f $CPUPROF
 go build .
 ./bench -cpuprof $CPUPROF "${@}" 
-#pprof bench $CPUPROF
+pprof bench $CPUPROF

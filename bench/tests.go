@@ -31,7 +31,7 @@ func setHandle(c *godis.Client, ch chan bool) {
 
 func getHandle(c *godis.Client, ch chan bool) {
     for _ = range ch {
-        c.Call("GET", "foo")
+        c.Call("GET", "0")
     }
 }
 
