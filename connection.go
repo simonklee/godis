@@ -1,15 +1,13 @@
 package godis
 
 import (
-    "bufio"
     "net"
 )
 
-const IO_BUFLEN = 1024
 var ConnSum = 0
 
 type Conn struct {
-    rbuf *bufio.Reader
+    rbuf *Reader
     Conn net.Conn
 }
 
@@ -27,5 +25,5 @@ func newConn(addr, proto string) (*Conn, error) {
     }
 
     ConnSum++
-    return &Conn{bufio.NewReader(c), c}, nil
+    return &Conn{NewReader(c), c}, nil
 }

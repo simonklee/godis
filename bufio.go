@@ -144,50 +144,6 @@ func (b *Reader) Copy(p []byte) (n int, e error) {
     return n, nil
 }
 
-func (b *Reader) ReadFull(p []byte) (int, error) {
-    return b.ReadAtLeast(p, len(p))
-}
-
-func (b *Reader) ReadAtLeast(p []byte, min int) (n int, e error) {
-    for n < min && e == nil {
-        var nread int
-        nread, e = b.Read(p[n:])
-        n += nread
-    }
-
-    if e == io.EOF && n >= min { 
-        e = nil 
-    }     
-
-    return
-}
-
-// more syscall and reallocs
-//
-//func (b *Reader) ReadAtLeast(p []byte, min int) (n int, e error) {
-//    for b.Buffered() < min && e == nil {
-//        //println("buf:",b.Buffered(), min)
-//        e = b.fill()
-//
-//        if e == ErrFullBuf {
-//            m, err := b.Copy(p)
-//            e = err
-//            min -= m
-//            n += m
-//        }
-//    }
-//
-//    if e == nil {
-//        m, err := b.Copy(p)
-//        e = err
-//        n += m
-//    } else {
-//        println(e.Error())
-//    }
-//
-//    return
-//}
-
 func (b *Reader) IndexSlice(delim byte) (line []byte, err error) {
     if i := bytes.IndexByte(b.buf[b.r:b.w], delim); i >= 0 {
         line = b.buf[b.r:b.r+i+1]

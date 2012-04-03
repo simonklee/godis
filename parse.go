@@ -1,14 +1,15 @@
 package godis
 
 import (
-    "bufio"
     "errors"
     "log"
     "strconv"
+    "io"
 )
 
 var (
     debug = false
+    ErrProtocol = errors.New("godis: protocol error")
 )
 
 func (r *Reply) parseErr(res []byte) {
@@ -20,7 +21,9 @@ func (r *Reply) parseErr(res []byte) {
 }
 
 func (r *Reply) parseStr(res []byte) {
-    r.Elem = res
+    b := make([]byte, len(res))
+    copy(b, res)
+    r.Elem = b
 
     if debug {
         log.Println("-STR: " + string(res))
@@ -28,15 +31,21 @@ func (r *Reply) parseStr(res []byte) {
 }
 
 func (r *Reply) parseInt(res []byte) {
-    r.Elem = res
+    b := make([]byte, len(res))
+    copy(b, res)
+    r.Elem = b
 
     if debug {
         log.Println("-INT: " + string(res))
     }
 }
 
-func (r *Reply) parseBulk(buf *bufio.Reader, res []byte) {
-    l, _ := strconv.Atoi(string(res))
+func (r *Reply) parseBulk(buf *Reader, res []byte) {
+    l, e := strconv.Atoi(string(res))
+
+    if e != nil {
+        // TODO: handle error
+    }
 
     if l == -1 {
         if debug {
@@ -48,19 +57,11 @@ func (r *Reply) parseBulk(buf *bufio.Reader, res []byte) {
 
     l += 2 // make sure to read \r\n
     data := make([]byte, l)
-
-    n, err := buf.Read(data)
+    n, err := io.ReadFull(buf, data)
 
     // if we were unable to read all data from socket
     if n != l && err == nil {
-        more := make([]byte, l-n)
-
-        if _, err := buf.Read(more); err != nil {
-            r.Err = err
-            return
-        }
-
-        data = append(data[:n], more...)
+        // TODO: handle error
     }
 
     if err != nil {
@@ -76,7 +77,7 @@ func (r *Reply) parseBulk(buf *bufio.Reader, res []byte) {
     }
 }
 
-func (r *Reply) parseMultiBulk(buf *bufio.Reader, res []byte) {
+func (r *Reply) parseMultiBulk(buf *Reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
@@ -104,9 +105,9 @@ func (r *Reply) parseMultiBulk(buf *bufio.Reader, res []byte) {
     }
 }
 
-func Parse(buf *bufio.Reader) *Reply {
+func Parse(buf *Reader) *Reply {
     r := new(Reply)
-    res, err := buf.ReadBytes(lf)
+    res, err := buf.ReadSlice(lf)
 
     if err != nil {
         r.Err = err
@@ -128,7 +129,7 @@ func Parse(buf *bufio.Reader) *Reply {
     case star:
         r.parseMultiBulk(buf, line)
     default:
-        r.Err = errors.New("Unknown response " + string(typ))
+        r.Err = ErrProtocol 
     }
 
     return r
