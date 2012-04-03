@@ -1,17 +1,17 @@
 package main
 
 import (
-    "net"
-    "log"
-    "fmt"
-    "os"
-    "time"
     "flag"
-    "math/rand"
-    "runtime/pprof"
-    "runtime"
-    "strconv"
+    "fmt"
     "github.com/simonz05/exp-godis"
+    "log"
+    "math/rand"
+    "net"
+    "os"
+    "runtime"
+    "runtime/pprof"
+    "strconv"
+    "time"
 )
 
 var C *int = flag.Int("c", 1, "concurrent connections")
@@ -25,7 +25,7 @@ var cpuprof *string = flag.String("cpuprof", "", "filename for cpuprof")
 var (
     maxIOBuf = uint16(1024)
     minIOBuf = uint16(16)
-    data [][]byte
+    data     [][]byte
 )
 
 func init() {
@@ -46,7 +46,7 @@ func createDataTable() {
         s := make([]byte, i)
 
         for j := range s {
-            if j != i - 1 {
+            if j != i-1 {
                 s[j] = 'a'
             } else {
                 s[j] = '\n'
@@ -71,13 +71,13 @@ func serve(ln net.Listener, open chan net.Conn) {
         }
 
         go handle(conn, cnt)
-        open<-conn
+        open <- conn
     }
 }
 
 func handle(c net.Conn, nr int) {
     buf := make([]byte, 16)
-    
+
     for {
         _, err := c.Read(buf)
 
@@ -96,8 +96,8 @@ func handle(c net.Conn, nr int) {
 }
 
 func client(done chan bool, netaddr string) {
-    defer func () {
-        done<-true
+    defer func() {
+        done <- true
     }()
 
     conn, err := net.Dial("tcp", netaddr)
@@ -107,11 +107,11 @@ func client(done chan bool, netaddr string) {
     }
 
     defer conn.Close()
-    
+
     l := *N / *C
     iobuf := godis.NewReader(conn)
 
-    for i := 0; i < l ; i++ {
+    for i := 0; i < l; i++ {
         size := int(rand.Int31n(int32(*D)))
         n := strconv.Itoa(size)
         s := fmt.Sprintf("*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(n), n)
@@ -126,12 +126,12 @@ func client(done chan bool, netaddr string) {
         if err != nil {
             println("not found")
             continue
-        } 
+        }
         iobuf.Reset()
 
         switch d[0] {
         case '$':
-            arg := d[1:len(d)-2]
+            arg := d[1 : len(d)-2]
             datalen, _ := strconv.Atoi(string(arg))
             if datalen == -1 {
                 continue

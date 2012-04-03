@@ -1,10 +1,10 @@
 package main
 
 import (
+    "fmt"
     "github.com/simonz05/exp-godis"
     "net"
     "os"
-    "fmt"
 )
 
 func init() {
@@ -61,7 +61,7 @@ func mockHandle(c *godis.Client, ch chan bool) {
     }
 
     cmd := []byte("*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n")
-    buf := make([]byte, 16)//len([]byte("$3\r\nbar\r\n")))
+    buf := make([]byte, 16) //len([]byte("$3\r\nbar\r\n")))
 
     for _ = range ch {
         if _, err := conn.Write(cmd); err != nil {
@@ -76,7 +76,7 @@ func mockHandle(c *godis.Client, ch chan bool) {
 
 func callaHandle(c *godis.Client, ch chan bool) {
     buf := make([]byte, 1024*16)
-    var conn *godis.Conn 
+    var conn *godis.Conn
     get := []byte("*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n")
     conn, _ = c.CallA("GET", "foo")
 
@@ -88,7 +88,7 @@ func callaHandle(c *godis.Client, ch chan bool) {
 
 func callbHandle(c *godis.Client, ch chan bool) {
     buf := make([]byte, 1024*4)
-    var conn *godis.Conn 
+    var conn *godis.Conn
     get := []byte("*2\r\n$3\r\nGET\r\n$3\r\nfoo\r\n")
     conn, _ = c.CallA("GET", "foo")
 

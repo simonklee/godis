@@ -1,16 +1,16 @@
 package main
 
 import (
-    "net"
-    "log"
-    "fmt"
-    "os"
-    "time"
     "flag"
+    "fmt"
+    "log"
     "math/rand"
-    "runtime/pprof"
+    "net"
+    "os"
     "runtime"
+    "runtime/pprof"
     "strconv"
+    "time"
 )
 
 var C *int = flag.Int("c", 1, "concurrent connections")
@@ -24,7 +24,7 @@ var cpuprof *string = flag.String("cpuprof", "", "filename for cpuprof")
 var (
     maxIOBuf = uint16(1024)
     minIOBuf = uint16(8)
-    data [][]byte
+    data     [][]byte
 )
 
 func init() {
@@ -45,7 +45,7 @@ func createDataTable() {
         s := make([]byte, i)
 
         for j := range s {
-            if j != i - 1 {
+            if j != i-1 {
                 s[j] = 'a'
             } else {
                 s[j] = '\n'
@@ -70,13 +70,13 @@ func serve(ln net.Listener, open chan net.Conn) {
         }
 
         go handle(conn, cnt)
-        open<-conn
+        open <- conn
     }
 }
 
 func handle(c net.Conn, nr int) {
     buf := make([]byte, 16)
-    
+
     for {
         _, err := c.Read(buf)
 
@@ -108,7 +108,7 @@ func round(v uint16) uint16 {
 func max(v uint16) uint16 {
     if v > maxIOBuf {
         return maxIOBuf
-    } 
+    }
 
     return v
 }
@@ -116,14 +116,14 @@ func max(v uint16) uint16 {
 func min(v uint16) uint16 {
     if v < minIOBuf {
         return minIOBuf
-    } 
+    }
 
     return v
 }
 
 func client(done chan bool, netaddr string) {
-    defer func () {
-        done<-true
+    defer func() {
+        done <- true
     }()
 
     conn, err := net.Dial("tcp", netaddr)
@@ -136,12 +136,12 @@ func client(done chan bool, netaddr string) {
 
     //cmd := []byte("*2\r\n$3\r\nGET\r\n$3\r\n255\r\n")
 
-    avg := uint16(maxIOBuf/2)
+    avg := uint16(maxIOBuf / 2)
     lastavg := avg
     buf := make([]byte, maxIOBuf)
     l := *N / *C
 
-    for i := 0; i < l ; i++ {
+    for i := 0; i < l; i++ {
         n := strconv.Itoa(int(rand.Int31n(int32(*D))))
         s := fmt.Sprintf("*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", len(n), n)
         //println(s)
@@ -159,7 +159,7 @@ func client(done chan bool, netaddr string) {
             if err != nil {
                 log.Println(err.Error())
                 return
-            } 
+            }
 
             avg += uint16(nread)
 
@@ -181,7 +181,7 @@ func client(done chan bool, netaddr string) {
                 println(avg, avg, lastavg)
 
                 if *scale {
-                    buf = make([]byte, avg) 
+                    buf = make([]byte, avg)
                 }
 
                 lastavg = avg

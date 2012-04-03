@@ -21,7 +21,7 @@ var (
 func intlen(n int) int {
     l := 1
 
-    if (n < 0) {
+    if n < 0 {
         n = -n
         l++
     }
@@ -31,7 +31,7 @@ func intlen(n int) int {
     for n > 9 {
         l++
         n /= 10
-    } 
+    }
 
     return l
 }
@@ -67,7 +67,6 @@ func formatArgs(args [][]byte) []byte {
 
     return buf
 }
-
 
 /* Build a new command by concencate an array 
  * of strings which create a redis command.

@@ -1,8 +1,8 @@
 package main
 
 import (
-    "testing"
     "io"
+    "testing"
 )
 
 type IOReader struct {

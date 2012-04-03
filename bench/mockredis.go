@@ -1,8 +1,8 @@
 package main
 
 import (
-    "net"
     "fmt"
+    "net"
     "os"
     "time"
 )
@@ -25,11 +25,11 @@ func MockRedis(ln net.Listener) {
 
 func handle(c net.Conn, nr int) {
     buf := make([]byte, 16)
-    
+
     for {
         start := time.Now()
         _, err := c.Read(buf)
-        fmt.Printf("%.6fs\n",time.Now().Sub(start).Seconds())
+        fmt.Printf("%.6fs\n", time.Now().Sub(start).Seconds())
 
         if err != nil {
             fmt.Fprintln(os.Stderr, err.Error())

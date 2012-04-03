@@ -3,22 +3,22 @@
 package godis
 
 import (
+    "bytes"
+    "errors"
     "fmt"
     "io"
     "log"
-    "bytes"
-    "errors"
 )
 
 const IOBUFLEN = 1024
 
 var (
-    ErrFullBuf = errors.New("Full buffer")
+    ErrFullBuf  = errors.New("Full buffer")
     ErrNotFound = errors.New("Not found")
 )
 
 type Reader struct {
-    data        [IOBUFLEN*8]byte
+    data        [IOBUFLEN * 8]byte
     buf         []byte
     rd          io.Reader
     r, w        int
@@ -28,7 +28,7 @@ type Reader struct {
 func NewReader(rd io.Reader) (r *Reader) {
     r = new(Reader)
     r.buf = r.data[:]
-    r.rd = rd 
+    r.rd = rd
     return r
 }
 
@@ -65,7 +65,7 @@ func (b *Reader) fill() error {
         return ErrFullBuf
     }
 
-    slice := b.buf[b.w:IOBUFLEN+b.w]
+    slice := b.buf[b.w : IOBUFLEN+b.w]
     n, e := b.rd.Read(slice)
     b.w += n
 
@@ -117,7 +117,7 @@ func (b *Reader) Read(p []byte) (n int, e error) {
     }
 
     // drain buffer
-    if n > b.w - b.r {
+    if n > b.w-b.r {
         n = b.w - b.r
     }
 
@@ -135,7 +135,7 @@ func (b *Reader) Copy(p []byte) (n int, e error) {
         return 0, nil
     }
 
-    if n > b.w - b.r {
+    if n > b.w-b.r {
         n = b.w - b.r
     }
 
@@ -146,7 +146,7 @@ func (b *Reader) Copy(p []byte) (n int, e error) {
 
 func (b *Reader) IndexSlice(delim byte) (line []byte, err error) {
     if i := bytes.IndexByte(b.buf[b.r:b.w], delim); i >= 0 {
-        line = b.buf[b.r:b.r+i+1]
+        line = b.buf[b.r : b.r+i+1]
         b.r += i + 1
 
         return line, nil
@@ -161,8 +161,8 @@ func (b *Reader) ReadSlice(delim byte) (line []byte, err error) {
         i := bytes.IndexByte(b.buf[off:b.w], delim)
 
         if i >= 0 {
-            line = b.buf[b.r:off+i+1]
-            b.r = off+i+1
+            line = b.buf[b.r : off+i+1]
+            b.r = off + i + 1
             return line, nil
         }
 

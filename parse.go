@@ -2,13 +2,13 @@ package godis
 
 import (
     "errors"
+    "io"
     "log"
     "strconv"
-    "io"
 )
 
 var (
-    debug = false
+    debug       = false
     ErrProtocol = errors.New("godis: protocol error")
 )
 
@@ -129,7 +129,7 @@ func Parse(buf *Reader) *Reply {
     case star:
         r.parseMultiBulk(buf, line)
     default:
-        r.Err = ErrProtocol 
+        r.Err = ErrProtocol
     }
 
     return r

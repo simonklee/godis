@@ -21,7 +21,7 @@ type Reader struct {
 func NewReader(rd io.Reader) (r *Reader) {
     r = new(Reader)
     r.buf = r.data[:MAX_IOBUFLEN/2]
-    r.rd = rd 
+    r.rd = rd
     return r
 }
 
@@ -106,7 +106,7 @@ func (b *Reader) Read(p []byte) (n int, e error) {
     }
 
     // drain buffer
-    if n > b.w - b.r {
+    if n > b.w-b.r {
         n = b.w - b.r
     }
 
@@ -124,7 +124,7 @@ func (b *Reader) Copy(p []byte) (n int, e error) {
         return 0, nil
     }
 
-    if n > b.w - b.r {
+    if n > b.w-b.r {
         n = b.w - b.r
     }
 

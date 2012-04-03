@@ -1,8 +1,8 @@
 package godis
 
 import (
-    "testing"
     "io"
+    "testing"
 )
 
 type IOReader struct {
@@ -91,7 +91,7 @@ func TestReadSlice(t *testing.T) {
     r := NewReader(p)
 
     for _, c := range sliceTests {
-        p.buf = append(p.buf, c.iodata ...)
+        p.buf = append(p.buf, c.iodata...)
 
         slice, err := r.ReadSlice(c.delim)
 
@@ -101,7 +101,7 @@ func TestReadSlice(t *testing.T) {
 
         cmpSlice(t, []byte(c.head), slice)
         data := make([]byte, len(c.data))
-        
+
         if n, err := r.Copy(data); n != len(c.data) || err != nil {
             t.Errorf("copy expected `%v` got `%v`", len(c.data), n)
         } else {

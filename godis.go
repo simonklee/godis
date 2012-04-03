@@ -102,7 +102,7 @@ func (p *Pipeline) Read() (*Reply, error) {
         }
 
         p.conn = conn
-    } 
+    }
 
     if p.buf.Len() > 0 {
         _, err := p.buf.WriteTo(p.conn.Conn)
