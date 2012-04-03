@@ -8,7 +8,7 @@ var ConnSum = 0
 
 type Conn struct {
     rbuf *Reader
-    c net.Conn
+    c    net.Conn
 }
 
 // reads a reply for a Conn
