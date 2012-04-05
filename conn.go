@@ -4,6 +4,7 @@ import (
     "bufio"
     "bytes"
     "errors"
+    "io"
     "log"
     "net"
 
@@ -226,20 +227,7 @@ func (r *Reply) parseBulk(res []byte) {
 
     l += 2 // make sure to read \r\n
     data := make([]byte, l)
-
-    n, err := r.conn.r.Read(data)
-
-    // if we were unable to read all date from socket, try again
-    if n != l && err == nil {
-        more := make([]byte, l-n)
-
-        if _, err := r.conn.r.Read(more); err != nil {
-            r.Err = err
-            return
-        }
-
-        data = append(data[:n], more...)
-    }
+    _, err := io.ReadFull(r.conn.r, data)
 
     if err != nil {
         r.Err = err
