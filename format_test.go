@@ -4,7 +4,7 @@ import (
     "testing"
 )
 
-func formatTest(t *testing.T, exp string, a ...string) {
+func formatTest(t *testing.T, exp string, a ...interface{}) {
     got := format(a...)
 
     if exp != string(got) {

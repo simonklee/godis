@@ -21,7 +21,7 @@ func NewClient(addr string) *Client {
     return &Client{Addr: na[1], Proto: na[0], pool: newConnPool()}
 }
 
-func (c *Client) Call(args ...string) (*Reply, error) {
+func (c *Client) Call(args ...interface{}) (*Reply, error) {
     conn, err := c.connect()
     defer c.pool.push(conn)
 
@@ -68,7 +68,7 @@ type Pipeline struct {
     conn *Conn
 }
 
-func (p *Pipeline) Call(args ...string) (err error) {
+func (p *Pipeline) Call(args ...interface{}) (err error) {
     _, err = p.buf.Write(format(args...))
     return err
 }

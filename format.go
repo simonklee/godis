@@ -2,6 +2,8 @@ package godis
 
 import (
     "strconv"
+    "fmt"
+    "bytes"
 )
 
 const (
@@ -71,11 +73,22 @@ func formatArgs(args [][]byte) []byte {
 /* Build a new command by concencate an array 
  * of strings which create a redis command.
  * Returns a byte array */
-func format(args ...string) []byte {
+func format(args ...interface{}) []byte {
     buf := make([][]byte, len(args))
 
     for i, arg := range args {
-        buf[i] = []byte(arg)
+        switch v := arg.(type) {
+        case []byte:
+            buf[i] = v
+        case nil:
+            buf[i] = []byte(nil)
+        case string:
+            buf[i] = []byte(v)
+        default:
+            var b bytes.Buffer
+            fmt.Fprint(&b, v)
+            buf[i] = b.Bytes()
+        }
     }
 
     return formatArgs(buf)
