@@ -26,13 +26,23 @@ func (e Elem) String() string {
     return string([]byte(e))
 }
 
+func (e Elem) Bool() bool {
+    v, _ := strconv.ParseBool(e.String())
+    return v
+}
+
+func (e Elem) Int() int {
+    v, _ := strconv.ParseInt(e.String(), 10, 0)
+    return int(v)
+}
+
 func (e Elem) Int64() int64 {
-    v, _ := strconv.ParseInt(string([]byte(e)), 10, 64)
+    v, _ := strconv.ParseInt(e.String(), 10, 64)
     return v
 }
 
 func (e Elem) Float64() float64 {
-    v, _ := strconv.ParseFloat(string([]byte(e)), 64)
+    v, _ := strconv.ParseFloat(e.String(), 64)
     return v
 }
 
