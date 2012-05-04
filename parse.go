@@ -80,7 +80,7 @@ func (r *Reply) parseBulk(buf *Reader, res []byte) {
 func (r *Reply) parseMultiBulk(buf *Reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
-    if l == -1  {
+    if l == -1 {
         r.Err = errors.New("EOF")
         return
     }

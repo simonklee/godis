@@ -1,9 +1,9 @@
 package godis
 
 import (
-    "strconv"
-    "fmt"
     "bytes"
+    "fmt"
+    "strconv"
 )
 
 const (

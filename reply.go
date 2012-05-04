@@ -103,7 +103,7 @@ func (r *Reply) Hash() map[string]Elem {
 
     for i := 0; i < l; i += 2 {
         key = r.Elems[i].Elem.String()
-        h[key] = r.Elems[i + 1].Elem
+        h[key] = r.Elems[i+1].Elem
     }
 
     return h
