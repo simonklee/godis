@@ -36,6 +36,14 @@ func (e Elem) Float64() float64 {
     return v
 }
 
+func (r *Reply) Len() int {
+    if r.Elems == nil {
+        return 0
+    }
+
+    return len(r.Elems)
+}
+
 func (r *Reply) BytesArray() [][]byte {
     buf := make([][]byte, len(r.Elems))
 
@@ -81,6 +89,24 @@ func (r *Reply) StringMap() map[string]string {
     }
 
     return buf
+}
+
+func (r *Reply) Hash() map[string]Elem {
+    l := r.Len()
+    h := make(map[string]Elem, l/2)
+
+    if l%2 == 1 {
+        return h
+    }
+
+    var key string
+
+    for i := 0; i < l; i += 2 {
+        key = r.Elems[i].Elem.String()
+        h[key] = r.Elems[i + 1].Elem
+    }
+
+    return h
 }
 
 func (r *Reply) Message() *Message {
