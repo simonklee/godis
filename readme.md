@@ -4,7 +4,7 @@ exp-godis - an experimental [Redis](http://redis.io) client
 for Go. It supports commands and features through a simple
 API which aims to be is easy to use.
 
-1. [Package docs](http://gopkgdoc.appspot.com/pkg/github.com/simonz05/exp-godis)
+1. [Package docs](http://go.pkgdoc.org/github.com/simonz05/exp-godis)
 2. [Source code](https://github.com/simonz05/exp-godis)
 
 ## Install exp-godis
