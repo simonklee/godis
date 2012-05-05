@@ -21,24 +21,24 @@ func TestClient(t *testing.T) {
         t.Fatal(err.Error())
     }
 
-    p := c.Pipeline()
+    p := c.AsyncClient(true)
     p.Call("MULTI")
     p.Call("GET", "foo")
     p.Call("EXEC")
 
-    res, err := p.Read()
+    res, err := p.Poll()
 
     if err != nil || string(res.Elem) != "OK" {
         t.Fatal(err.Error())
     }
 
-    res, err = p.Read()
+    res, err = p.Poll()
 
     if err != nil || string(res.Elem) != "QUEUED" {
         error_(t, "pipe", "foo", string(res.Elem), err)
     }
 
-    res, err = p.Read()
+    res, err = p.Poll()
 
     if err != nil || len(res.Elems) != 1 {
         error_(t, "exec", 1, len(res.Elems), err)

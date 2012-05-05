@@ -40,7 +40,7 @@ func (r *Reply) parseInt(res []byte) {
     }
 }
 
-func (r *Reply) parseBulk(buf *Reader, res []byte) {
+func (r *Reply) parseBulk(buf *reader, res []byte) {
     l, e := strconv.Atoi(string(res))
 
     if e != nil {
@@ -77,7 +77,7 @@ func (r *Reply) parseBulk(buf *Reader, res []byte) {
     }
 }
 
-func (r *Reply) parseMultiBulk(buf *Reader, res []byte) {
+func (r *Reply) parseMultiBulk(buf *reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
@@ -105,7 +105,7 @@ func (r *Reply) parseMultiBulk(buf *Reader, res []byte) {
     }
 }
 
-func Parse(buf *Reader) *Reply {
+func Parse(buf *reader) *Reply {
     r := new(Reply)
     res, err := buf.ReadSlice(lf)
 

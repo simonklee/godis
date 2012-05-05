@@ -38,7 +38,7 @@ var readerTests = []readerTest{
 func TestReader(t *testing.T) {
     for _, c := range readerTests {
         p := &IOReader{make([]byte, c.iolen), 0}
-        r := NewReader(p)
+        r := newReader(p)
         buf := make([]byte, c.rlen)
 
         if n, err := r.Read(buf); c.err != err || c.exp != n {
@@ -49,7 +49,7 @@ func TestReader(t *testing.T) {
 
 func TestManual(t *testing.T) {
     p := &IOReader{make([]byte, 0), 0}
-    r := NewReader(p)
+    r := newReader(p)
     buf := make([]byte, 16)
 
     n, e := r.Read(buf)
@@ -88,7 +88,7 @@ var sliceTests = []sliceTest{
 
 func TestReadSlice(t *testing.T) {
     p := &IOReader{make([]byte, 0), 0}
-    r := NewReader(p)
+    r := newReader(p)
 
     for _, c := range sliceTests {
         p.buf = append(p.buf, c.iodata...)

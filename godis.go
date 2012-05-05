@@ -22,33 +22,28 @@ func NewClient(addr string) *Client {
 }
 
 func (c *Client) Call(args ...interface{}) (*Reply, error) {
-    conn, err := c.connect()
-    defer c.pool.push(conn)
+    conn, err := c.Connect()
+    defer c.Push(conn)
 
     if err != nil {
         return nil, err
     }
 
-    _, err = conn.c.Write(format(args...))
+    conn.Write(args...)
 
     if err != nil {
         return nil, err
     }
 
-    res := conn.Read()
-
-    if res.Err != nil {
-        return nil, res.Err
-    }
-
-    return res, nil
+    return conn.Read()
 }
 
-func (c *Client) connect() (conn *Conn, err error) {
+// pop a connection from pool 
+func (c *Client) Connect() (conn Connection, err error) {
     conn = c.pool.pop()
 
     if conn == nil {
-        conn, err = newConn(c.Addr, c.Proto)
+        conn, err = NewConn(c.Addr, c.Proto)
 
         if err != nil {
             return nil, err
@@ -58,45 +53,69 @@ func (c *Client) connect() (conn *Conn, err error) {
     return conn, nil
 }
 
-func (c *Client) Pipeline() *Pipeline {
-    return &Pipeline{c, bytes.NewBuffer(make([]byte, 0, 1024*16)), nil}
+// return connection to pool
+func (c *Client) Push(conn Connection) {
+    c.pool.push(conn)
 }
 
-type Pipeline struct {
+func (c *Client) AsyncClient(auto bool) *AsyncClient {
+    return &AsyncClient{c, bytes.NewBuffer(make([]byte, 0, 1024*16)), nil, 0, auto}
+}
+
+type AsyncClient struct {
     *Client
-    buf  *bytes.Buffer
-    conn *Conn
+    buf    *bytes.Buffer
+    conn   Connection
+    queued int
+    auto   bool
 }
 
-func (p *Pipeline) Call(args ...interface{}) (err error) {
-    _, err = p.buf.Write(format(args...))
+func AsyncNewClient(addr string, auto bool) *AsyncClient {
+    return &AsyncClient{
+        NewClient(addr),
+        bytes.NewBuffer(make([]byte, 0, 1024*16)),
+        nil,
+        0,
+        auto,
+    }
+}
+
+func (ac *AsyncClient) Call(args ...interface{}) (err error) {
+    _, err = ac.buf.Write(format(args...))
+    ac.queued++
     return err
 }
 
-func (p *Pipeline) Read() (*Reply, error) {
-    if p.conn == nil {
-        conn, err := p.connect()
+func (ac *AsyncClient) Poll() (*Reply, error) {
+    if ac.conn == nil {
+        conn, e := NewConn(ac.Addr, ac.Proto)
+
+        if e != nil {
+            return nil, e
+        }
+
+        ac.conn = conn
+    }
+
+    if ac.buf.Len() > 0 {
+        _, err := ac.buf.WriteTo(ac.conn.Sock())
 
         if err != nil {
             return nil, err
         }
-
-        p.conn = conn
     }
 
-    if p.buf.Len() > 0 {
-        _, err := p.buf.WriteTo(p.conn.c)
+    reply, e := ac.conn.Read()
+    ac.queued--
 
-        if err != nil {
-            return nil, err
-        }
+    if ac.queued == 0 && ac.auto {
+        ac.Close()
     }
 
-    res := p.conn.Read()
+    return reply, e
+}
 
-    if res.Err != nil {
-        return nil, res.Err
-    }
-
-    return res, nil
+func (ac *AsyncClient) Close() {
+    ac.conn.Close()
+    ac.conn = nil
 }
