@@ -70,7 +70,7 @@ type AsyncClient struct {
     auto   bool
 }
 
-func AsyncNewClient(addr string, auto bool) *AsyncClient {
+func NewAsyncClient(addr string, auto bool) *AsyncClient {
     return &AsyncClient{
         NewClient(addr),
         bytes.NewBuffer(make([]byte, 0, 1024*16)),
