@@ -1,7 +1,7 @@
 // package godis implements a client for Redis with support
 // for all commands and features such as transactions and
 // pubsub.
-package godis
+package redis
 
 import (
     "bytes"

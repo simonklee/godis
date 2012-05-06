@@ -2,11 +2,11 @@ package main
 
 import (
     "fmt"
-    "github.com/simonz05/godis"
+    "github.com/simonz05/godis/redis"
 )
 
 func main() {
-    c := godis.NewPipeClient("", 0, "")
+    c := redis.NewPipeClient("", 0, "")
 
     c.Multi()
     c.Set("foo", 1)

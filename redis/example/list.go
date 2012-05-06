@@ -2,13 +2,14 @@ package main
 
 import (
     "fmt"
-    "github.com/simonz05/godis"
     "os"
+
+    "github.com/simonz05/godis/redis"
 )
 
 func main() {
     // new client on default port 6379, select db 0 and use no password.
-    c := godis.New("", 0, "")
+    c := redis.New("", 0, "")
 
     // values we want to store
     values := []int{0, 1, 1, 2, 3, 5, 8, 13, 21, 34}

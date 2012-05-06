@@ -2,13 +2,13 @@ package main
 
 import (
     "fmt"
-    "github.com/simonz05/godis"
+    "github.com/simonz05/godis/redis"
     "os"
 )
 
 func main() {
     // new client on default port 6379, select db 0 and use no password
-    c := godis.New("", 0, "")
+    c := redis.New("", 0, "")
 
     // set the key "foo" to "Hello Redis"
     if err := c.Set("foo", "Hello Redis"); err != nil {

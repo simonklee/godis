@@ -3,14 +3,14 @@
 godis - a [Redis](http://redis.io) client for Go. It supports all
 commands and features such as transactions and pubsub.
 
-1. [Package docs](http://gopkgdoc.appspot.com/pkg/github.com/simonz05/godis)
-2. [Source code](https://github.com/simonz05/godis)
+1. [Package docs](http://gopkgdoc.appspot.com/pkg/github.com/simonz05/godis/redis)
+2. [Source code](https://github.com/simonz05/godis/redis)
 
 ## Install godis
 
 godis is available at github.com. Get it by running.
 
-    $ go get github.com/simonz05/godis
+    $ go get github.com/simonz05/godis/redis
 
 Importing godis to your code can be done with `import "github.com/simonz05/godis"`. Thats it!
 
@@ -23,13 +23,13 @@ the `example/strings.go`.
 
     import (
         "fmt"
-        "github.com/simonz05/godis"
+        "github.com/simonz05/godis/redis"
         "os"
     )
 
     func main() {
         // new client on default port 6379, select db 0 and use no password
-        c := godis.New("", 0, "")
+        c := redis.New("", 0, "")
 
         // set the key "foo" to "Hello Redis"
         if err := c.Set("foo", "Hello Redis"); err != nil {
