@@ -11,7 +11,7 @@
 //
 // Client
 //
-// The Client implements one method called `Call`. This method first writes
+// The Client implements one method called Call(). This method first writes
 // your command to Redis, then reads the subsequent reply and returns it to
 // you. 
 //
@@ -31,16 +31,16 @@
 // AsyncClient
 // 
 // The AsyncClient works exactly like the regular Client, and implements a
-// single method `Call`, but this method does not return any reply, only an
+// single method Call(), but this method does not return any reply, only an
 // error or nil. 
 //
 //      c := redis.NewAsyncClient("tcp:127.0.0.1:6379")
 //      c.Call("SET", "foo", 1)
 //      c.Call("GET", "foo")
 //
-// When we send our command and arguments to the Call method nothing is sent to
+// When we send our command and arguments to the Call() method nothing is sent to
 // the Redis server. To get the reply for our commands from Redis we use the
-// `Poll` method. Poll sends any buffered commands to the Redis server, and
+// Poll() method. Poll sends any buffered commands to the Redis server, and
 // then reads one reply. Subsequent calls to Poll will return more replies or
 // block if there are none.
 //
@@ -58,9 +58,9 @@ import (
     "strings"
 )
 
-// Client implements a redis client which handles connections to the database
+// Client implements a Redis client which handles connections to the database
 // in a pool. The size of the pool can be adjusted with by setting the
-// MaxConnections variable before calling NewClient.
+// MaxConnections variable before creating a client.
 type Client struct {
     Addr  string
     Proto string
