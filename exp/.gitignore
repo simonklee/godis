@@ -1,0 +1,11 @@
+*.6
+*.out
+bench/bench
+misc/array/array
+misc/net/net
+misc/net2/net2
+redis/
+godis
+_test*
+_obj
+*.8

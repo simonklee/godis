@@ -1,0 +1,12 @@
+#!/bin/bash
+
+CPUPROF="pprof.out"
+
+cd ..
+go build .
+go install
+cd bench/
+rm -f $CPUPROF
+go build .
+./bench -cpuprof $CPUPROF "${@}" 
+#pprof bench $CPUPROF
