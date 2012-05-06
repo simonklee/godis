@@ -5,6 +5,8 @@ import (
     "io"
     "log"
     "strconv"
+
+    "github.com/simonz05/godis/bufin"
 )
 
 var (
@@ -40,7 +42,7 @@ func (r *Reply) parseInt(res []byte) {
     }
 }
 
-func (r *Reply) parseBulk(buf *reader, res []byte) {
+func (r *Reply) parseBulk(buf *bufin.Reader, res []byte) {
     l, e := strconv.Atoi(string(res))
 
     if e != nil {
@@ -77,7 +79,7 @@ func (r *Reply) parseBulk(buf *reader, res []byte) {
     }
 }
 
-func (r *Reply) parseMultiBulk(buf *reader, res []byte) {
+func (r *Reply) parseMultiBulk(buf *bufin.Reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
@@ -105,7 +107,7 @@ func (r *Reply) parseMultiBulk(buf *reader, res []byte) {
     }
 }
 
-func Parse(buf *reader) *Reply {
+func Parse(buf *bufin.Reader) *Reply {
     r := new(Reply)
     res, err := buf.ReadSlice(lf)
 

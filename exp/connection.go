@@ -2,6 +2,7 @@ package redis
 
 import (
     "net"
+    "github.com/simonz05/godis/bufin"
 )
 
 var ConnSum = 0
@@ -14,7 +15,7 @@ type Connection interface {
 }
 
 type Conn struct {
-    rbuf *reader
+    rbuf *bufin.Reader
     c    net.Conn
 }
 
@@ -27,7 +28,7 @@ func NewConn(addr, proto string) (*Conn, error) {
     }
 
     ConnSum++
-    return &Conn{newReader(c), c}, nil
+    return &Conn{bufin.NewReader(c), c}, nil
 }
 
 // read and parse a reply from socket

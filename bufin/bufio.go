@@ -1,4 +1,4 @@
-package redis
+package bufin
 
 import (
     "bytes"
@@ -15,7 +15,7 @@ var (
     ErrNotFound = errors.New("Not found")
 )
 
-type reader struct {
+type Reader struct {
     data        [IOBUFLEN * 8]byte
     buf         []byte
     rd          io.Reader
@@ -23,19 +23,19 @@ type reader struct {
     reads, movs int64
 }
 
-func newReader(rd io.Reader) (r *reader) {
-    r = new(reader)
+func NewReader(rd io.Reader) (r *Reader) {
+    r = new(Reader)
     r.buf = r.data[:]
     r.rd = rd
     return r
 }
 
-func (b *reader) String() string {
+func (b *Reader) String() string {
     return fmt.Sprintf("len: %d, cap: %d, read: %d, width: %d, buffered: %d, sycall: %d, move: %d", len(b.buf), cap(b.buf), b.r, b.w, b.Buffered(), b.reads, b.movs)
 }
 
 // reset to recover space if buf is empty
-func (b *reader) Reset() bool {
+func (b *Reader) Reset() bool {
     if b.w == b.r {
         b.w = 0
         b.r = 0
@@ -45,7 +45,7 @@ func (b *reader) Reset() bool {
     return false
 }
 
-func (b *reader) fill() error {
+func (b *Reader) fill() error {
     b.Reset()
 
     if b.r > 0 {
@@ -77,11 +77,11 @@ func (b *reader) fill() error {
     return nil
 }
 
-func (b *reader) Buffered() int {
+func (b *Reader) Buffered() int {
     return b.w - b.r
 }
 
-func (b *reader) Incr(n int) int {
+func (b *Reader) Incr(n int) int {
     if n > b.Buffered() {
         return 0
     }
@@ -92,7 +92,7 @@ func (b *reader) Incr(n int) int {
 
 // either reads from the static buffer or if len(p) > len(buf), 
 // read len(p) bytes from socket directly into p
-func (b *reader) Read(p []byte) (n int, e error) {
+func (b *Reader) Read(p []byte) (n int, e error) {
     n = len(p)
 
     if n == 0 {
@@ -126,7 +126,7 @@ func (b *reader) Read(p []byte) (n int, e error) {
 
 // copies len(p) bytes from r.buf[r:] to p
 // if len(p) > r.buf[r:]
-func (b *reader) Copy(p []byte) (n int, e error) {
+func (b *Reader) Copy(p []byte) (n int, e error) {
     n = len(p)
 
     if b.w == b.r || n == 0 {
@@ -142,7 +142,7 @@ func (b *reader) Copy(p []byte) (n int, e error) {
     return n, nil
 }
 
-func (b *reader) IndexSlice(delim byte) (line []byte, err error) {
+func (b *Reader) IndexSlice(delim byte) (line []byte, err error) {
     if i := bytes.IndexByte(b.buf[b.r:b.w], delim); i >= 0 {
         line = b.buf[b.r : b.r+i+1]
         b.r += i + 1
@@ -153,7 +153,7 @@ func (b *reader) IndexSlice(delim byte) (line []byte, err error) {
     return nil, ErrNotFound
 }
 
-func (b *reader) ReadSlice(delim byte) (line []byte, err error) {
+func (b *Reader) ReadSlice(delim byte) (line []byte, err error) {
     for {
         off := b.r
         i := bytes.IndexByte(b.buf[off:b.w], delim)
