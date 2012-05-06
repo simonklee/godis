@@ -16,8 +16,8 @@
 // database, then reads the subsequent reply and returns it to you. 
 //
 // The Client struct also has a pool of connections so it's safe to use a
-// client in a concurrent context.  You can create on client object for your
-// entire program and share it between go routines.
+// client in a concurrent context. You can create one client for your entire
+// program and share it between go routines.
 //
 //      c := redis.NewClient("tcp:127.0.0.1:6379")
 //      reply, e := c.Call("GET", "foo")
