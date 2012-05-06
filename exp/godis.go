@@ -22,8 +22,8 @@ func NewClient(addr string) *Client {
 }
 
 func (c *Client) Call(args ...interface{}) (*Reply, error) {
-    conn, err := c.Connect()
-    defer c.Push(conn)
+    conn, err := c.connect()
+    defer c.pool.push(conn)
 
     if err != nil {
         return nil, err
@@ -39,7 +39,7 @@ func (c *Client) Call(args ...interface{}) (*Reply, error) {
 }
 
 // pop a connection from pool 
-func (c *Client) Connect() (conn Connection, err error) {
+func (c *Client) connect() (conn Connection, err error) {
     conn = c.pool.pop()
 
     if conn == nil {
@@ -51,11 +51,6 @@ func (c *Client) Connect() (conn Connection, err error) {
     }
 
     return conn, nil
-}
-
-// return connection to pool
-func (c *Client) Push(conn Connection) {
-    c.pool.push(conn)
 }
 
 func (c *Client) AsyncClient() *AsyncClient {
