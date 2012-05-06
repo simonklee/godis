@@ -2,12 +2,13 @@
 //
 // Connection interface
 //
-// The Connection interface is a very simple interface to Redis, with a Read
-// and Write method. The Conn struct implements the Connection interface and 
-// can be used to read and write commands and replies from Redis.
+// The Connection interface is a very simple interface to Redis. The Conn
+// struct implements this interface and can be used to write commands and read
+// replies from Redis.
 //
-// But you don't need to use the Connection interface, because we have something
-// simpler. 
+// The Connection interface is used to implement the Client and AsyncClient.
+// Unless you like to implment your own client, use either of them instead of a
+// single connection.
 //
 // Client
 //
@@ -38,8 +39,8 @@
 //      c.Call("SET", "foo", 1)
 //      c.Call("GET", "foo")
 //
-// When we send our command and arguments to the Call() method nothing is sent to
-// the Redis server. To get the reply for our commands from Redis we use the
+// When we send our command and arguments to the Call() method nothing is sent
+// to the Redis server. To get the reply for our commands from Redis we use the
 // Poll() method. Poll sends any buffered commands to the Redis server, and
 // then reads one reply. Subsequent calls to Poll will return more replies or
 // block if there are none.
@@ -51,6 +52,9 @@
 //      reply, _ = c.Poll()
 //
 //      println(reply.Elem.Int()) // prints 1
+// 
+// Due to the nature of how the AsyncClient works, it's not safe to share it
+// between go routines.
 package redis
 
 import (
