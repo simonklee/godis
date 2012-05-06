@@ -1,11 +1,11 @@
 package main
 
 import (
-    "github.com/simonz05/exp-godis"
+    "github.com/simonz05/godis/exp"
 )
 
 func main() {
-    c := godis.NewClient("tcp:127.0.0.1:6379")
+    c := redis.NewClient("tcp:127.0.0.1:6379")
 
     res, err := c.Call("SET", "foo", "bar")
 

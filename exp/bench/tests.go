@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "github.com/simonz05/exp-godis"
+    "github.com/simonz05/godis/exp"
     "net"
     "os"
 )
@@ -15,26 +15,26 @@ func init() {
     tests["mock"] = mockHandle
 }
 
-func rpushHandle(c *godis.Client, ch chan bool) {
+func rpushHandle(c *redis.Client, ch chan bool) {
     for _ = range ch {
         c.Call("RPUSH", "foo", "bar")
     }
 }
 
-func setHandle(c *godis.Client, ch chan bool) {
+func setHandle(c *redis.Client, ch chan bool) {
     for _ = range ch {
         c.Call("SET", "foo", "bar")
     }
 }
 
-func getHandle(c *godis.Client, ch chan bool) {
+func getHandle(c *redis.Client, ch chan bool) {
     for _ = range ch {
         c.Call("GET", "0")
     }
 }
 
-func setPipelineHandle(c *godis.Client, ch chan bool) {
-    p := c.Pipeline()
+func setPipelineHandle(c *redis.Client, ch chan bool) {
+    p := c.AsyncClient()
     send := 0
 
     for _ = range ch {
@@ -43,14 +43,14 @@ func setPipelineHandle(c *godis.Client, ch chan bool) {
 
         if send == *P {
             for i := 0; i < *P; i++ {
-                p.Read()
+                p.Poll()
             }
             send = 0
         }
     }
 }
 
-func mockHandle(c *godis.Client, ch chan bool) {
+func mockHandle(c *redis.Client, ch chan bool) {
     conn, err := net.Dial("tcp", "127.0.0.1:6381")
 
     if err != nil {

@@ -1,5 +1,5 @@
-// package godis implements a db client for Redis. 
-package godis
+// package redis implements a db client for Redis. 
+package redis
 
 import (
     "bytes"

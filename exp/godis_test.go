@@ -1,4 +1,4 @@
-package godis
+package redis
 
 import (
     "bytes"
@@ -87,7 +87,7 @@ func BenchmarkAppendBuffer(b *testing.B) {
     }
 }
 
-//package godis
+//package redis
 //import (
 //    "bufio"
 //    "bytes"

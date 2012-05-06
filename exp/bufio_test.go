@@ -1,4 +1,4 @@
-package godis
+package redis
 
 import (
     "io"

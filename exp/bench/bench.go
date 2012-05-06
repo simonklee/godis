@@ -3,7 +3,7 @@ package main
 import (
     "flag"
     "fmt"
-    "github.com/simonz05/exp-godis"
+    "github.com/simonz05/godis/exp"
     "net"
     "os"
     "runtime"
@@ -12,7 +12,7 @@ import (
     "time"
 )
 
-var tests = make(map[string]func(*godis.Client, chan bool))
+var tests = make(map[string]func(*redis.Client, chan bool))
 var C *int = flag.Int("c", 50, "concurrent requests")
 var R *int = flag.Int("r", 4, "sample size")
 var N *int = flag.Int("n", 10000, "number of request")
@@ -32,7 +32,7 @@ func printsA(avg, tot time.Duration) {
     fmt.Fprintf(os.Stdout, "%.2f op/sec  real %.4fs  tot %.4fs\n", float64(*N)/avg.Seconds(), avg.Seconds(), tot.Seconds())
 }
 
-func BenchmarkMock(handle func(*godis.Client, chan bool)) time.Duration {
+func BenchmarkMock(handle func(*redis.Client, chan bool)) time.Duration {
     ln, err := net.Listen("tcp", "127.0.0.1:6381")
 
     if err != nil {
@@ -58,8 +58,8 @@ func BenchmarkMock(handle func(*godis.Client, chan bool)) time.Duration {
     return stop
 }
 
-func BenchmarkRedis(handle func(*godis.Client, chan bool)) time.Duration {
-    c := godis.NewClient("")
+func BenchmarkRedis(handle func(*redis.Client, chan bool)) time.Duration {
+    c := redis.NewClient("")
 
     //if _, err := c.Call("FLUSHDB"); err != nil {
     //    fmt.Fprintln(os.Stderr, err.Error())
@@ -127,13 +127,13 @@ func main() {
         defer pprof.StopCPUProfile()
     }
 
-    godis.MaxConnections = *C
+    redis.MaxConnections = *C
 
     for _, name := range flag.Args() {
         run(name)
     }
 
-    println("ConnSum:", godis.ConnSum)
+    println("ConnSum:", redis.ConnSum)
 
     stats := new(runtime.MemStats)
     runtime.ReadMemStats(stats)
