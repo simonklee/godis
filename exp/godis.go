@@ -1,4 +1,4 @@
-// package redis implements a db client for Redis. 
+// Package redis implements a db client for Redis.
 //
 // Connection interface
 //
@@ -43,7 +43,7 @@
 // `Poll` method. Poll sends any buffered commands to the Redis server, and
 // then reads one reply. Subsequent calls to Poll will return more replies or
 // block if there are none.
-
+//
 //      // reply from SET 
 //      reply, _ := c.Poll()
 //
