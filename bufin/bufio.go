@@ -1,3 +1,8 @@
+// package bufin implements a partially static buffed input reader. It is very
+// similar to the standard library bufio.Reader so that is almost always 
+// prefered over the following package. bufin is implemented to track and have
+// full control over reading data from a socket. It's used internally by the 
+// exp redis client.
 package bufin
 
 import (
