@@ -21,7 +21,7 @@ func TestClient(t *testing.T) {
         t.Fatal(err.Error())
     }
 
-    p := c.AsyncClient(true)
+    p := c.AsyncClient()
     p.Call("MULTI")
     p.Call("GET", "foo")
     p.Call("EXEC")

@@ -58,8 +58,8 @@ func (c *Client) Push(conn Connection) {
     c.pool.push(conn)
 }
 
-func (c *Client) AsyncClient(auto bool) *AsyncClient {
-    return &AsyncClient{c, bytes.NewBuffer(make([]byte, 0, 1024*16)), nil, 0, auto}
+func (c *Client) AsyncClient() *AsyncClient {
+    return &AsyncClient{c, bytes.NewBuffer(make([]byte, 0, 1024*16)), nil, 0}
 }
 
 type AsyncClient struct {
@@ -67,16 +67,14 @@ type AsyncClient struct {
     buf    *bytes.Buffer
     conn   Connection
     queued int
-    auto   bool
 }
 
-func NewAsyncClient(addr string, auto bool) *AsyncClient {
+func NewAsyncClient(addr string) *AsyncClient {
     return &AsyncClient{
         NewClient(addr),
         bytes.NewBuffer(make([]byte, 0, 1024*16)),
         nil,
         0,
-        auto,
     }
 }
 
@@ -107,11 +105,6 @@ func (ac *AsyncClient) Poll() (*Reply, error) {
 
     reply, e := ac.conn.Read()
     ac.queued--
-
-    if ac.queued == 0 && ac.auto {
-        ac.Close()
-    }
-
     return reply, e
 }
 
