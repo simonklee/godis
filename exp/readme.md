@@ -1,20 +1,19 @@
 # exp-godis
 
-exp-godis - an experimental [Redis](http://redis.io) client
+godis/exp - an experimental [Redis](http://redis.io) client
 for Go. It supports commands and features through a simple
 API which aims to be is easy to use.
 
-1. [Package docs](http://go.pkgdoc.org/github.com/simonz05/exp-godis)
-2. [Source code](https://github.com/simonz05/exp-godis)
+1. [Package docs](http://go.pkgdoc.org/github.com/simonz05/godis/exp)
+2. [Source code](https://github.com/simonz05/godis/exp)
 
-## Install exp-godis
+## Install godis
 
-exp-godis is available at github.com. Get it by running.
+godis/exp is available at github.com. Get it by running.
 
-    $ go get github.com/simonz05/exp-godis
+    $ go get github.com/simonz05/godis/exp
 
-Importing exp-godis to your code can be done with `import
-"github.com/simonz05/exp-godis"`. Thats it!
+Importing godis/exp will add a `redis` context to program.
 
 ## Use exp-godis
 
@@ -24,11 +23,11 @@ and GET. See `example/` for more.
     package main
 
     import (
-        "github.com/simonz05/exp-godis"
+        "github.com/simonz05/godis/exp"
     )
 
     func main() {
-        c := godis.NewClient("tcp:127.0.0.1:6379")
+        c := redis.NewClient("tcp:127.0.0.1:6379")
 
         res, err := c.Call("SET", "foo", "bar")
 
