@@ -12,9 +12,8 @@
 //
 // Client
 //
-// The Client implements one method called Call(). This method first writes
-// your command to Redis, then reads the subsequent reply and returns it to
-// you. 
+// The Client implements one method; Call(). This writes your command to the
+// database, then reads the subsequent reply and returns it to you. 
 //
 // The Client struct also has a pool of connections so it's safe to use a
 // client in a concurrent context.  You can create on client object for your
