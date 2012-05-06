@@ -16,5 +16,5 @@ create a client and talk to the database. For a quick start
 check out either projects readme and example. Package
 reference is also available.
 
-1. [godis/redis](http://go.pkgdoc.org/pkg/github.com/simonz05/godis/redis)
-2. [godis/exp](http://go.pkgdoc.org/pkg/github.com/simonz05/godis/exp)
+1. [godis/redis](http://go.pkgdoc.org/github.com/simonz05/godis/redis)
+2. [godis/exp](http://go.pkgdoc.org/github.com/simonz05/godis/exp)
