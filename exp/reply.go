@@ -46,6 +46,10 @@ func (e Elem) Float64() float64 {
     return v
 }
 
+func (r *Reply) Nil() bool {
+    return r.Elems == nil && r.Elem == nil && r.Err == nil
+}
+
 func (r *Reply) Len() int {
     if r.Elems == nil {
         return 0

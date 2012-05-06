@@ -83,7 +83,7 @@ func (r *Reply) parseMultiBulk(buf *bufin.Reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        r.Err = errors.New("EOF")
+        r.Err = errors.New("-MULTI-BULK: nil reply")
         return
     }
 

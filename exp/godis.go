@@ -40,15 +40,15 @@
 //
 // When we send our command and arguments to the Call() method nothing is sent
 // to the Redis server. To get the reply for our commands from Redis we use the
-// Poll() method. Poll sends any buffered commands to the Redis server, and
-// then reads one reply. Subsequent calls to Poll will return more replies or
+// Read() method. Read sends any buffered commands to the Redis server, and
+// then reads one reply. Subsequent calls to Read will return more replies or
 // block if there are none.
 //
 //      // reply from SET 
-//      reply, _ := c.Poll()
+//      reply, _ := c.Read()
 //
 //      // reply from GET
-//      reply, _ = c.Poll()
+//      reply, _ = c.Read()
 //
 //      println(reply.Elem.Int()) // prints 1
 // 
@@ -149,14 +149,14 @@ func (ac *AsyncClient) Call(args ...interface{}) (err error) {
     return err
 }
 
-// Poll does three things. 
+// Read does three things. 
 // 
 //      1) Open connection to Redis server, if there is none.
 //      2) Write any buffered commands to the server.
 //      3) Try to read a reply from the server, or block on read.
 //
-// Poll returns a Reply or error.
-func (ac *AsyncClient) Poll() (*Reply, error) {
+// Read returns a Reply or error.
+func (ac *AsyncClient) Read() (*Reply, error) {
     if ac.conn == nil {
         conn, e := NewConn(ac.Addr, ac.Proto)
 
@@ -178,6 +178,26 @@ func (ac *AsyncClient) Poll() (*Reply, error) {
     reply, e := ac.conn.Read()
     ac.queued--
     return reply, e
+}
+
+func (ac *AsyncClient) Queued() int {
+    return ac.queued
+}
+
+func (ac *AsyncClient) ReadAll() ([]*Reply, error) {
+    replies := make([]*Reply, 0, ac.queued)
+
+    for ac.Queued() > 0 {
+        r, e := ac.Read()
+
+        if e != nil {
+            return nil, e
+        }
+
+        replies = append(replies, r)
+    }
+
+    return replies, nil
 }
 
 // The AsyncClient will only open one connection. This is not automatically
