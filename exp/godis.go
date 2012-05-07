@@ -65,20 +65,22 @@ import (
 // in a pool. The size of the pool can be adjusted with by setting the
 // MaxConnections variable before creating a client.
 type Client struct {
-    Addr  string
-    Proto string
-    pool  *connPool
+    Addr     string
+    Proto    string
+    Db       int
+    Password string
+    pool     *connPool
 }
 
 // NewClient expects a addr like "tcp:127.0.0.1:6379"
 // It returns a new *Client.
-func NewClient(addr string) *Client {
+func NewClient(addr string, db int, password string) *Client {
     if addr == "" {
         addr = "tcp:127.0.0.1:6379"
     }
 
     na := strings.SplitN(addr, ":", 2)
-    return &Client{Addr: na[1], Proto: na[0], pool: newConnPool()}
+    return &Client{na[1], na[0], db, password, newConnPool()}
 }
 
 // Call is the canonical way of talking to Redis. It accepts any 
@@ -106,7 +108,7 @@ func (c *Client) connect() (conn Connection, err error) {
     conn = c.pool.pop()
 
     if conn == nil {
-        conn, err = NewConn(c.Addr, c.Proto)
+        conn, err = NewConn(c.Addr, c.Proto, c.Db, c.Password)
 
         if err != nil {
             return nil, err
@@ -133,9 +135,9 @@ type AsyncClient struct {
 
 // NewAsyncClient expects a addr like "tcp:127.0.0.1:6379"
 // It returns a new *Client.
-func NewAsyncClient(addr string) *AsyncClient {
+func NewAsyncClient(addr string, db int, password string) *AsyncClient {
     return &AsyncClient{
-        NewClient(addr),
+        NewClient(addr, db, password),
         bytes.NewBuffer(make([]byte, 0, 1024*16)),
         nil,
         0,
@@ -158,7 +160,7 @@ func (ac *AsyncClient) Call(args ...interface{}) (err error) {
 // Read returns a Reply or error.
 func (ac *AsyncClient) Read() (*Reply, error) {
     if ac.conn == nil {
-        conn, e := NewConn(ac.Addr, ac.Proto)
+        conn, e := NewConn(ac.Addr, ac.Proto, ac.Db, ac.Password)
 
         if e != nil {
             return nil, e

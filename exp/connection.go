@@ -31,15 +31,45 @@ type Conn struct {
 // NewConn then returns a Conn struct which implements the Connection
 // interface. It's easy to use this interface to create your own
 // redis client or to simply talk to the redis database. 
-func NewConn(addr, proto string) (*Conn, error) {
-    c, err := net.Dial(proto, addr)
+func NewConn(addr, proto string, db int, password string) (*Conn, error) {
+    conn, err := net.Dial(proto, addr)
 
     if err != nil {
         return nil, err
     }
 
     ConnSum++
-    return &Conn{bufin.NewReader(c), c}, nil
+    c := &Conn{bufin.NewReader(conn), conn}
+
+    if password != "" {
+        e := c.Write("AUTH", password)
+
+        if e != nil {
+            return nil, e
+        }
+
+        _, e = c.Read()
+
+        if e != nil {
+            return nil, e
+        }
+    }
+
+    if db != 0 {
+        e := c.Write("SELECT", db)
+
+        if e != nil {
+            return nil, e
+        }
+
+        _, e = c.Read()
+
+        if e != nil {
+            return nil, e
+        }
+    }
+
+    return c, nil
 }
 
 // Read reads one reply of the socket connection. If there is no reply waiting
