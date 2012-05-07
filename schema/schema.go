@@ -10,9 +10,9 @@ import (
 )
 
 var (
-    nilError     = errors.New("Key requested returned a nil reply")
-    typeError    = errors.New("Invalid type, expected pointer to struct")
-    idFieldError = errors.New("Expected Id field of type int64 on struct")
+    NilError     = errors.New("Key requested returned a nil reply")
+    TypeError    = errors.New("Invalid type, expected pointer to struct")
+    IdFieldError = errors.New("Expected Id field of type int64 on struct")
 )
 
 /* logic:
@@ -89,6 +89,23 @@ Error:
     return nil, e
 }
 
+func Get(db *redis.Client, k *Key, s interface{}) error {
+    mon := monitoring.BeginMeasuring("database:get")
+    reply, e := db.Call("HGETALL", k.String())
+
+    if e != nil {
+        return e
+    }
+
+    if reply.Len() == 0 {
+        return NilError
+    }
+
+    e = inflate(db, s, reply.Hash())
+    mon.EndMeasuring()
+    return e
+}
+
 func cleanup(db *redis.Client, prep *prepare) error {
     p := db.AsyncClient()
 
@@ -101,23 +118,6 @@ func cleanup(db *redis.Client, prep *prepare) error {
     }
 
     _, e := p.ReadAll()
-    return e
-}
-
-func Get(db *redis.Client, k *Key, s interface{}) error {
-    mon := monitoring.BeginMeasuring("database:get")
-    reply, e := db.Call("HGETALL", k.String())
-
-    if e != nil {
-        return e
-    }
-
-    if reply.Len() == 0 {
-        return nilError
-    }
-
-    e = inflate(db, s, reply.Hash())
-    mon.EndMeasuring()
     return e
 }
 
@@ -141,19 +141,19 @@ func setId(db *redis.Client, s interface{}, prep *prepare) error {
     v := reflect.ValueOf(s)
 
     if v.Kind() != reflect.Ptr {
-        return typeError
+        return TypeError
     }
 
     v = v.Elem()
 
     if v.Kind() != reflect.Struct {
-        return typeError
+        return TypeError
     }
 
     idField := v.FieldByName("Id")
 
     if !idField.IsValid() || !idField.CanSet() || idField.Kind() != reflect.Int64 {
-        return idFieldError
+        return IdFieldError
     }
 
     idField.SetInt(prep.key.Id())
@@ -180,13 +180,13 @@ func parseStruct(db *redis.Client, s interface{}, prep *prepare) error {
     v := reflect.ValueOf(s)
 
     if v.Kind() != reflect.Ptr {
-        return typeError
+        return TypeError
     }
 
     v = v.Elem()
 
     if v.Kind() != reflect.Struct {
-        return typeError
+        return TypeError
     }
 
     t := v.Type()
@@ -244,13 +244,13 @@ func inflate(db *redis.Client, dst interface{}, src map[string]redis.Elem) error
     v := reflect.ValueOf(dst)
 
     if v.Kind() != reflect.Ptr {
-        return typeError
+        return TypeError
     }
 
     v = v.Elem()
 
     if v.Kind() != reflect.Struct {
-        return typeError
+        return TypeError
     }
 
     t := v.Type()
