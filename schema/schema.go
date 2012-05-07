@@ -121,16 +121,6 @@ func Get(db *redis.Client, k *Key, s interface{}) error {
     return e
 }
 
-func SetUnique(db *redis.Client, key string) (bool, error) {
-    reply, e := db.Call("SETNX", key, 1)
-
-    if e != nil {
-        return false, e
-    }
-
-    return reply.Elem.Int() == 1, nil
-}
-
 func setId(db *redis.Client, s interface{}, prep *prepare) error {
     if prep.key.Id() != 0 {
         return nil
