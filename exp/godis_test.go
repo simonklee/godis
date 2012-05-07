@@ -15,7 +15,7 @@ func error_(t *testing.T, name string, expected, got interface{}, err error) {
 }
 
 func TestClient(t *testing.T) {
-    c := NewClient("")
+    c := NewClient("", 0, "")
 
     if _, err := c.Call("SET", "foo", "foo"); err != nil {
         t.Fatal(err.Error())
@@ -26,19 +26,19 @@ func TestClient(t *testing.T) {
     p.Call("GET", "foo")
     p.Call("EXEC")
 
-    res, err := p.Poll()
+    res, err := p.Read()
 
     if err != nil || string(res.Elem) != "OK" {
         t.Fatal(err.Error())
     }
 
-    res, err = p.Poll()
+    res, err = p.Read()
 
     if err != nil || string(res.Elem) != "QUEUED" {
         error_(t, "pipe", "foo", string(res.Elem), err)
     }
 
-    res, err = p.Poll()
+    res, err = p.Read()
 
     if err != nil || len(res.Elems) != 1 {
         error_(t, "exec", 1, len(res.Elems), err)
@@ -54,7 +54,7 @@ func BenchmarkItoa(b *testing.B) {
 }
 
 func BenchmarkSet(b *testing.B) {
-    c := NewClient("")
+    c := NewClient("", 0, "")
 
     for i := 0; i < b.N; i++ {
         c.Call("SET", "foo", "foo")
