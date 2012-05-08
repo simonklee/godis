@@ -10,10 +10,20 @@ import (
 )
 
 var (
-    NilError     = errors.New("Key requested returned a nil reply")
+    NilError     = errors.New("user error: Key requested returned a nil reply")
     TypeError    = errors.New("Invalid type, expected pointer to struct")
     IdFieldError = errors.New("Expected Id field of type int64 on struct")
 )
+
+type UniqueError string 
+
+func (e UniqueError) Error() string {
+    return string(e)
+}
+
+func newUniqueError(field string, value interface{}) UniqueError {
+    return UniqueError(fmt.Sprintf("user error: expected unique `%s`:`%v`", field, value))
+}
 
 /* logic:
    input: key, *struct
@@ -56,14 +66,20 @@ func Put(db *redis.Client, k *Key, s interface{}) (*Key, error) {
     for _, o := range prep.unique {
         uk := k.Unique(o.name, fmt.Sprintf("%v", *o.value))
         var reply *redis.Reply
-        reply, e = db.Call("SETNX", uk, k.Id())
+        reply, e = db.Call("GET", uk)
 
         if e != nil {
             goto Error
         }
 
-        if reply.Elem.Int() != 1 {
-            e = errors.New(fmt.Sprintf("expected unique `%s`:`%v`", o.name, o.value))
+        if !reply.Nil() && reply.Elem.Int64() != k.Id() {
+            e = newUniqueError(o.name, *o.value)
+            goto Error
+        }
+
+        reply, e = db.Call("SET", uk, k.Id())
+
+        if e != nil {
             goto Error
         }
 
