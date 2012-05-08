@@ -66,6 +66,7 @@ func Put(db *redis.Client, k *Key, s interface{}) (*Key, error) {
     for _, o := range prep.unique {
         uk := k.Unique(o.name, fmt.Sprintf("%v", *o.value))
         var reply *redis.Reply
+        // TODO: Watch key
         reply, e = db.Call("GET", uk)
 
         if e != nil {

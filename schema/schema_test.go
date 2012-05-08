@@ -51,6 +51,10 @@ var putTests = [][]putTest{
         {&User{1, "foo", "foo@foo.com"}, NewKey("user", 1), nil},
         {&User{2, "bar", "bar@foo.com"}, NewKey("user", 2), nil},
     },
+    {
+        {&User{0, "foo", "foo@foo.com"}, NewKey("user", 0), nil},
+        {&User{0, "foo", "foo@foo.com"}, NewKey("user", 0), newUniqueError("username", "foo")},
+    },
 }
 
 func TestPut(t *testing.T) {
