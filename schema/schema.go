@@ -1,7 +1,6 @@
 package schema
 
 import (
-    "errors"
     "fmt"
     "reflect"
 
@@ -9,20 +8,36 @@ import (
     "github.com/simonz05/godis/exp"
 )
 
-var (
-    NilError     = errors.New("user error: Key requested returned a nil reply")
-    TypeError    = errors.New("Invalid type, expected pointer to struct")
-    IdFieldError = errors.New("Expected Id field of type int64 on struct")
-)
+type UserError string 
 
-type UniqueError string 
-
-func (e UniqueError) Error() string {
+func (e UserError) Error() string {
     return string(e)
 }
 
-func newUniqueError(field string, value interface{}) UniqueError {
-    return UniqueError(fmt.Sprintf("user error: expected unique `%s`:`%v`", field, value))
+type InternalError string 
+
+func (e InternalError) Error() string {
+    return string(e)
+}
+
+func newUniqueError(field string, value interface{}) UserError {
+    return UserError(fmt.Sprintf("Expected unique `%s`:`%v`", field, value))
+}
+
+var (
+    nilError     = UserError("Key requested returned a nil reply")
+    typeError    = InternalError("Invalid type, expected pointer to struct")
+    idFieldError = InternalError("Expected Id field of type int64 on struct")
+)
+
+func IsUserError(e error) bool {
+    _, ok := e.(UserError)
+    return ok
+}
+
+func IsInternalError(e error) bool {
+    _, ok := e.(InternalError)
+    return ok
 }
 
 /* logic:
@@ -115,7 +130,7 @@ func Get(db *redis.Client, k *Key, s interface{}) error {
     }
 
     if reply.Len() == 0 {
-        return NilError
+        return nilError
     }
 
     e = inflate(db, s, reply.Hash())
@@ -158,19 +173,19 @@ func setId(db *redis.Client, s interface{}, prep *prepare) error {
     v := reflect.ValueOf(s)
 
     if v.Kind() != reflect.Ptr {
-        return TypeError
+        return typeError
     }
 
     v = v.Elem()
 
     if v.Kind() != reflect.Struct {
-        return TypeError
+        return typeError
     }
 
     idField := v.FieldByName("Id")
 
     if !idField.IsValid() || !idField.CanSet() || idField.Kind() != reflect.Int64 {
-        return IdFieldError
+        return idFieldError
     }
 
     idField.SetInt(prep.key.Id())
@@ -197,13 +212,13 @@ func parseStruct(db *redis.Client, s interface{}, prep *prepare) error {
     v := reflect.ValueOf(s)
 
     if v.Kind() != reflect.Ptr {
-        return TypeError
+        return typeError
     }
 
     v = v.Elem()
 
     if v.Kind() != reflect.Struct {
-        return TypeError
+        return typeError
     }
 
     t := v.Type()
@@ -261,13 +276,13 @@ func inflate(db *redis.Client, dst interface{}, src map[string]redis.Elem) error
     v := reflect.ValueOf(dst)
 
     if v.Kind() != reflect.Ptr {
-        return TypeError
+        return typeError
     }
 
     v = v.Elem()
 
     if v.Kind() != reflect.Struct {
-        return TypeError
+        return typeError
     }
 
     t := v.Type()
