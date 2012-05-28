@@ -145,10 +145,10 @@ func NewAsyncClient(addr string, db int, password string) *AsyncClient {
 }
 
 // Call appends a command to the write buffer or returns an error.
-func (ac *AsyncClient) Call(args ...interface{}) (err error) {
-    _, err = ac.buf.Write(format(args...))
+func (ac *AsyncClient) Call(args ...interface{}) {
+	// note: bytes.Buffer.Write never returns an error
+    _, _ = ac.buf.Write(format(args...))
     ac.queued++
-    return err
 }
 
 // Read does three things. 
