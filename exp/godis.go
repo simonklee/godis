@@ -58,6 +58,7 @@ package redis
 
 import (
     "bytes"
+    "errors"
     "strings"
 )
 
@@ -149,6 +150,19 @@ func (ac *AsyncClient) Call(args ...interface{}) {
 	// note: bytes.Buffer.Write never returns an error
     _, _ = ac.buf.Write(format(args...))
     ac.queued++
+}
+
+// Issue a synchronous call on an async connection.
+// This is useful for issuing WATCH commands and doing
+// tests before issueing a MULTI command.
+// This fails if there are queued commands already.
+func (ac *AsyncClient) SyncCall(args ...interface{}) (*Reply, error) {
+    if ac.Queued() > 0 {
+        return nil, errors.New("Cannot call SyncCall with non-empty queue")
+    }
+
+    ac.Call(args...)
+    return ac.Read()
 }
 
 // Read does three things. 
