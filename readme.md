@@ -18,3 +18,16 @@ reference is also available.
 
 1. [godis/redis](http://go.pkgdoc.org/github.com/simonz05/godis/redis)
 2. [godis/exp](http://go.pkgdoc.org/github.com/simonz05/godis/exp)
+
+**HINT**
+
+If you installed godis with the go tool
+
+    go get github.com/hoisie/web
+    
+you currently need to use
+
+    import "github.com/simonz05/godis"
+    
+in order to use godis since the go tool does not fetch the current version,
+which has undergone some stuctural changes.
