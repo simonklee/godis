@@ -292,6 +292,11 @@ func (c *conn) readReply() *Reply {
         return r
     }
 
+    if len(res) < 3 {
+        r.Err = errors.New("response from redis too short")
+        return r
+    }
+
     typ := res[0]
     line := res[1 : len(res)-2]
 
