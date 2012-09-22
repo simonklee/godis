@@ -43,7 +43,7 @@ func setPipelineHandle(c *redis.Client, ch chan bool) {
 
         if send == *P {
             for i := 0; i < *P; i++ {
-                p.Poll()
+                p.Read()
             }
             send = 0
         }

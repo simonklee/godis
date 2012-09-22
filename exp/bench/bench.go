@@ -59,7 +59,7 @@ func BenchmarkMock(handle func(*redis.Client, chan bool)) time.Duration {
 }
 
 func BenchmarkRedis(handle func(*redis.Client, chan bool)) time.Duration {
-    c := redis.NewClient("")
+    c := redis.NewClient("tcp:127.0.0.1:6379",13, "")
 
     //if _, err := c.Call("FLUSHDB"); err != nil {
     //    fmt.Fprintln(os.Stderr, err.Error())
