@@ -1,3 +1,7 @@
+# 13 Aug 2012
+
+Currently very busy with work, and I don't have the time to fix some of the pending issues at hand.
+
 # godis
 
 Implements a few database clients for Redis.
