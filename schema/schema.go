@@ -5,7 +5,7 @@ import (
     "reflect"
 
     "code.google.com/p/tcgl/monitoring"
-    "github.com/simonz05/godis/exp"
+    "insmo.com/godis/exp"
 )
 
 type UserError string 

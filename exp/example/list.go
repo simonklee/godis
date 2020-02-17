@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "github.com/simonz05/godis"
+    "insmo.com/godis"
     "os"
 )
 

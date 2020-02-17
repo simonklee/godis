@@ -4,14 +4,14 @@ godis/exp - an experimental [Redis](http://redis.io) client
 for Go. It supports commands and features through a simple
 API which aims to be is easy to use.
 
-1. [Package docs](http://go.pkgdoc.org/github.com/simonz05/godis/exp)
-2. [Source code](https://github.com/simonz05/godis/exp)
+1. [Package docs](http://go.pkgdoc.org/insmo.com/godis/exp)
+2. [Source code](https://insmo.com/godis/exp)
 
 ## Install godis
 
 godis/exp is available at github.com. Get it by running.
 
-    $ go get github.com/simonz05/godis/exp
+    $ go get insmo.com/godis/exp
 
 Importing godis/exp will add a `redis` context to program.
 
@@ -23,7 +23,7 @@ and GET. See `example/` for more.
     package main
 
     import (
-        "github.com/simonz05/godis/exp"
+        "insmo.com/godis/exp"
     )
 
     func main() {

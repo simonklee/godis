@@ -6,7 +6,7 @@ import (
     "log"
     "strconv"
 
-    "github.com/simonz05/godis/bufin"
+    "insmo.com/godis/bufin"
 )
 
 var (

@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "github.com/simonz05/godis/exp"
+    "insmo.com/godis/exp"
     "net"
     "os"
 )

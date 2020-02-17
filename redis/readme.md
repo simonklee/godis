@@ -3,16 +3,16 @@
 godis - a [Redis](http://redis.io) client for Go. It supports all
 commands and features such as transactions and pubsub.
 
-1. [Package docs](http://gopkgdoc.appspot.com/pkg/github.com/simonz05/godis/redis)
-2. [Source code](https://github.com/simonz05/godis/redis)
+1. [Package docs](http://gopkgdoc.appspot.com/pkg/insmo.com/godis/redis)
+2. [Source code](https://insmo.com/godis/redis)
 
 ## Install godis
 
 godis is available at github.com. Get it by running.
 
-    $ go get github.com/simonz05/godis/redis
+    $ go get insmo.com/godis/redis
 
-Importing godis to your code can be done with `import "github.com/simonz05/godis"`. Thats it!
+Importing godis to your code can be done with `import "insmo.com/godis"`. Thats it!
 
 ## Use godis
 
@@ -23,7 +23,7 @@ the `example/strings.go`.
 
     import (
         "fmt"
-        "github.com/simonz05/godis/redis"
+        "insmo.com/godis/redis"
         "os"
     )
 

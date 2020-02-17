@@ -1,7 +1,7 @@
 package redis
 
 import (
-    "github.com/simonz05/godis/bufin"
+    "insmo.com/godis/bufin"
     "net"
 )
 

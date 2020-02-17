@@ -3,7 +3,7 @@ package main
 import (
     "flag"
     "fmt"
-    "github.com/simonz05/exp-godis"
+    "insmo.com/exp-godis"
     "log"
     "math/rand"
     "net"

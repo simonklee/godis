@@ -3,7 +3,7 @@ package schema
 import (
     "testing"
 
-    "github.com/simonz05/godis/exp"
+    "insmo.com/godis/exp"
 )
 
 var db *redis.Client

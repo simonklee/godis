@@ -4,7 +4,7 @@ import (
     "fmt"
     "os"
 
-    "github.com/simonz05/godis/redis"
+    "insmo.com/godis/redis"
 )
 
 func main() {
