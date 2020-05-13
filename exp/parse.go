@@ -12,6 +12,10 @@ import (
 var (
     debug       = false
     ErrProtocol = errors.New("godis: protocol error")
+
+    // the err returned by ReadAll when a MULTI..EXEC is aborted due to
+    // a WATCH condition
+    ErrMultiAborted = errors.New("-MULTI-BULK: nil reply")
 )
 
 func (r *Reply) parseErr(res []byte) {
@@ -83,7 +87,7 @@ func (r *Reply) parseMultiBulk(buf *bufin.Reader, res []byte) {
     l, _ := strconv.Atoi(string(res))
 
     if l == -1 {
-        r.Err = errors.New("-MULTI-BULK: nil reply")
+        r.Err = ErrMultiAborted
         return
     }
 
